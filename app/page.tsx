@@ -65,7 +65,7 @@ interface Visit {
 }
 
 const FIXED_FAMILY_MEMBERS = [
-  'Dan', 'Mandie', 'Elijah Violette', 'Sophia', 'Zach', 'Jasmine', 'Kimbo'
+  'Dan', 'Mandie', 'Elijah', 'Violette', 'Sophia', 'Zach', 'Jasmine', 'Kimbo'
 ];
 
 const HHN_HOUSES = [
@@ -139,6 +139,7 @@ export default function HorrorNightsTracker() {
   
   // Track Activity States
   const [rideName, setRideName] = useState(HHN_HOUSES[0]);
+  const [postedWaitTime, setPostedWaitTime] = useState('');
   const [waitTime, setWaitTime] = useState('');
   const [selectedRiders, setSelectedRiders] = useState<string[]>([]);
 
@@ -147,10 +148,21 @@ export default function HorrorNightsTracker() {
   const [queueStartTimeStr, setQueueStartTimeStr] = useState<string | null>(null);
   const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now());
 
-  // Edit / Checkout Modal States
+  // Edit Activity State
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
   const [editRideName, setEditRideName] = useState('');
   const [editWaitTime, setEditWaitTime] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editRiders, setEditRiders] = useState<string[]>([]);
+
+  // Edit Entire Visit Log State
+  const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
+  const [editVisitStartTime, setEditVisitStartTime] = useState('');
+  const [editVisitEndTime, setEditVisitEndTime] = useState('');
+  const [editVisitMemberEndTimes, setEditVisitMemberEndTimes] = useState<Record<string, string>>({});
+
+  // Checkout Modal State
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [departingMembers, setDepartingMembers] = useState<string[]>([]);
 
@@ -251,6 +263,30 @@ export default function HorrorNightsTracker() {
     return `${hour12}:${m.toString().padStart(2, '0')} ${period}`;
   };
 
+  const parseTimeToMinutes = (timeStr?: string) => {
+    if (!timeStr) return 0;
+    const [hrs, mins] = timeStr.split(':').map(Number);
+    return (hrs * 60) + mins;
+  };
+
+  const calculateVisitDuration = (startTime: string, endTime?: string) => {
+    if (!startTime || !endTime) return '';
+    const startMins = parseTimeToMinutes(startTime);
+    const endMins = parseTimeToMinutes(endTime);
+    const diff = endMins >= startMins ? (endMins - startMins) : ((1440 - startMins) + endMins);
+    const hrs = Math.floor(diff / 60);
+    const mins = diff % 60;
+    if (hrs === 0) return `(${mins} min)`;
+    return mins > 0 ? `(${hrs} hrs ${mins} min)` : `(${hrs} hrs)`;
+  };
+
+  const getPersonEndTime = (v: Visit, person: string) => {
+    if (v.memberEndTimes && v.memberEndTimes[person]) {
+      return v.memberEndTimes[person];
+    }
+    return v.endTime || '';
+  };
+
   const toggleCheckInAttendee = (name: string) => {
     if (selectedAttendees.includes(name)) {
       setSelectedAttendees(selectedAttendees.filter(a => a !== name));
@@ -265,6 +301,24 @@ export default function HorrorNightsTracker() {
       setSelectedRiders(selectedRiders.filter(r => r !== name));
     } else {
       setSelectedRiders([...selectedRiders, name]);
+    }
+  };
+
+  const toggleEditRiderSelection = (name: string) => {
+    if (editRiders.includes(name)) {
+      if (editRiders.length === 1) return;
+      setEditRiders(editRiders.filter(r => r !== name));
+    } else {
+      setEditRiders([...editRiders, name]);
+    }
+  };
+
+  const toggleDepartingMember = (name: string) => {
+    if (departingMembers.includes(name)) {
+      if (departingMembers.length === 1) return;
+      setDepartingMembers(departingMembers.filter(m => m !== name));
+    } else {
+      setDepartingMembers([...departingMembers, name]);
     }
   };
 
@@ -315,6 +369,7 @@ export default function HorrorNightsTracker() {
   const handleAddRideLive = async () => {
     if (!activeVisit || !rideName) return;
     const waitMins = parseInt(waitTime) || 0;
+    const notesVal = postedWaitTime ? `Posted: ${postedWaitTime}m` : undefined;
     const ridersStr = selectedRiders.join(', ');
 
     const supabase = await getSupabase();
@@ -324,6 +379,7 @@ export default function HorrorNightsTracker() {
         visit_id: activeVisit.id,
         rideName,
         waitTimeMinutes: waitMins,
+        notes: notesVal,
         riders: ridersStr
       })
       .select()
@@ -339,11 +395,13 @@ export default function HorrorNightsTracker() {
       visit_id: activeVisit.id,
       rideName,
       waitTimeMinutes: waitMins,
+      notes: notesVal,
       riders: selectedRiders
     };
 
     setActiveVisit({ ...activeVisit, activities: [...activeVisit.activities, newActivity] });
     setWaitTime('');
+    setPostedWaitTime('');
   };
 
   const handleStartQueueTimer = () => {
@@ -360,6 +418,7 @@ export default function HorrorNightsTracker() {
     let calculatedWait = Math.round(diffMs / 60000);
     if (calculatedWait <= 0) calculatedWait = 1;
 
+    const notesVal = postedWaitTime ? `Posted: ${postedWaitTime}m` : undefined;
     const ridersStr = selectedRiders.join(', ');
 
     const supabase = await getSupabase();
@@ -369,7 +428,8 @@ export default function HorrorNightsTracker() {
         visit_id: activeVisit.id,
         rideName,
         waitTimeMinutes: calculatedWait,
-        riders: selectedRiders
+        notes: notesVal,
+        riders: ridersStr
       })
       .select()
       .single();
@@ -384,6 +444,7 @@ export default function HorrorNightsTracker() {
       visit_id: activeVisit.id,
       rideName,
       waitTimeMinutes: calculatedWait,
+      notes: notesVal,
       riders: selectedRiders
     };
 
@@ -391,6 +452,102 @@ export default function HorrorNightsTracker() {
     setQueueStartTimestamp(null);
     setQueueStartTimeStr(null);
     setWaitTime('');
+    setPostedWaitTime('');
+  };
+
+  const startEditing = (activity: Activity, visitId: string | null) => {
+    setEditingActivityId(activity.id);
+    setEditingVisitId(visitId);
+    setEditRideName(activity.rideName);
+    setEditWaitTime(activity.waitTimeMinutes.toString());
+    setEditNotes(activity.notes || '');
+
+    let currentParty: string[] = [];
+    if (visitId === null && activeVisit) {
+      currentParty = parseAttendees(activeVisit.attendees);
+    } else {
+      const foundV = visits.find(v => v.id === visitId);
+      if (foundV) currentParty = parseAttendees(foundV.attendees);
+    }
+    
+    const existingRiders = parseAttendees(activity.riders);
+    setEditRiders(existingRiders.length > 0 ? existingRiders : currentParty);
+  };
+
+  const cancelEditing = () => {
+    setEditingActivityId(null);
+    setEditingVisitId(null);
+  };
+
+  const saveEditedActivity = async () => {
+    if (!editingActivityId) return;
+
+    const waitMins = parseInt(editWaitTime) || 0;
+    const notesVal = editNotes.trim() ? editNotes : null;
+    const ridersStr = editRiders.join(', ');
+
+    const supabase = await getSupabase();
+    let { error } = await supabase
+      .from('activities')
+      .update({
+        rideName: editRideName,
+        waitTimeMinutes: waitMins,
+        notes: notesVal,
+        riders: ridersStr
+      })
+      .eq('id', editingActivityId);
+
+    if (error) {
+      setErrorMessage("Error saving edits: " + error.message);
+      return;
+    }
+
+    await fetchCloudVisits();
+    cancelEditing();
+  };
+
+  const deleteActivity = async (activityId: string) => {
+    const supabase = await getSupabase();
+    const { error } = await supabase.from('activities').delete().eq('id', activityId);
+    if (error) {
+      setErrorMessage("Error deleting entry: " + error.message);
+      return;
+    }
+
+    await fetchCloudVisits();
+  };
+
+  const openEditVisit = (v: Visit) => {
+    setEditingVisit(v);
+    setEditVisitStartTime(v.startTime || '');
+    setEditVisitEndTime(v.endTime || '');
+    setEditVisitMemberEndTimes({ ...(v.memberEndTimes || {}) });
+  };
+
+  const handleSaveVisitEdit = async () => {
+    if (!editingVisit) return;
+    const rawAttendeesStr = parseAttendees(editingVisit.attendees).join(', ');
+    const jsonEndTimesStr = JSON.stringify(editVisitMemberEndTimes);
+    const attendeesWithEndTimes = `${rawAttendeesStr}|ENDTIMES:${jsonEndTimesStr}`;
+
+    const supabase = await getSupabase();
+    const { error } = await supabase
+      .from('visits')
+      .update({
+        startTime: editVisitStartTime,
+        endTime: editVisitEndTime,
+        attendees: attendeesWithEndTimes,
+        notes: jsonEndTimesStr
+      })
+      .eq('id', editingVisit.id);
+
+    if (error) {
+      setErrorMessage("Error updating visit log: " + error.message);
+      return;
+    }
+
+    setEditingVisit(null);
+    await fetchCloudVisits();
   };
 
   const processCheckout = async (checkoutType: 'selected' | 'everyone') => {
@@ -435,6 +592,19 @@ export default function HorrorNightsTracker() {
     await fetchCloudVisits();
     setQueueStartTimestamp(null);
     setQueueStartTimeStr(null);
+  };
+
+  const deleteVisit = async (id: string) => {
+    const confirmDelete = window.confirm("⚠️ Are you sure you want to delete this entire visit log? This action cannot be undone!");
+    if (!confirmDelete) return;
+
+    const supabase = await getSupabase();
+    const { error } = await supabase.from('visits').delete().eq('id', id);
+    if (error) {
+      setErrorMessage("Error deleting visit: " + error.message);
+      return;
+    }
+    await fetchCloudVisits();
   };
 
   const getElapsedQueueTimeString = () => {
@@ -680,6 +850,21 @@ export default function HorrorNightsTracker() {
                     </div>
                   )}
 
+                  {/* POSTED WAIT TIME INPUT */}
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>
+                      POSTED WAIT TIME (MINS)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 45"
+                      value={postedWaitTime}
+                      onChange={(e) => setPostedWaitTime(e.target.value)}
+                      disabled={!!queueStartTimestamp}
+                      style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: queueStartTimestamp ? '#1A1A24' : '#1A1A26', color: '#FFF', fontSize: '14px' }}
+                    />
+                  </div>
+
                   {queueStartTimestamp ? (
                     <div style={{ background: '#2B1408', border: '1px solid #C05621', padding: '14px', borderRadius: '14px', textAlign: 'center' }}>
                       <div style={{ fontSize: '11px', fontWeight: '900', color: '#FF9A56', letterSpacing: '0.5px' }}>⏱️ LIVE QUEUE TIMER RUNNING</div>
@@ -697,7 +882,7 @@ export default function HorrorNightsTracker() {
                           Cancel
                         </button>
                         <button type="button" onClick={handleEndQueueTimer} style={{ flex: 2, padding: '10px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
-                          ✅ Completed Attraction!
+                          ✅ Entering Attraction
                         </button>
                       </div>
                     </div>
@@ -713,7 +898,7 @@ export default function HorrorNightsTracker() {
                       </div>
 
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <input type="number" placeholder="Wait time (mins)" value={waitTime} onChange={(e) => setWaitTime(e.target.value)} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }} />
+                        <input type="number" placeholder="Actual wait time (mins)" value={waitTime} onChange={(e) => setWaitTime(e.target.value)} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }} />
                         <button type="button" onClick={handleAddRideLive} style={{ padding: '11px 22px', background: '#2A2A3C', color: '#FFF', border: '1px solid #3F3F56', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
                           Log
                         </button>
@@ -726,16 +911,70 @@ export default function HorrorNightsTracker() {
                   <div style={{ marginTop: '15px', borderTop: '2px dashed #2A2A3C', paddingTop: '12px' }}>
                     <strong style={{ fontSize: '11px', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>TONIGHT'S LOG ({activeVisit.activities.length}):</strong>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {activeVisit.activities.map((act) => (
-                        <div key={act.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1A1A26', padding: '8px 10px', borderRadius: '8px', border: '1px solid #2A2A3C' }}>
-                          <div style={{ minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                            <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#F3F4F6' }}>{act.rideName}</div>
-                            <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                              ⏱️ {act.waitTimeMinutes} mins wait • 👥 {parseAttendees(act.riders).join(', ')}
+                      {activeVisit.activities.map((act) => {
+                        const isEditingThis = editingActivityId === act.id && editingVisitId === null;
+                        const actRidersList = parseAttendees(act.riders);
+
+                        return isEditingThis ? (
+                          <div key={act.id} style={{ background: '#1A1A26', border: '1px solid #3F3F56', padding: '10px', borderRadius: '10px' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#FF5500', marginBottom: '6px' }}>EDIT ENTRY</div>
+                            <select value={editRideName} onChange={(e) => setEditRideName(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '13px', marginBottom: '6px' }}>
+                              <optgroup label="Houses">
+                                {HHN_HOUSES.map((house) => (
+                                  <option key={house} value={house}>{house}</option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="Rides">
+                                {HHN_RIDES.map((ride) => (
+                                  <option key={ride} value={ride}>{ride}</option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="Shows">
+                                {HHN_SHOWS.map((show) => (
+                                  <option key={show} value={show}>{show}</option>
+                                ))}
+                              </optgroup>
+                            </select>
+
+                            <div style={{ marginBottom: '6px' }}>
+                              <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>WHO DID THIS?</label>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {parseAttendees(activeVisit.attendees).map((m) => {
+                                  const checked = editRiders.includes(m);
+                                  return (
+                                    <button key={m} type="button" onClick={() => toggleEditRiderSelection(m)} style={{ padding: '4px 8px', borderRadius: '6px', border: checked ? '1px solid #FF5500' : '1px solid #2A2A3C', background: checked ? '#FF5500' : '#12121A', color: checked ? '#FFF' : '#A0AEC0', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                      {m}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            
+                            <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+                              <input type="number" value={editWaitTime} onChange={(e) => setEditWaitTime(e.target.value)} placeholder="Wait (mins)" style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '13px' }} />
+                              <input type="text" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Notes (optional)" style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '13px' }} />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                              <button onClick={() => deleteActivity(act.id)} style={{ background: '#DC2626', color: '#FFF', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Delete</button>
+                              <button onClick={cancelEditing} style={{ background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                              <button onClick={saveEditedActivity} style={{ background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ) : (
+                          <div key={act.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1A1A26', padding: '8px 10px', borderRadius: '8px', border: '1px solid #2A2A3C' }}>
+                            <div style={{ minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                              <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#F3F4F6' }}>{act.rideName}</div>
+                              <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                                ⏱️ {act.waitTimeMinutes} mins wait {actRidersList.length > 0 ? `• 👥 ${actRidersList.join(', ')}` : ''} {act.notes ? `• ${act.notes}` : ''}
+                              </div>
+                            </div>
+                            <button onClick={() => startEditing(act, null)} style={{ background: 'none', border: 'none', color: '#FF5500', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', padding: '2px 6px', flexShrink: 0 }}>
+                              Edit
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -786,19 +1025,318 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
+      {/* SUBTAB: PAST VISITS */}
+      {mainTab === 'tracker' && trackerSubTab === 'Past Visits' && (
+        <div>
+          <h2 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '12px', color: '#FF5500', paddingLeft: '5px' }}>
+            Past Visits ({visits.length})
+          </h2>
+          {loading ? (
+            <p style={{ color: '#A0AEC0', textAlign: 'center', fontSize: '14px', margin: '20px 0' }}>Syncing with cloud...</p>
+          ) : visits.length === 0 ? (
+            <p style={{ color: '#A0AEC0', textAlign: 'center', fontSize: '14px', marginTop: '20px', fontStyle: 'italic' }}>No completed visits found.</p>
+          ) : (
+            visits.map((v) => {
+              const partyList = parseAttendees(v.attendees);
+              const departureGroups: Record<string, string[]> = {};
+              partyList.forEach(m => {
+                const pTime = getPersonEndTime(v, m);
+                if (!departureGroups[pTime]) departureGroups[pTime] = [];
+                departureGroups[pTime].push(m);
+              });
+
+              const uniqueDepTimes = Object.keys(departureGroups);
+              const hasStaggeredCheckout = uniqueDepTimes.length > 1;
+
+              return (
+                <div key={v.id} style={{ border: '1px solid #2A2A3C', borderRadius: '20px', padding: '16px', marginBottom: '12px', background: '#12121A' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #2A2A3C', paddingBottom: '8px', marginBottom: '10px' }}>
+                    <strong style={{ color: '#FF5500', fontSize: '16px', fontWeight: '800' }}>
+                      🎃 Halloween Horror Nights
+                    </strong>
+                    <span style={{ fontSize: '13px', color: '#A0AEC0', fontWeight: '600' }}>📅 {formatDisplayDate(v.visitDate)}</span>
+                  </div>
+
+                  <div style={{ fontSize: '13px', color: '#CBD5E0', marginBottom: '10px' }}>
+                    👥 <strong>Party:</strong> {partyList.join(', ')} <br />
+                    
+                    {!hasStaggeredCheckout ? (
+                      <div style={{ marginTop: '2px' }}>
+                        ⏱️ <strong>Hours:</strong> {format12Hour(v.startTime)} - {format12Hour(v.endTime)} <span style={{ color: '#FF5500', fontWeight: 'bold' }}>{calculateVisitDuration(v.startTime, v.endTime)}</span>
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: '6px', background: '#1A1A26', padding: '8px 10px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                        <div style={{ fontSize: '11px', fontWeight: '800', color: '#FF5500', marginBottom: '4px' }}>⏱️ HOURS:</div>
+                        {uniqueDepTimes.map(depTime => (
+                          <div key={depTime} style={{ fontSize: '12px', color: '#CBD5E0', marginTop: '2px' }}>
+                            • <strong>{departureGroups[depTime].join(', ')}:</strong> {format12Hour(v.startTime)} - {format12Hour(depTime)} <span style={{ color: '#FF5500', fontWeight: '600' }}>{calculateVisitDuration(v.startTime, depTime)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {v.activities.length > 0 && (
+                    <div style={{ background: '#1A1A26', padding: '12px', borderRadius: '12px', border: '1px solid #2A2A3C' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {v.activities.map((a) => {
+                          const isEditingThis = editingActivityId === a.id && editingVisitId === v.id;
+                          const actRidersList = parseAttendees(a.riders);
+
+                          return isEditingThis ? (
+                            <div key={a.id} style={{ background: '#12121A', border: '1px solid #2A2A3C', padding: '10px', borderRadius: '10px' }}>
+                              <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#FF5500', marginBottom: '6px' }}>EDIT ENTRY</div>
+                              <select value={editRideName} onChange={(e) => setEditRideName(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px', marginBottom: '6px' }}>
+                                <optgroup label="Houses">
+                                  {HHN_HOUSES.map((house) => (
+                                    <option key={house} value={house}>{house}</option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Rides">
+                                  {HHN_RIDES.map((ride) => (
+                                    <option key={ride} value={ride}>{ride}</option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Shows">
+                                  {HHN_SHOWS.map((show) => (
+                                    <option key={show} value={show}>{show}</option>
+                                  ))}
+                                </optgroup>
+                              </select>
+
+                              <div style={{ marginBottom: '6px' }}>
+                                <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>WHO DID THIS?</label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                  {partyList.map((m) => {
+                                    const checked = editRiders.includes(m);
+                                    return (
+                                      <button key={m} type="button" onClick={() => toggleEditRiderSelection(m)} style={{ padding: '4px 8px', borderRadius: '6px', border: checked ? '1px solid #FF5500' : '1px solid #2A2A3C', background: checked ? '#FF5500' : '#12121A', color: checked ? '#FFF' : '#A0AEC0', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                        {m}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                              
+                              <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+                                <input type="number" value={editWaitTime} onChange={(e) => setEditWaitTime(e.target.value)} placeholder="Wait (mins)" style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }} />
+                                <input type="text" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Notes (optional)" style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }} />
+                              </div>
+
+                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                <button onClick={() => deleteActivity(a.id)} style={{ background: '#DC2626', color: '#FFF', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Delete</button>
+                                <button onClick={cancelEditing} style={{ background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                                <button onClick={saveEditedActivity} style={{ background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                                <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#F3F4F6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.rideName}</div>
+                                <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                                  ⏱️ {a.waitTimeMinutes} mins wait {actRidersList.length > 0 ? `• 👥 ${actRidersList.join(', ')}` : ''} {a.notes ? `• ${a.notes}` : ''}
+                                </div>
+                              </div>
+                              <button onClick={() => startEditing(a, v.id)} style={{ background: 'none', border: 'none', color: '#FF5500', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', padding: '2px 6px', flexShrink: 0 }}>
+                                Edit
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '8px', borderTop: '1px solid #2A2A3C' }}>
+                    <button onClick={() => openEditVisit(v)} style={{ background: '#1A1A26', color: '#FF5500', border: '1px solid #FF5500', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: '800' }}>
+                      ✏️ Edit Visit Hours
+                    </button>
+                    <button onClick={() => deleteVisit(v.id)} style={{ background: 'none', border: 'none', color: '#DC2626', fontSize: '11px', cursor: 'pointer', padding: 0, fontWeight: '700' }}>
+                      🗑️ Delete Entire Visit Log
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
       {/* 👋 STAGGERED CHECK-OUT MODAL */}
       {showCheckoutModal && activeVisit && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '400px', width: '100%', border: '1px solid #2A2A3C' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '400px', width: '100%', border: '1px solid #2A2A3C', boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
             <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>
-              👋 Leaving Park
+              👋 Leaving the Park
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
-              <button type="button" onClick={() => processCheckout('everyone')} style={{ width: '100%', padding: '12px', background: '#DC2626', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+            <p style={{ fontSize: '13px', color: '#A0AEC0', margin: '0 0 16px 0' }}>
+              Who is departing the park right now?
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+              {activePartyList.map((member) => {
+                const isSelected = departingMembers.includes(member);
+                return (
+                  <button
+                    key={member}
+                    type="button"
+                    onClick={() => toggleDepartingMember(member)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: isSelected ? '2px solid #DC2626' : '1px solid #2A2A3C',
+                      background: isSelected ? '#2C0B0E' : '#1A1A26',
+                      color: isSelected ? '#FCA5A5' : '#CBD5E0',
+                      fontWeight: '700',
+                      fontSize: '14px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span>👤 {member}</span>
+                    <span>{isSelected ? '🚪 Leaving' : '🏰 Staying'}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => processCheckout('selected')}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: '#DC2626',
+                  color: '#FFF',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Check Out Selected ({departingMembers.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => processCheckout('everyone')}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  background: '#2A2A3C',
+                  color: '#F3F4F6',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
+              >
                 Check Out Everyone
               </button>
-              <button type="button" onClick={() => setShowCheckoutModal(false)} style={{ width: '100%', padding: '8px', background: 'none', color: '#A0AEC0', border: 'none', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+
+              <button
+                type="button"
+                onClick={() => setShowCheckoutModal(false)}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  background: 'none',
+                  color: '#A0AEC0',
+                  border: 'none',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  marginTop: '4px'
+                }}
+              >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✏️ EDIT VISIT LOG MODAL */}
+      {editingVisit && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '440px', width: '100%', maxHeight: '90vh', overflowY: 'auto', border: '1px solid #2A2A3C', boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>
+              ✏️ Edit Visit Hours
+            </h3>
+            <p style={{ fontSize: '12px', color: '#A0AEC0', margin: '0 0 16px 0' }}>
+              {editingVisit.parkName} • {formatDisplayDate(editingVisit.visitDate)}
+            </p>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#CBD5E0', display: 'block', marginBottom: '4px' }}>
+                ⏰ ARRIVAL TIME (HH:MM / e.g. 18:30)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 18:30"
+                value={editVisitStartTime}
+                onChange={(e) => setEditVisitStartTime(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#CBD5E0', display: 'block', marginBottom: '4px' }}>
+                🚪 MAIN DEPARTURE TIME (e.g. 02:00)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 02:00"
+                value={editVisitEndTime}
+                onChange={(e) => setEditVisitEndTime(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#CBD5E0', display: 'block', marginBottom: '6px' }}>
+                👥 MEMBER DEPARTURE TIMES
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {parseAttendees(editingVisit.attendees).map(member => (
+                  <div key={member} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1A1A26', padding: '8px 10px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#F3F4F6' }}>👤 {member}</span>
+                    <input
+                      type="text"
+                      placeholder={editVisitEndTime || "HH:MM"}
+                      value={editVisitMemberEndTimes[member] || ''}
+                      onChange={(e) => {
+                        setEditVisitMemberEndTimes({
+                          ...editVisitMemberEndTimes,
+                          [member]: e.target.value
+                        });
+                      }}
+                      style={{ width: '110px', padding: '6px 8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '13px', textAlign: 'center' }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setEditingVisit(null)}
+                style={{ flex: 1, padding: '12px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveVisitEdit}
+                style={{ flex: 2, padding: '12px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+              >
+                💾 Save Changes
               </button>
             </div>
           </div>
