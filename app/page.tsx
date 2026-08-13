@@ -221,7 +221,7 @@ export default function HorrorNightsTracker() {
     } catch (e) {
       console.warn("NWS Weather Fetch Fallback:", e);
       setCurrentTemp(78);
-      setRainProbability(30);
+      setRainProbability(10);
       setRainAlertTime(null);
     } finally {
       setWeatherLoading(false);
@@ -762,7 +762,7 @@ export default function HorrorNightsTracker() {
       `}</style>
 
       {/* 🎃 APP HEADER */}
-      <header style={{ textAlign: 'center', marginBottom: '8px', padding: '10px 0 0 0' }}>
+      <header style={{ textAlign: 'center', marginBottom: '12px', padding: '10px 0 0 0' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#FF5500', letterSpacing: '-0.5px', margin: '0', textShadow: '0 0 12px rgba(255, 85, 0, 0.4)' }}>
           Never Go Alone 😱
         </h1>
@@ -770,22 +770,6 @@ export default function HorrorNightsTracker() {
           Halloween Horror Nights Orlando
         </p>
       </header>
-
-      {/* 🌧️ DYNAMIC RAIN ALERT BANNER */}
-      {rainAlertTime && (
-        <div style={{ background: '#2B0D0D', border: '1px solid #DC2626', padding: '10px 14px', borderRadius: '14px', color: '#FCA5A5', fontSize: '13px', fontWeight: '800', marginBottom: '10px', textAlign: 'center', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.2)' }}>
-          🌧️ Rain expected at {rainAlertTime}
-        </div>
-      )}
-
-      {/* 🌡️ ALWAYS-VISIBLE LIVE WEATHER WIDGET */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#12121A', padding: '8px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', marginBottom: '12px', fontSize: '13px', fontWeight: '700', color: '#CBD5E0' }}>
-        {weatherLoading ? (
-          <span>🌤️ Syncing Orlando Weather...</span>
-        ) : (
-          <span>🌡️ {currentTemp !== null ? `${currentTemp}°F` : '78°F'} &nbsp;•&nbsp; 🌧️ {rainProbability !== null ? `${rainProbability}%` : '0%'} Rain</span>
-        )}
-      </div>
 
       {/* ERROR BANNER */}
       {errorMessage && (
@@ -921,7 +905,7 @@ export default function HorrorNightsTracker() {
 
       {/* 2. SUBHEADER NAVS */}
       {mainTab === 'tracker' && (
-        <div style={{ display: 'flex', background: '#12121A', borderRadius: '12px', border: '1px solid #27273A', padding: '3px', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', background: '#12121A', borderRadius: '12px', border: '1px solid #27273A', padding: '3px', marginBottom: '12px' }}>
           <button onClick={() => setTrackerSubTab('Visit HHN')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: trackerSubTab === 'Visit HHN' ? '#FF5500' : 'transparent', color: trackerSubTab === 'Visit HHN' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
             Visit HHN
           </button>
@@ -930,6 +914,36 @@ export default function HorrorNightsTracker() {
           </button>
         </div>
       )}
+
+      {/* 🌧️ COMBINED CLICKABLE SMART WEATHER BANNER */}
+      <a
+        href="https://forecast.weather.gov/MapClick.php?lat=28.4743&lon=-81.4678"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: 'block',
+          textDecoration: 'none',
+          background: rainAlertTime ? '#2B0D0D' : '#12121A',
+          border: rainAlertTime ? '1px solid #DC2626' : '1px solid #2A2A3C',
+          padding: '10px 14px',
+          borderRadius: '14px',
+          color: rainAlertTime ? '#FCA5A5' : '#CBD5E0',
+          fontSize: '13px',
+          fontWeight: '800',
+          marginBottom: '16px',
+          textAlign: 'center',
+          boxShadow: rainAlertTime ? '0 4px 12px rgba(220, 38, 38, 0.2)' : 'none',
+          transition: 'all 0.2s ease'
+        }}
+      >
+        {weatherLoading ? (
+          <span>🌤️ Syncing Weather...</span>
+        ) : rainAlertTime ? (
+          <span>🌧️ Rain expected at {rainAlertTime} <span style={{ opacity: 0.75, fontWeight: '500', fontSize: '11px' }}>(Click for forecast)</span></span>
+        ) : (
+          <span>🌡️ {currentTemp !== null ? `${currentTemp}°F` : '78°F'} &nbsp;•&nbsp; 🌧️ {rainProbability !== null ? `${rainProbability}%` : '0%'} Rain <span style={{ opacity: 0.75, fontWeight: '500', fontSize: '11px' }}>(Click for forecast)</span></span>
+        )}
+      </a>
 
       {/* 3. TAB VIEWS */}
       {mainTab === 'tracker' && trackerSubTab === 'Visit HHN' && (
