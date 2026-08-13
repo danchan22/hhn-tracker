@@ -64,7 +64,34 @@ interface Visit {
   activities: Activity[];
 }
 
-const FIXED_FAMILY_MEMBERS = ['Dan', 'Mandie', 'Elijah', 'Sophia', 'Sam', 'Andrew'];
+const FIXED_FAMILY_MEMBERS = [
+  'Dan', 'Mandie', 'Elijah Violette', 'Sophia', 'Zach', 'Jasmine', 'Kimbo'
+];
+
+const HHN_HOUSES = [
+  'Cybergoria',
+  'Evil Dead Burn',
+  'Hellraiser',
+  'H.R. Bloodengutz',
+  'INVASION: Alien Abduction',
+  'Jack & Oddfellow',
+  'Madlands: Caged Cannibals',
+  'Ozzy Osbourne',
+  'Sinners',
+  'Stranger Things 5'
+];
+
+const HHN_RIDES = [
+  'Men in Black: Alien Attack',
+  'Transformers: The Ride-3D',
+  'Harry Potter and the Escape from Gringotts',
+  'Revenge of the Mummy'
+];
+
+const HHN_SHOWS = [
+  'Nightmare Fuel: Blood Noir',
+  'Stranger Things Lagoon Show'
+];
 
 const parseAttendees = (raw: string | string[] | undefined): string[] => {
   if (!raw) return [];
@@ -106,7 +133,51 @@ export default function HorrorNightsTracker() {
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedAttendee, setSelectedAttendee] = useState<string>('ALL');
+
+  // Form States
+  const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);
+  
+  // Track Activity States
+  const [rideName, setRideName] = useState(HHN_HOUSES[0]);
+  const [waitTime, setWaitTime] = useState('');
+  const [selectedRiders, setSelectedRiders] = useState<string[]>([]);
+
+  // Timer State
+  const [queueStartTimestamp, setQueueStartTimestamp] = useState<number | null>(null);
+  const [queueStartTimeStr, setQueueStartTimeStr] = useState<string | null>(null);
+  const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now());
+
+  // Edit / Checkout Modal States
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  const [editRideName, setEditRideName] = useState('');
+  const [editWaitTime, setEditWaitTime] = useState('');
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [departingMembers, setDepartingMembers] = useState<string[]>([]);
+
+  const activePartyList = useMemo(() => {
+    if (!activeVisit) return [];
+    const allParty = parseAttendees(activeVisit.attendees);
+    const endTimes = activeVisit.memberEndTimes || {};
+    return allParty.filter(member => !endTimes[member]);
+  }, [activeVisit]);
+
+  useEffect(() => {
+    if (activeVisit) {
+      setSelectedRiders(activePartyList);
+      setRideName(HHN_HOUSES[0]);
+      setDepartingMembers(activePartyList);
+    }
+  }, [activeVisit, activePartyList.length]);
+
+  useEffect(() => {
+    let interval: any;
+    if (queueStartTimestamp) {
+      interval = setInterval(() => {
+        setNowTimestamp(Date.now());
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [queueStartTimestamp]);
 
   useEffect(() => {
     fetchCloudVisits();
@@ -160,6 +231,219 @@ export default function HorrorNightsTracker() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatDisplayDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-').map(Number);
+    if (!year || !month || !day) return dateStr;
+    const d = new Date(year, month - 1, day);
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return `${days[d.getDay()]} ${month}/${day}/${year.toString().slice(-2)}`;
+  };
+
+  const format12Hour = (timeStr?: string) => {
+    if (!timeStr) return '';
+    const [h, m] = timeStr.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return timeStr;
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    return `${hour12}:${m.toString().padStart(2, '0')} ${period}`;
+  };
+
+  const toggleCheckInAttendee = (name: string) => {
+    if (selectedAttendees.includes(name)) {
+      setSelectedAttendees(selectedAttendees.filter(a => a !== name));
+    } else {
+      setSelectedAttendees([...selectedAttendees, name]);
+    }
+  };
+
+  const toggleRiderSelection = (name: string) => {
+    if (selectedRiders.includes(name)) {
+      if (selectedRiders.length === 1) return;
+      setSelectedRiders(selectedRiders.filter(r => r !== name));
+    } else {
+      setSelectedRiders([...selectedRiders, name]);
+    }
+  };
+
+  const handleCheckIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const now = new Date();
+    const localDate = now.toLocaleDateString('en-CA');
+    const localTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+
+    const newAttendeesList = selectedAttendees.length > 0 ? selectedAttendees : ['Just Me'];
+    const attendeesDbStr = newAttendeesList.join(', ');
+
+    const supabase = await getSupabase();
+    const { data, error } = await supabase
+      .from('visits')
+      .insert({
+        visitDate: localDate,
+        startTime: localTime,
+        endTime: '',
+        parkName: 'Halloween Horror Nights',
+        attendees: attendeesDbStr
+      })
+      .select()
+      .single();
+
+    if (error) {
+      setErrorMessage("Error checking in: " + error.message);
+      return;
+    }
+
+    const newVisit: Visit = {
+      id: data.id,
+      visitDate: localDate,
+      startTime: localTime,
+      endTime: '',
+      parkName: 'Halloween Horror Nights',
+      attendees: newAttendeesList,
+      memberEndTimes: {},
+      activities: []
+    };
+
+    setActiveVisit(newVisit);
+    setSelectedRiders(newAttendeesList);
+    setDepartingMembers(newAttendeesList);
+    setSelectedAttendees([]);
+  };
+
+  const handleAddRideLive = async () => {
+    if (!activeVisit || !rideName) return;
+    const waitMins = parseInt(waitTime) || 0;
+    const ridersStr = selectedRiders.join(', ');
+
+    const supabase = await getSupabase();
+    let { data, error } = await supabase
+      .from('activities')
+      .insert({
+        visit_id: activeVisit.id,
+        rideName,
+        waitTimeMinutes: waitMins,
+        riders: ridersStr
+      })
+      .select()
+      .single();
+
+    if (error) {
+      setErrorMessage("Error logging attraction: " + error.message);
+      return;
+    }
+
+    const newActivity: Activity = {
+      id: data.id,
+      visit_id: activeVisit.id,
+      rideName,
+      waitTimeMinutes: waitMins,
+      riders: selectedRiders
+    };
+
+    setActiveVisit({ ...activeVisit, activities: [...activeVisit.activities, newActivity] });
+    setWaitTime('');
+  };
+
+  const handleStartQueueTimer = () => {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' });
+    setQueueStartTimestamp(now.getTime());
+    setQueueStartTimeStr(timeString);
+  };
+
+  const handleEndQueueTimer = async () => {
+    if (!activeVisit || !queueStartTimestamp) return;
+    const nowMs = Date.now();
+    const diffMs = nowMs - queueStartTimestamp;
+    let calculatedWait = Math.round(diffMs / 60000);
+    if (calculatedWait <= 0) calculatedWait = 1;
+
+    const ridersStr = selectedRiders.join(', ');
+
+    const supabase = await getSupabase();
+    let { data, error } = await supabase
+      .from('activities')
+      .insert({
+        visit_id: activeVisit.id,
+        rideName,
+        waitTimeMinutes: calculatedWait,
+        riders: selectedRiders
+      })
+      .select()
+      .single();
+
+    if (error) {
+      alert("Error logging timer activity: " + error.message);
+      return;
+    }
+
+    const newActivity: Activity = {
+      id: data.id,
+      visit_id: activeVisit.id,
+      rideName,
+      waitTimeMinutes: calculatedWait,
+      riders: selectedRiders
+    };
+
+    setActiveVisit({ ...activeVisit, activities: [...activeVisit.activities, newActivity] });
+    setQueueStartTimestamp(null);
+    setQueueStartTimeStr(null);
+    setWaitTime('');
+  };
+
+  const processCheckout = async (checkoutType: 'selected' | 'everyone') => {
+    if (!activeVisit) return;
+    const now = new Date();
+    const endTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+
+    const currentActive = activePartyList;
+    const leavingParty = checkoutType === 'everyone' ? currentActive : departingMembers;
+    const remainingActive = currentActive.filter(m => !leavingParty.includes(m));
+
+    const updatedEndTimes: Record<string, string> = {
+      ...(activeVisit.memberEndTimes || {})
+    };
+    leavingParty.forEach(m => {
+      updatedEndTimes[m] = endTime;
+    });
+
+    const isVisitComplete = remainingActive.length === 0;
+    const finalEndTime = isVisitComplete ? endTime : '';
+
+    const rawAttendeesStr = parseAttendees(activeVisit.attendees).join(', ');
+    const jsonEndTimesStr = JSON.stringify(updatedEndTimes);
+    const attendeesWithEndTimes = `${rawAttendeesStr}|ENDTIMES:${jsonEndTimesStr}`;
+
+    const supabase = await getSupabase();
+
+    const { error } = await supabase
+      .from('visits')
+      .update({
+        endTime: finalEndTime,
+        attendees: attendeesWithEndTimes
+      })
+      .eq('id', activeVisit.id);
+
+    if (error) {
+      setErrorMessage("Error saving departure time: " + error.message);
+      return;
+    }
+
+    setShowCheckoutModal(false);
+    await fetchCloudVisits();
+    setQueueStartTimestamp(null);
+    setQueueStartTimeStr(null);
+  };
+
+  const getElapsedQueueTimeString = () => {
+    if (!queueStartTimestamp) return '';
+    const diffSeconds = Math.max(0, Math.floor((nowTimestamp - queueStartTimestamp) / 1000));
+    const mins = Math.floor(diffSeconds / 60);
+    const secs = diffSeconds % 60;
+    if (mins === 0) return `${secs}s`;
+    return `${mins} mins ${secs > 0 ? `${secs}s` : ''}`;
   };
 
   return (
@@ -319,74 +603,205 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
-      {mainTab === 'analytics' && (
-        <div style={{ display: 'flex', background: '#12121A', borderRadius: '12px', border: '1px solid #27273A', padding: '3px', marginBottom: '14px' }}>
-          <button onClick={() => setAnalyticsSubTab('Houses')} style={{ flex: 1, padding: '9px 2px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Houses' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Houses' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
-            Houses
-          </button>
-          <button onClick={() => setAnalyticsSubTab('Rides')} style={{ flex: 1, padding: '9px 2px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Rides' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Rides' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
-            Rides
-          </button>
-          <button onClick={() => setAnalyticsSubTab('Attendees')} style={{ flex: 1, padding: '9px 2px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Attendees' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Attendees' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
-            Attendees
-          </button>
-        </div>
-      )}
-
-      {mainTab === 'yum' && (
-        <div style={{ display: 'flex', background: '#12121A', borderRadius: '12px', border: '1px solid #27273A', padding: '3px', marginBottom: '14px' }}>
-          <button onClick={() => setYumSubTab('Food')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: yumSubTab === 'Food' ? '#F59E0B' : 'transparent', color: yumSubTab === 'Food' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
-            Food
-          </button>
-          <button onClick={() => setYumSubTab('Drinks')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: yumSubTab === 'Drinks' ? '#F59E0B' : 'transparent', color: yumSubTab === 'Drinks' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
-            Drinks
-          </button>
-        </div>
-      )}
-
       {/* 3. TAB VIEWS */}
-      {mainTab === 'tracker' && (
-        <div style={{ background: '#12121A', borderRadius: '24px', padding: '18px', border: '1px solid #27273A' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#FF5500', margin: '0 0 10px 0' }}>
-            🎃 {trackerSubTab}
-          </h2>
-          <p style={{ fontSize: '13px', color: '#9CA3AF' }}>Tracker content for {trackerSubTab} will be configured here.</p>
+      {mainTab === 'tracker' && trackerSubTab === 'Visit HHN' && (
+        <div>
+          {activeVisit ? (
+            /* ACTIVE VISIT LIVE WIDGET */
+            <div style={{ background: 'linear-gradient(135deg, #1F0808 0%, #0D0510 100%)', color: '#FFF', padding: '20px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)', border: '2px solid #DC2626' }}>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <span style={{ background: '#DC2626', color: '#FFF', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '900', display: 'inline-block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  🔥 LIVE AT HORROR NIGHTS
+                </span>
+              </div>
+
+              <div style={{ fontSize: '13px', color: '#CBD5E0', marginBottom: '8px', fontWeight: '600' }}>
+                📅 {formatDisplayDate(activeVisit.visitDate)} &nbsp;•&nbsp; ⏰ Arrived: <strong>{format12Hour(activeVisit.startTime)}</strong>
+              </div>
+
+              <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#E2E8F0' }}>
+                👥 <strong>Active Party:</strong> {activePartyList.join(', ')}
+              </p>
+
+              {/* TRACK ATTRACTION CARD */}
+              <div style={{ background: '#12121A', padding: '16px', borderRadius: '18px', marginBottom: '15px', color: '#F3F4F6', border: '1px solid #2A2A3C' }}>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '800', color: '#FF5500' }}>Track an Attraction:</h3>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <select value={rideName} onChange={(e) => setRideName(e.target.value)} disabled={!!queueStartTimestamp} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #2A2A3C', background: queueStartTimestamp ? '#1A1A24' : '#1A1A26', fontSize: '14px', color: queueStartTimestamp ? '#718096' : '#F3F4F6' }}>
+                    <optgroup label="Houses">
+                      {HHN_HOUSES.map((house) => (
+                        <option key={house} value={house}>{house}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Rides">
+                      {HHN_RIDES.map((ride) => (
+                        <option key={ride} value={ride}>{ride}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Shows">
+                      {HHN_SHOWS.map((show) => (
+                        <option key={show} value={show}>{show}</option>
+                      ))}
+                    </optgroup>
+                  </select>
+
+                  {activePartyList.length > 1 && (
+                    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', padding: '10px', borderRadius: '10px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>
+                        👥 WHO IS PARTICIPATING?
+                      </label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {activePartyList.map((member) => {
+                          const isRiding = selectedRiders.includes(member);
+                          return (
+                            <button
+                              key={member}
+                              type="button"
+                              onClick={() => toggleRiderSelection(member)}
+                              disabled={!!queueStartTimestamp}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                border: isRiding ? '2px solid #FF5500' : '1px solid #2A2A3C',
+                                background: isRiding ? '#FF5500' : '#12121A',
+                                color: isRiding ? '#FFF' : '#A0AEC0',
+                                fontSize: '12px',
+                                fontWeight: '700',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {isRiding ? `✓ ${member}` : member}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {queueStartTimestamp ? (
+                    <div style={{ background: '#2B1408', border: '1px solid #C05621', padding: '14px', borderRadius: '14px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '11px', fontWeight: '900', color: '#FF9A56', letterSpacing: '0.5px' }}>⏱️ LIVE QUEUE TIMER RUNNING</div>
+                      
+                      <div style={{ fontSize: '14px', fontWeight: '700', color: '#E2E8F0', marginTop: '6px' }}>
+                        Entered line at: <strong style={{ color: '#FF5500' }}>{queueStartTimeStr}</strong>
+                      </div>
+                      
+                      <div style={{ fontSize: '20px', fontWeight: '900', color: '#FF9A56', margin: '8px 0' }}>
+                        Time in line: {getElapsedQueueTimeString()}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                        <button type="button" onClick={() => { setQueueStartTimestamp(null); setQueueStartTimeStr(null); }} style={{ flex: 1, padding: '10px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
+                          Cancel
+                        </button>
+                        <button type="button" onClick={handleEndQueueTimer} style={{ flex: 2, padding: '10px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
+                          ✅ Completed Attraction!
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ borderTop: '1px solid #2A2A3C', paddingTop: '10px', marginTop: '5px' }}>
+                      <button type="button" onClick={handleStartQueueTimer} style={{ width: '100%', padding: '12px', background: '#FF5500', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(255, 85, 0, 0.3)' }}>
+                        ⏱️ Start Line Timer
+                      </button>
+
+                      <div style={{ textAlign: 'center', fontSize: '11px', color: '#718096', fontWeight: 'bold', marginBottom: '12px', position: 'relative' }}>
+                        <span style={{ background: '#12121A', padding: '0 10px', position: 'relative', zIndex: 2 }}>OR LOG MANUALLY</span>
+                        <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: '#2A2A3C', zIndex: 1 }}></div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input type="number" placeholder="Wait time (mins)" value={waitTime} onChange={(e) => setWaitTime(e.target.value)} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }} />
+                        <button type="button" onClick={handleAddRideLive} style={{ padding: '11px 22px', background: '#2A2A3C', color: '#FFF', border: '1px solid #3F3F56', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
+                          Log
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {activeVisit.activities.length > 0 && (
+                  <div style={{ marginTop: '15px', borderTop: '2px dashed #2A2A3C', paddingTop: '12px' }}>
+                    <strong style={{ fontSize: '11px', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>TONIGHT'S LOG ({activeVisit.activities.length}):</strong>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {activeVisit.activities.map((act) => (
+                        <div key={act.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1A1A26', padding: '8px 10px', borderRadius: '8px', border: '1px solid #2A2A3C' }}>
+                          <div style={{ minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                            <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#F3F4F6' }}>{act.rideName}</div>
+                            <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                              ⏱️ {act.waitTimeMinutes} mins wait • 👥 {parseAttendees(act.riders).join(', ')}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button onClick={() => { setDepartingMembers(activePartyList); setShowCheckoutModal(true); }} style={{ width: '100%', padding: '14px', background: 'linear-gradient(to right, #DC2626, #991B1B)', color: '#FFF', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)' }}>
+                👋 Leave the Park & Save Day
+              </button>
+            </div>
+          ) : (
+            /* START YOUR NIGHT FORM */
+            <form onSubmit={handleCheckIn} style={{ background: '#12121A', padding: '22px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', border: '1px solid #2A2A3C' }}>
+              <h2 style={{ marginTop: 0, fontSize: '20px', fontWeight: '900', color: '#FF5500', marginBottom: '16px', textAlign: 'center' }}>Start Your Night</h2>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>WHO'S ATTENDING?</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {FIXED_FAMILY_MEMBERS.map((name) => {
+                    const isSelected = selectedAttendees.includes(name);
+                    return (
+                      <button key={name} type="button" onClick={() => toggleCheckInAttendee(name)} style={{ padding: '10px 4px', borderRadius: '10px', border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C', background: isSelected ? '#FF5500' : '#1A1A26', color: isSelected ? '#FFF' : '#CBD5E0', fontSize: '13px', fontWeight: isSelected ? '800' : '500', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+                        {isSelected ? `✓ ${name}` : name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  background: '#FF5500',
+                  color: '#FFF',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(255, 85, 0, 0.35)'
+                }}
+              >
+                Enter the fog... 🎃
+              </button>
+            </form>
+          )}
         </div>
       )}
 
-      {mainTab === 'analytics' && (
-        <div style={{ background: '#12121A', borderRadius: '24px', padding: '18px', border: '1px solid #27273A' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#DC2626', margin: '0 0 10px 0' }}>
-            📊 {analyticsSubTab} Analytics
-          </h2>
-          <p style={{ fontSize: '13px', color: '#9CA3AF' }}>Analytics data for {analyticsSubTab} will be configured here.</p>
-        </div>
-      )}
-
-      {mainTab === 'map' && (
-        <div style={{ background: '#12121A', borderRadius: '24px', padding: '18px', border: '1px solid #27273A' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#3B82F6', margin: '0 0 10px 0' }}>
-            🗺️ Event Map
-          </h2>
-          <p style={{ fontSize: '13px', color: '#9CA3AF' }}>Event map layout and house locations will be configured here.</p>
-        </div>
-      )}
-
-      {mainTab === 'yum' && (
-        <div style={{ background: '#12121A', borderRadius: '24px', padding: '18px', border: '1px solid #27273A' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#F59E0B', margin: '0 0 10px 0' }}>
-            🍔 {yumSubTab}
-          </h2>
-          <p style={{ fontSize: '13px', color: '#9CA3AF' }}>Specialty HHN food & drinks tracking will be configured here.</p>
-        </div>
-      )}
-
-      {mainTab === 'games' && (
-        <div style={{ background: '#12121A', borderRadius: '24px', padding: '18px', border: '1px solid #27273A' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#10B981', margin: '0 0 10px 0' }}>
-            🎮 Games
-          </h2>
-          <p style={{ fontSize: '13px', color: '#9CA3AF' }}>Interactive games and challenges will be configured here.</p>
+      {/* 👋 STAGGERED CHECK-OUT MODAL */}
+      {showCheckoutModal && activeVisit && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '400px', width: '100%', border: '1px solid #2A2A3C' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>
+              👋 Leaving Park
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+              <button type="button" onClick={() => processCheckout('everyone')} style={{ width: '100%', padding: '12px', background: '#DC2626', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                Check Out Everyone
+              </button>
+              <button type="button" onClick={() => setShowCheckoutModal(false)} style={{ width: '100%', padding: '8px', background: 'none', color: '#A0AEC0', border: 'none', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
