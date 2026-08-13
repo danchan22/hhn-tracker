@@ -207,10 +207,10 @@ export default function HorrorNightsTracker() {
 
       if (visitsData) {
         const formattedVisits: Visit[] = visitsData.map((v: any) => {
-          const vDate = v.visitDate || v.visitdate || '';
-          const sTime = v.startTime || v.starttime || '';
-          const eTime = v.endTime !== undefined && v.endTime !== null ? v.endTime : (v.endtime !== undefined && v.endtime !== null ? v.endtime : '');
-          const pName = v.parkName || v.parkname || 'Halloween Horror Nights';
+          const vDate = v.visitdate || v.visitDate || '';
+          const sTime = v.starttime || v.startTime || '';
+          const eTime = v.endtime !== undefined && v.endtime !== null ? v.endtime : (v.endTime !== undefined && v.endTime !== null ? v.endTime : '');
+          const pName = v.parkname || v.parkName || 'Halloween Horror Nights';
 
           return {
             id: v.id,
@@ -224,8 +224,8 @@ export default function HorrorNightsTracker() {
             activities: (v.activities || []).map((a: any) => ({
               id: a.id,
               visit_id: a.visit_id,
-              rideName: a.rideName || a.ridename || '',
-              waitTimeMinutes: Number(a.waitTimeMinutes || a.waittimeminutes || 0),
+              rideName: a.ridename || a.rideName || '',
+              waitTimeMinutes: Number(a.waittimeminutes || a.waitTimeMinutes || 0),
               notes: a.notes,
               riders: a.riders ? parseAttendees(a.riders) : parseAttendees(v.attendees)
             }))
@@ -429,33 +429,17 @@ export default function HorrorNightsTracker() {
 
     const supabase = await getSupabase();
     
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from('visits')
       .insert({
-        visitDate: localDate,
-        startTime: localTime,
-        endTime: '',
-        parkName: 'Halloween Horror Nights',
+        visitdate: localDate,
+        starttime: localTime,
+        endtime: '',
+        parkname: 'Halloween Horror Nights',
         attendees: attendeesDbStr
       })
       .select()
       .single();
-
-    if (error) {
-      const fallbackRes = await supabase
-        .from('visits')
-        .insert({
-          visitdate: localDate,
-          starttime: localTime,
-          endtime: '',
-          parkname: 'Halloween Horror Nights',
-          attendees: attendeesDbStr
-        })
-        .select()
-        .single();
-      data = fallbackRes.data;
-      error = fallbackRes.error;
-    }
 
     if (error) {
       setErrorMessage("Error checking in: " + error.message);
@@ -486,33 +470,17 @@ export default function HorrorNightsTracker() {
     const ridersStr = selectedRiders.join(', ');
 
     const supabase = await getSupabase();
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from('activities')
       .insert({
         visit_id: activeVisit.id,
-        rideName,
-        waitTimeMinutes: waitMins,
+        ridename: rideName,
+        waittimeminutes: waitMins,
         notes: notesVal,
         riders: ridersStr
       })
       .select()
       .single();
-
-    if (error) {
-      const fallbackRes = await supabase
-        .from('activities')
-        .insert({
-          visit_id: activeVisit.id,
-          ridename: rideName,
-          waittimeminutes: waitMins,
-          notes: notesVal,
-          riders: ridersStr
-        })
-        .select()
-        .single();
-      data = fallbackRes.data;
-      error = fallbackRes.error;
-    }
 
     if (error) {
       setErrorMessage("Error logging attraction: " + error.message);
@@ -551,33 +519,17 @@ export default function HorrorNightsTracker() {
     const ridersStr = selectedRiders.join(', ');
 
     const supabase = await getSupabase();
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from('activities')
       .insert({
         visit_id: activeVisit.id,
-        rideName,
-        waitTimeMinutes: calculatedWait,
+        ridename: rideName,
+        waittimeminutes: calculatedWait,
         notes: notesVal,
         riders: ridersStr
       })
       .select()
       .single();
-
-    if (error) {
-      const fallbackRes = await supabase
-        .from('activities')
-        .insert({
-          visit_id: activeVisit.id,
-          ridename: rideName,
-          waittimeminutes: calculatedWait,
-          notes: notesVal,
-          riders: ridersStr
-        })
-        .select()
-        .single();
-      data = fallbackRes.data;
-      error = fallbackRes.error;
-    }
 
     if (error) {
       alert("Error logging timer activity: " + error.message);
@@ -632,28 +584,15 @@ export default function HorrorNightsTracker() {
     const ridersStr = editRiders.join(', ');
 
     const supabase = await getSupabase();
-    let { error } = await supabase
+    const { error } = await supabase
       .from('activities')
       .update({
-        rideName: editRideName,
-        waitTimeMinutes: waitMins,
+        ridename: editRideName,
+        waittimeminutes: waitMins,
         notes: notesVal,
         riders: ridersStr
       })
       .eq('id', editingActivityId);
-
-    if (error) {
-      const fallbackRes = await supabase
-        .from('activities')
-        .update({
-          ridename: editRideName,
-          waittimeminutes: waitMins,
-          notes: notesVal,
-          riders: ridersStr
-        })
-        .eq('id', editingActivityId);
-      error = fallbackRes.error;
-    }
 
     if (error) {
       setErrorMessage("Error saving edits: " + error.message);
@@ -689,28 +628,15 @@ export default function HorrorNightsTracker() {
     const attendeesWithEndTimes = `${rawAttendeesStr}|ENDTIMES:${jsonEndTimesStr}`;
 
     const supabase = await getSupabase();
-    let { error } = await supabase
+    const { error } = await supabase
       .from('visits')
       .update({
-        startTime: editVisitStartTime,
-        endTime: editVisitEndTime,
+        starttime: editVisitStartTime,
+        endtime: editVisitEndTime,
         attendees: attendeesWithEndTimes,
         notes: jsonEndTimesStr
       })
       .eq('id', editingVisit.id);
-
-    if (error) {
-      const fallbackRes = await supabase
-        .from('visits')
-        .update({
-          starttime: editVisitStartTime,
-          endtime: editVisitEndTime,
-          attendees: attendeesWithEndTimes,
-          notes: jsonEndTimesStr
-        })
-        .eq('id', editingVisit.id);
-      error = fallbackRes.error;
-    }
 
     if (error) {
       setErrorMessage("Error updating visit log: " + error.message);
@@ -746,24 +672,13 @@ export default function HorrorNightsTracker() {
 
     const supabase = await getSupabase();
 
-    let { error } = await supabase
+    const { error } = await supabase
       .from('visits')
       .update({
-        endTime: finalEndTime,
+        endtime: finalEndTime,
         attendees: attendeesWithEndTimes
       })
       .eq('id', activeVisit.id);
-
-    if (error) {
-      const fallbackRes = await supabase
-        .from('visits')
-        .update({
-          endtime: finalEndTime,
-          attendees: attendeesWithEndTimes
-        })
-        .eq('id', activeVisit.id);
-      error = fallbackRes.error;
-    }
 
     if (error) {
       setErrorMessage("Error saving departure time: " + error.message);
@@ -852,7 +767,7 @@ export default function HorrorNightsTracker() {
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={mainTab === 'tracker' ? '#FF5500' : '#6B7280'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
+            <polyline points="12 6 12 16 14"></polyline>
           </svg>
           <span style={{ fontSize: '11px', fontWeight: mainTab === 'tracker' ? '800' : '600', color: mainTab === 'tracker' ? '#FF5500' : '#9CA3AF', marginTop: '4px' }}>Tracker</span>
         </button>
