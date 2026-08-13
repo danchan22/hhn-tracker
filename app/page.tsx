@@ -1,235 +1,4 @@
-/* STREAMING_CHUNK:Initializing page dependencies... */
-'use client';
-
-import React, { useState, useEffect, useMemo } from 'react';
-
-// --- SAFE DYNAMIC SUPABASE CLIENT WRAPPER ---
-let supabaseInstance: any = null;
-
-const getSupabase = async () => {
-if (supabaseInstance) return supabaseInstance;
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-if (typeof window !== 'undefined' && (window as any).supabase) {
-supabaseInstance = (window as any).supabase.createClient(supabaseUrl, supabaseAnonKey);
-return supabaseInstance;
-}
-
-try {
-// @ts-ignore
-const supabaseModule = await import(/* webpackIgnore: true */ 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-if (supabaseModule && supabaseModule.createClient) {
-supabaseInstance = supabaseModule.createClient(supabaseUrl, supabaseAnonKey);
-return supabaseInstance;
-}
-} catch (e) {
-console.warn("CDN import fallback:", e);
-}
-
-return {
-from: () => ({
-select: () => Promise.resolve({ data: [], error: null }),
-insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: { id: 'mock-id' }, error: null }) }) }),
-update: () => ({ eq: () => Promise.resolve({ error: null }) }),
-delete: () => ({ eq: () => Promise.resolve({ error: null }) }),
-}),
-storage: {
-from: () => ({
-upload: () => Promise.resolve({ error: null }),
-getPublicUrl: (path: string) => ({ publicUrl: https://mock.supabase.co/storage/v1/object/public/${path} })
-})
-}
-};
-};
-
-/* STREAMING_CHUNK:Defining data interfaces... */
-interface Activity {
-id: string;
-visit_id: string;
-rideName: string;
-waitTimeMinutes: number;
-notes?: string;
-riders?: string | string[];
-}
-
-interface Visit {
-id: string;
-parkName: 'Magic Kingdom' | 'Epcot' | 'Hollywood Studios' | 'Animal Kingdom';
-visitDate: string;
-startTime: string;
-endTime?: string;
-attendees?: string | string[];
-memberEndTimes?: Record<string, string>;
-notes?: string;
-activities: Activity[];
-}
-
-const FIXED_FAMILY_MEMBERS = ['Dan', 'Mandie', 'Elijah', 'Sophia', 'Sam', 'Andrew'];
-const UNIVERSAL_ACTIVITIES = ['Character Meeting', 'Parade', 'Fireworks Show', 'Other / Show / Food'];
-
-const PARK_EMOJIS: Record<string, string> = {
-'Magic Kingdom': '🏰',
-'Epcot': '🪩',
-'Hollywood Studios': '🎥',
-'Animal Kingdom': '🌳',
-};
-
-const PARK_ATTRACTIONS: Record<string, string[]> = {
-'Magic Kingdom': [
-'Astro Orbiter', 'The Barnstormer', 'Big Thunder Mountain Railroad', 'Buzz Lightyear’s Space Ranger Spin',
-'Carousel of Progress', 'Country Bear Musical Jamboree', 'Dumbo the Flying Elephant', 'Enchanted Tales with Belle',
-'The Hall of Presidents', 'Haunted Mansion', '“it’s a small world”', 'Jungle Cruise', 'Mad Tea Party',
-'The Magic Carpets of Aladdin', 'The Many Adventures of Winnie the Pooh', 'Mickey’s PhilharMagic',
-'Peter Pan’s Flight', 'Pirates of the Caribbean', 'Prince Charming Regal Carrousel', 'Seven Dwarfs Mine Train',
-'Space Mountain', 'Swiss Family Treehouse', 'Tiana’s Bayou Adventure', 'Tomorrowland Speedway',
-'Tomorrowland Transit Authority PeopleMover', 'TRON Lightcycle / Run', 'Under the Sea ~ Journey of The Little Mermaid',
-'Walt Disney Enchanted Tiki Room', 'Walt Disney World Railroad'
-],
-'Epcot': [
-'Beauty and the Beast Sing-Along', 'Canada Circle-Vision 360', 'Disney and Pixar Short Film Festival',
-'Frozen Ever After', 'Gran Fiesta Tour Starring The Three Caballeros', 'Guardians of the Galaxy: Cosmic Rewind',
-'ImageWorks What If Labs', 'Journey into Imagination with Figment', 'Journey of Water, Inspired by Moana',
-'Living with the Land', 'Mission: SPACE (Green)', 'Mission: SPACE (Orange)', 'Reflections of China',
-'Remy’s Ratatouille Adventure', 'Soarin', 'Spaceship Earth', 'Test Track',
-'The Seas with Nemo & Friends', 'Turtle Talk with Crush'
-],
-'Hollywood Studios': [
-'Alien Swirling Saucers', 'Beauty and the Beast Live on Stage', 'Disney Junior Play & Dance!',
-'Disney Villains: Unfairly Ever After', 'Fantasmic',
-'For the First Time in Forever: A Frozen Sing-Along Celebration', 'Indiana Jones Epic Stunt Spectacular!',
-'Mickey & Minnie’s Runaway Railway', 'Millennium Falcon: Smugglers Run',
-'Rock ’n’ Roller Coaster', 'Slinky Dog Dash', 'Star Tours – The Adventures Continue',
-'Star Wars: Rise of the Resistance', 'The Twilight Zone Tower of Terror', 'The Little Mermaid: A Musical Adventure',
-'Toy Story Mania!', 'Vacation Fun', 'Walt Disney Presents'
-],
-'Animal Kingdom': [
-'Avatar Flight of Passage', 'Expedition Everest', 'Feathered Friends in Flight!',
-'Festival of the Lion King', 'Finding Nemo: The Big Blue... and Beyond!', 'Gorilla Falls Exploration Trail',
-'Kali River Rapids', 'Kilimanjaro Safaris', 'Maharajah Jungle Trek',
-'Na’vi River Journey', 'The Animation Experience at Conservation Station', 'Wildlife Express Train',
-'Zootopia: Better Together'
-]
-};
-
-// Helper: Parse attendees/riders string or array safely
-const parseAttendees = (raw: string | string[] | undefined): string[] => {
-if (!raw) return [];
-if (Array.isArray(raw)) return raw.map(s => s.trim()).filter(Boolean);
-const attendeesPart = raw.split('|ENDTIMES:')[0];
-return attendeesPart.split(',').map(s => s.trim()).filter(Boolean);
-};
-
-// Helper: Parse memberEndTimes dictionary safely
-const parseMemberEndTimes = (raw: any, notes?: string): Record<string, string> => {
-if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw;
-if (typeof raw === 'string') {
-if (raw.includes('|ENDTIMES:')) {
-try {
-const jsonStr = raw.split('|ENDTIMES:')[1];
-return JSON.parse(jsonStr);
-} catch (e) {}
-}
-if (raw.trim().startsWith('{')) {
-try { return JSON.parse(raw); } catch (e) {}
-}
-}
-if (notes && typeof notes === 'string' && notes.trim().startsWith('{')) {
-try { return JSON.parse(notes); } catch (e) {}
-}
-return {};
-};
-
-/* STREAMING_CHUNK:Building component logic & dark theme styling... */
-export default function HorrorNightsTracker() {
-const [visits, setVisits] = useState<Visit[]>([]);
-const [activeVisit, setActiveVisit] = useState<Visit | null>(null);
-
-// Main Header Nav State: 'tracker' | 'analytics' | 'checklist'
-const [mainTab, setMainTab] = useState<'tracker' | 'analytics' | 'checklist'>('tracker');
-
-// Subheader Nav States
-const [trackerSubTab, setTrackerSubTab] = useState<'Visit a Park' | 'Past Visits'>('Visit a Park');
-const [analyticsSubTab, setAnalyticsSubTab] = useState<'averages' | 'top10' | 'cards'>('averages');
-
-const [loading, setLoading] = useState(true);
-const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-// Global Attendee Filter State (Only for Analytics and Checklist)
-const [selectedAttendee, setSelectedAttendee] = useState('ALL');
-
-// Check-In Form States
-const [parkName, setParkName] = useState<'Magic Kingdom' | 'Epcot' | 'Hollywood Studios' | 'Animal Kingdom'>('Magic Kingdom');
-const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);
-
-// Track Attraction States
-const [rideName, setRideName] = useState('');
-const [waitTime, setWaitTime] = useState('');
-const [characterName, setCharacterName] = useState('');
-const [selectedRiders, setSelectedRiders] = useState<string[]>([]);
-
-// ⏱️ LIVE QUEUE TIMER STATE
-const [queueStartTimestamp, setQueueStartTimestamp] = useState<number | null>(null);
-const [queueStartTimeStr, setQueueStartTimeStr] = useState<string | null>(null);
-const [nowTimestamp, setNowTimestamp] = useState(Date.now());
-
-// ✏️ EDITING RIDE STATE
-const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
-const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
-const [editRideName, setEditRideName] = useState('');
-const [editWaitTime, setEditWaitTime] = useState('');
-const [editNotes, setEditNotes] = useState('');
-const [editRiders, setEditRiders] = useState<string[]>([]);
-
-// ✏️ EDITING ENTIRE VISIT LOG STATE
-const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
-const [editVisitStartTime, setEditVisitStartTime] = useState('');
-const [editVisitEndTime, setEditVisitEndTime] = useState('');
-const [editVisitMemberEndTimes, setEditVisitMemberEndTimes] = useState<Record<string, string>>({});
-
-// 👋 STAGGERED CHECK-OUT MODAL STATE
-const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-const [departingMembers, setDepartingMembers] = useState<string[]>([]);
-
-const activePartyList = useMemo(() => {
-if (!activeVisit) return [];
-const allParty = parseAttendees(activeVisit.attendees);
-const endTimes = activeVisit.memberEndTimes || {};
-return allParty.filter(member => !endTimes[member]);
-}, [activeVisit]);
-
-useEffect(() => {
-if (activeVisit) {
-setSelectedRiders(activePartyList);
-setRideName(PARK_ATTRACTIONS[activeVisit.parkName]?.[0] || '');
-setDepartingMembers(activePartyList);
-}
-}, [activeVisit, activePartyList.length]);
-
-useEffect(() => {
-let interval: any;
-if (queueStartTimestamp) {
-interval = setInterval(() => {
-setNowTimestamp(Date.now());
-}, 1000);
-}
-return () => clearInterval(interval);
-}, [queueStartTimestamp]);
-
-useEffect(() => {
-fetchCloudVisits();
-}, []);
-
-const fetchCloudVisits = async () => {
-setLoading(true);
-try {
-const supabase = await getSupabase();
-const { data: visitsData, error: visitsError } = await supabase
-.from('visits')
-.select(', activities()');
-
-  if (visitsError) throw visitsError;
+/* STREAMING_CHUNK:Initializing page dependencies... */'use client';import React, { useState, useEffect, useMemo } from 'react';// --- SAFE DYNAMIC SUPABASE CLIENT WRAPPER ---let supabaseInstance: any = null;const getSupabase = async () => {if (supabaseInstance) return supabaseInstance;const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';if (typeof window !== 'undefined' && (window as any).supabase) {supabaseInstance = (window as any).supabase.createClient(supabaseUrl, supabaseAnonKey);return supabaseInstance;}try {// @ts-ignoreconst supabaseModule = await import(/* webpackIgnore: true */ 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');if (supabaseModule && supabaseModule.createClient) {supabaseInstance = supabaseModule.createClient(supabaseUrl, supabaseAnonKey);return supabaseInstance;}} catch (e) {console.warn("CDN import fallback:", e);}return {from: () => ({select: () => Promise.resolve({ data: [], error: null }),insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: { id: 'mock-id' }, error: null }) }) }),update: () => ({ eq: () => Promise.resolve({ error: null }) }),delete: () => ({ eq: () => Promise.resolve({ error: null }) }),}),storage: {from: () => ({upload: () => Promise.resolve({ error: null }),getPublicUrl: (path: string) => ({ publicUrl: https://mock.supabase.co/storage/v1/object/public/${path} })})}};};/* STREAMING_CHUNK:Defining data interfaces... */interface Activity {id: string;visit_id: string;rideName: string;waitTimeMinutes: number;notes?: string;riders?: string | string[];}interface Visit {id: string;parkName: 'Magic Kingdom' | 'Epcot' | 'Hollywood Studios' | 'Animal Kingdom';visitDate: string;startTime: string;endTime?: string;attendees?: string | string[];memberEndTimes?: Record<string, string>;notes?: string;activities: Activity[];}const FIXED_FAMILY_MEMBERS = ['Dan', 'Mandie', 'Elijah', 'Sophia', 'Sam', 'Andrew'];const UNIVERSAL_ACTIVITIES = ['Character Meeting', 'Parade', 'Fireworks Show', 'Other / Show / Food'];const PARK_EMOJIS: Record<string, string> = {'Magic Kingdom': '🏰','Epcot': '🪩','Hollywood Studios': '🎥','Animal Kingdom': '🌳',};const PARK_ATTRACTIONS: Record<string, string[]> = {'Magic Kingdom': ['Astro Orbiter', 'The Barnstormer', 'Big Thunder Mountain Railroad', 'Buzz Lightyear’s Space Ranger Spin','Carousel of Progress', 'Country Bear Musical Jamboree', 'Dumbo the Flying Elephant', 'Enchanted Tales with Belle','The Hall of Presidents', 'Haunted Mansion', '“it’s a small world”', 'Jungle Cruise', 'Mad Tea Party','The Magic Carpets of Aladdin', 'The Many Adventures of Winnie the Pooh', 'Mickey’s PhilharMagic','Peter Pan’s Flight', 'Pirates of the Caribbean', 'Prince Charming Regal Carrousel', 'Seven Dwarfs Mine Train','Space Mountain', 'Swiss Family Treehouse', 'Tiana’s Bayou Adventure', 'Tomorrowland Speedway','Tomorrowland Transit Authority PeopleMover', 'TRON Lightcycle / Run', 'Under the Sea ~ Journey of The Little Mermaid','Walt Disney Enchanted Tiki Room', 'Walt Disney World Railroad'],'Epcot': ['Beauty and the Beast Sing-Along', 'Canada Circle-Vision 360', 'Disney and Pixar Short Film Festival','Frozen Ever After', 'Gran Fiesta Tour Starring The Three Caballeros', 'Guardians of the Galaxy: Cosmic Rewind','ImageWorks What If Labs', 'Journey into Imagination with Figment', 'Journey of Water, Inspired by Moana','Living with the Land', 'Mission: SPACE (Green)', 'Mission: SPACE (Orange)', 'Reflections of China','Remy’s Ratatouille Adventure', 'Soarin', 'Spaceship Earth', 'Test Track','The Seas with Nemo & Friends', 'Turtle Talk with Crush'],'Hollywood Studios': ['Alien Swirling Saucers', 'Beauty and the Beast Live on Stage', 'Disney Junior Play & Dance!','Disney Villains: Unfairly Ever After', 'Fantasmic','For the First Time in Forever: A Frozen Sing-Along Celebration', 'Indiana Jones Epic Stunt Spectacular!','Mickey & Minnie’s Runaway Railway', 'Millennium Falcon: Smugglers Run','Rock ’n’ Roller Coaster', 'Slinky Dog Dash', 'Star Tours – The Adventures Continue','Star Wars: Rise of the Resistance', 'The Twilight Zone Tower of Terror', 'The Little Mermaid: A Musical Adventure','Toy Story Mania!', 'Vacation Fun', 'Walt Disney Presents'],'Animal Kingdom': ['Avatar Flight of Passage', 'Expedition Everest', 'Feathered Friends in Flight!','Festival of the Lion King', 'Finding Nemo: The Big Blue... and Beyond!', 'Gorilla Falls Exploration Trail','Kali River Rapids', 'Kilimanjaro Safaris', 'Maharajah Jungle Trek','Na’vi River Journey', 'The Animation Experience at Conservation Station', 'Wildlife Express Train','Zootopia: Better Together']};// Helper: Parse attendees/riders string or array safelyconst parseAttendees = (raw: string | string[] | undefined): string[] => {if (!raw) return [];if (Array.isArray(raw)) return raw.map(s => s.trim()).filter(Boolean);const attendeesPart = raw.split('|ENDTIMES:')[0];return attendeesPart.split(',').map(s => s.trim()).filter(Boolean);};// Helper: Parse memberEndTimes dictionary safelyconst parseMemberEndTimes = (raw: any, notes?: string): Record<string, string> => {if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw;if (typeof raw === 'string') {if (raw.includes('|ENDTIMES:')) {try {const jsonStr = raw.split('|ENDTIMES:')[1];return JSON.parse(jsonStr);} catch (e) {}}if (raw.trim().startsWith('{')) {try { return JSON.parse(raw); } catch (e) {}}}if (notes && typeof notes === 'string' && notes.trim().startsWith('{')) {try { return JSON.parse(notes); } catch (e) {}}return {};};/* STREAMING_CHUNK:Building component logic & dark theme styling... */export default function HorrorNightsTracker() {const [visits, setVisits] = useState<Visit[]>([]);const [activeVisit, setActiveVisit] = useState<Visit | null>(null);// Main Header Nav State: 'tracker' | 'analytics' | 'checklist'const [mainTab, setMainTab] = useState<'tracker' | 'analytics' | 'checklist'>('tracker');// Subheader Nav Statesconst [trackerSubTab, setTrackerSubTab] = useState<'Visit a Park' | 'Past Visits'>('Visit a Park');const [analyticsSubTab, setAnalyticsSubTab] = useState<'averages' | 'top10' | 'cards'>('averages');const [loading, setLoading] = useState(true);const [errorMessage, setErrorMessage] = useState<string | null>(null);// Global Attendee Filter State (Only for Analytics and Checklist)const [selectedAttendee, setSelectedAttendee] = useState('ALL');// Check-In Form Statesconst [parkName, setParkName] = useState<'Magic Kingdom' | 'Epcot' | 'Hollywood Studios' | 'Animal Kingdom'>('Magic Kingdom');const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);// Track Attraction Statesconst [rideName, setRideName] = useState('');const [waitTime, setWaitTime] = useState('');const [characterName, setCharacterName] = useState('');const [selectedRiders, setSelectedRiders] = useState<string[]>([]);// ⏱️ LIVE QUEUE TIMER STATEconst [queueStartTimestamp, setQueueStartTimestamp] = useState<number | null>(null);const [queueStartTimeStr, setQueueStartTimeStr] = useState<string | null>(null);const [nowTimestamp, setNowTimestamp] = useState(Date.now());// ✏️ EDITING RIDE STATEconst [editingActivityId, setEditingActivityId] = useState<string | null>(null);const [editingVisitId, setEditingVisitId] = useState<string | null>(null);const [editRideName, setEditRideName] = useState('');const [editWaitTime, setEditWaitTime] = useState('');const [editNotes, setEditNotes] = useState('');const [editRiders, setEditRiders] = useState<string[]>([]);// ✏️ EDITING ENTIRE VISIT LOG STATEconst [editingVisit, setEditingVisit] = useState<Visit | null>(null);const [editVisitStartTime, setEditVisitStartTime] = useState('');const [editVisitEndTime, setEditVisitEndTime] = useState('');const [editVisitMemberEndTimes, setEditVisitMemberEndTimes] = useState<Record<string, string>>({});// 👋 STAGGERED CHECK-OUT MODAL STATEconst [showCheckoutModal, setShowCheckoutModal] = useState(false);const [departingMembers, setDepartingMembers] = useState<string[]>([]);const activePartyList = useMemo(() => {if (!activeVisit) return [];const allParty = parseAttendees(activeVisit.attendees);const endTimes = activeVisit.memberEndTimes || {};return allParty.filter(member => !endTimes[member]);}, [activeVisit]);useEffect(() => {if (activeVisit) {setSelectedRiders(activePartyList);setRideName(PARK_ATTRACTIONS[activeVisit.parkName]?.[0] || '');setDepartingMembers(activePartyList);}}, [activeVisit, activePartyList.length]);useEffect(() => {let interval: any;if (queueStartTimestamp) {interval = setInterval(() => {setNowTimestamp(Date.now());}, 1000);}return () => clearInterval(interval);}, [queueStartTimestamp]);useEffect(() => {fetchCloudVisits();}, []);const fetchCloudVisits = async () => {setLoading(true);try {const supabase = await getSupabase();const { data: visitsData, error: visitsError } = await supabase.from('visits').select(', activities()');  if (visitsError) throw visitsError;
 
   if (visitsData) {
     const formattedVisits: Visit[] = visitsData.map((v: any) => ({
@@ -269,105 +38,7 @@ const { data: visitsData, error: visitsError } = await supabase
 } finally {
   setLoading(false);
 }
-
-
-};
-
-const formatDisplayDate = (dateStr: string) => {
-if (!dateStr) return '';
-const [year, month, day] = dateStr.split('-').map(Number);
-if (!year || !month || !day) return dateStr;
-const d = new Date(year, month - 1, day);
-const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-return ${days[d.getDay()]} ${month}/${day}/${year.toString().slice(-2)};
-};
-
-const format12Hour = (timeStr?: string) => {
-if (!timeStr) return '';
-const [h, m] = timeStr.split(':').map(Number);
-if (isNaN(h) || isNaN(m)) return timeStr;
-const period = h >= 12 ? 'PM' : 'AM';
-const hour12 = h % 12 === 0 ? 12 : h % 12;
-return ${hour12}:${m.toString().padStart(2, '0')} ${period};
-};
-
-const parseTimeToMinutes = (timeStr?: string) => {
-if (!timeStr) return 0;
-const [hrs, mins] = timeStr.split(':').map(Number);
-return (hrs * 60) + mins;
-};
-
-const calculateVisitDuration = (startTime: string, endTime?: string) => {
-if (!startTime || !endTime) return '';
-const startMins = parseTimeToMinutes(startTime);
-const endMins = parseTimeToMinutes(endTime);
-const diff = endMins >= startMins ? (endMins - startMins) : ((1440 - startMins) + endMins);
-const hrs = Math.floor(diff / 60);
-const mins = diff % 60;
-if (hrs === 0) return (${mins} min);
-return mins > 0 ? (${hrs} hrs ${mins} min) : (${hrs} hrs);
-};
-
-const formatMinutes = (totalMins: number) => {
-if (totalMins <= 0) return '0m';
-const hrs = Math.floor(totalMins / 60);
-const remMins = Math.round(totalMins % 60);
-if (hrs === 0) return ${remMins}m;
-return remMins > 0 ? ${hrs}h ${remMins}m : ${hrs}h;
-};
-
-const getPersonEndTime = (v: Visit, person: string) => {
-if (v.memberEndTimes && v.memberEndTimes[person]) {
-return v.memberEndTimes[person];
-}
-return v.endTime || '';
-};
-
-const filteredVisits = useMemo(() => {
-if (selectedAttendee === 'ALL') return visits;
-return visits.filter(v => {
-const attList = parseAttendees(v.attendees);
-return attList.includes(selectedAttendee);
-});
-}, [visits, selectedAttendee]);
-
-const isPersonRider = (activity: Activity, visit: Visit, person: string) => {
-const activityRiders = parseAttendees(activity.riders);
-if (activityRiders.length > 0) {
-return activityRiders.includes(person);
-}
-return parseAttendees(visit.attendees).includes(person);
-};
-
-const totalDays = filteredVisits.length;
-
-const totalActivities = useMemo(() => {
-if (selectedAttendee === 'ALL') {
-return filteredVisits.reduce((sum, v) => sum + v.activities.length, 0);
-}
-return filteredVisits.reduce((sum, v) => {
-return sum + v.activities.filter(a => isPersonRider(a, v, selectedAttendee)).length;
-}, 0);
-}, [filteredVisits, selectedAttendee]);
-
-const totalWaitMinutes = useMemo(() => {
-if (selectedAttendee === 'ALL') {
-return filteredVisits.reduce((sum, v) => sum + v.activities.reduce((aSum, act) => aSum + act.waitTimeMinutes, 0), 0);
-}
-return filteredVisits.reduce((sum, v) => {
-return sum + v.activities
-.filter(a => isPersonRider(a, v, selectedAttendee))
-.reduce((aSum, act) => aSum + act.waitTimeMinutes, 0);
-}, 0);
-}, [filteredVisits, selectedAttendee]);
-
-const totalParkMinutes = useMemo(() => {
-return filteredVisits.reduce((sum, v) => {
-const attendeesToCount = selectedAttendee === 'ALL'
-? parseAttendees(v.attendees)
-: [selectedAttendee];
-
-  let visitTime = 0;
+};const formatDisplayDate = (dateStr: string) => {if (!dateStr) return '';const [year, month, day] = dateStr.split('-').map(Number);if (!year || !month || !day) return dateStr;const d = new Date(year, month - 1, day);const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];return ${days[d.getDay()]} ${month}/${day}/${year.toString().slice(-2)};};const format12Hour = (timeStr?: string) => {if (!timeStr) return '';const [h, m] = timeStr.split(':').map(Number);if (isNaN(h) || isNaN(m)) return timeStr;const period = h >= 12 ? 'PM' : 'AM';const hour12 = h % 12 === 0 ? 12 : h % 12;return ${hour12}:${m.toString().padStart(2, '0')} ${period};};const parseTimeToMinutes = (timeStr?: string) => {if (!timeStr) return 0;const [hrs, mins] = timeStr.split(':').map(Number);return (hrs * 60) + mins;};const calculateVisitDuration = (startTime: string, endTime?: string) => {if (!startTime || !endTime) return '';const startMins = parseTimeToMinutes(startTime);const endMins = parseTimeToMinutes(endTime);const diff = endMins >= startMins ? (endMins - startMins) : ((1440 - startMins) + endMins);const hrs = Math.floor(diff / 60);const mins = diff % 60;if (hrs === 0) return (${mins} min);return mins > 0 ? (${hrs} hrs ${mins} min) : (${hrs} hrs);};const formatMinutes = (totalMins: number) => {if (totalMins <= 0) return '0m';const hrs = Math.floor(totalMins / 60);const remMins = Math.round(totalMins % 60);if (hrs === 0) return ${remMins}m;return remMins > 0 ? ${hrs}h ${remMins}m : ${hrs}h;};const getPersonEndTime = (v: Visit, person: string) => {if (v.memberEndTimes && v.memberEndTimes[person]) {return v.memberEndTimes[person];}return v.endTime || '';};const filteredVisits = useMemo(() => {if (selectedAttendee === 'ALL') return visits;return visits.filter(v => {const attList = parseAttendees(v.attendees);return attList.includes(selectedAttendee);});}, [visits, selectedAttendee]);const isPersonRider = (activity: Activity, visit: Visit, person: string) => {const activityRiders = parseAttendees(activity.riders);if (activityRiders.length > 0) {return activityRiders.includes(person);}return parseAttendees(visit.attendees).includes(person);};const totalDays = filteredVisits.length;const totalActivities = useMemo(() => {if (selectedAttendee === 'ALL') {return filteredVisits.reduce((sum, v) => sum + v.activities.length, 0);}return filteredVisits.reduce((sum, v) => {return sum + v.activities.filter(a => isPersonRider(a, v, selectedAttendee)).length;}, 0);}, [filteredVisits, selectedAttendee]);const totalWaitMinutes = useMemo(() => {if (selectedAttendee === 'ALL') {return filteredVisits.reduce((sum, v) => sum + v.activities.reduce((aSum, act) => aSum + act.waitTimeMinutes, 0), 0);}return filteredVisits.reduce((sum, v) => {return sum + v.activities.filter(a => isPersonRider(a, v, selectedAttendee)).reduce((aSum, act) => aSum + act.waitTimeMinutes, 0);}, 0);}, [filteredVisits, selectedAttendee]);const totalParkMinutes = useMemo(() => {return filteredVisits.reduce((sum, v) => {const attendeesToCount = selectedAttendee === 'ALL'? parseAttendees(v.attendees): [selectedAttendee];  let visitTime = 0;
   attendeesToCount.forEach(person => {
     const pEndTime = getPersonEndTime(v, person);
     if (v.startTime && pEndTime) {
@@ -380,30 +51,7 @@ const attendeesToCount = selectedAttendee === 'ALL'
   const avgTimeForVisit = attendeesToCount.length > 0 ? visitTime / attendeesToCount.length : 0;
   return sum + avgTimeForVisit;
 }, 0);
-
-
-}, [filteredVisits, selectedAttendee]);
-
-const avgActivitiesPerDay = totalDays > 0 ? (totalActivities / totalDays).toFixed(1) : '0';
-const avgParkMinutesPerDay = totalDays > 0 ? totalParkMinutes / totalDays : 0;
-const avgWaitPerActivity = totalActivities > 0 ? Math.round(totalWaitMinutes / totalActivities) : 0;
-
-const getParkBreakdown = (visitList: Visit[], personFilter: string) => {
-const initialParks: Record<string, { visits: number; activities: number; timeInPark: number; waitTime: number }> = {
-'Magic Kingdom': { visits: 0, activities: 0, timeInPark: 0, waitTime: 0 },
-'Epcot': { visits: 0, activities: 0, timeInPark: 0, waitTime: 0 },
-'Hollywood Studios': { visits: 0, activities: 0, timeInPark: 0, waitTime: 0 },
-'Animal Kingdom': { visits: 0, activities: 0, timeInPark: 0, waitTime: 0 },
-};
-visitList.forEach(v => {
-const park = v.parkName;
-if (initialParks[park]) {
-initialParks[park].visits += 1;
-const validActs = personFilter === 'ALL'
-? v.activities
-: v.activities.filter(a => isPersonRider(a, v, personFilter));
-
-    initialParks[park].activities += validActs.length;
+}, [filteredVisits, selectedAttendee]);const avgActivitiesPerDay = totalDays > 0 ? (totalActivities / totalDays).toFixed(1) : '0';const avgParkMinutesPerDay = totalDays > 0 ? totalParkMinutes / totalDays : 0;const avgWaitPerActivity = totalActivities > 0 ? Math.round(totalWaitMinutes / totalActivities) : 0;const getParkBreakdown = (visitList: Visit[], personFilter: string) => {const initialParks: Record<string, { visits: number; activities: number; timeInPark: number; waitTime: number }> = {'Magic Kingdom': { visits: 0, activities: 0, timeInPark: 0, waitTime: 0 },'Epcot': { visits: 0, activities: 0, timeInPark: 0, waitTime: 0 },'Hollywood Studios': { visits: 0, activities: 0, timeInPark: 0, waitTime: 0 },'Animal Kingdom': { visits: 0, activities: 0, timeInPark: 0, waitTime: 0 },};visitList.forEach(v => {const park = v.parkName;if (initialParks[park]) {initialParks[park].visits += 1;const validActs = personFilter === 'ALL'? v.activities: v.activities.filter(a => isPersonRider(a, v, personFilter));    initialParks[park].activities += validActs.length;
     initialParks[park].waitTime += validActs.reduce((sum, act) => sum + act.waitTimeMinutes, 0);
 
     const pEndTime = personFilter === 'ALL' ? v.endTime : getPersonEndTime(v, personFilter);
@@ -415,18 +63,7 @@ const validActs = personFilter === 'ALL'
   }
 });
 return initialParks;
-
-
-};
-
-const getRideBreakdown = (visitList: Visit[], personFilter: string) => {
-const rideMap: Record<string, { count: number; totalWait: number; park: string }> = {};
-visitList.forEach(v => {
-const validActs = personFilter === 'ALL'
-? v.activities
-: v.activities.filter(a => isPersonRider(a, v, personFilter));
-
-  validActs.forEach(act => {
+};const getRideBreakdown = (visitList: Visit[], personFilter: string) => {const rideMap: Record<string, { count: number; totalWait: number; park: string }> = {};visitList.forEach(v => {const validActs = personFilter === 'ALL'? v.activities: v.activities.filter(a => isPersonRider(a, v, personFilter));  validActs.forEach(act => {
     const key = act.rideName === 'Character Meeting' && act.notes ? `Meet ${act.notes}` : act.rideName;
     if (!rideMap[key]) rideMap[key] = { count: 0, totalWait: 0, park: v.parkName };
     rideMap[key].count += 1;
@@ -435,35 +72,7 @@ const validActs = personFilter === 'ALL'
 });
 return Object.keys(rideMap)
   .map(name => ({ name, ...rideMap[name], avgWait: Math.round(rideMap[name].totalWait / rideMap[name].count) }));
-
-
-};
-
-const parkStats = getParkBreakdown(filteredVisits, selectedAttendee);
-const rideStats = getRideBreakdown(filteredVisits, selectedAttendee);
-
-const mostTimesRidden = [...rideStats]
-.sort((a, b) => b.count !== a.count ? b.count - a.count : b.totalWait - a.totalWait)
-.slice(0, 10);
-
-const longestWaitTimes = [...rideStats]
-.sort((a, b) => b.avgWait !== a.avgWait ? b.avgWait - a.avgWait : b.count - a.count)
-.slice(0, 10);
-
-const shortestWaitTimes = [...rideStats]
-.sort((a, b) => a.avgWait !== b.avgWait ? a.avgWait - b.avgWait : b.count - a.count)
-.slice(0, 10);
-
-const topActivity = mostTimesRidden[0] || { name: 'None Yet 🎃', count: 0, totalWait: 0 };
-
-const getRideCountsMap = (visitList: Visit[], personFilter: string) => {
-const counts: Record<string, number> = {};
-visitList.forEach(v => {
-const validActs = personFilter === 'ALL'
-? v.activities
-: v.activities.filter(a => isPersonRider(a, v, personFilter));
-
-  validActs.forEach(act => {
+};const parkStats = getParkBreakdown(filteredVisits, selectedAttendee);const rideStats = getRideBreakdown(filteredVisits, selectedAttendee);const mostTimesRidden = [...rideStats].sort((a, b) => b.count !== a.count ? b.count - a.count : b.totalWait - a.totalWait).slice(0, 10);const longestWaitTimes = [...rideStats].sort((a, b) => b.avgWait !== a.avgWait ? b.avgWait - a.avgWait : b.count - a.count).slice(0, 10);const shortestWaitTimes = [...rideStats].sort((a, b) => a.avgWait !== b.avgWait ? a.avgWait - b.avgWait : b.count - a.count).slice(0, 10);const topActivity = mostTimesRidden[0] || { name: 'None Yet 🎃', count: 0, totalWait: 0 };const getRideCountsMap = (visitList: Visit[], personFilter: string) => {const counts: Record<string, number> = {};visitList.forEach(v => {const validActs = personFilter === 'ALL'? v.activities: v.activities.filter(a => isPersonRider(a, v, personFilter));  validActs.forEach(act => {
     counts[act.rideName] = (counts[act.rideName] || 0) + 1;
   });
 });
@@ -481,54 +90,7 @@ if (activeVisit) {
   }
 }
 return counts;
-
-
-};
-
-const rideCountsMap = getRideCountsMap(filteredVisits, selectedAttendee);
-
-const toggleCheckInAttendee = (name: string) => {
-if (selectedAttendees.includes(name)) {
-setSelectedAttendees(selectedAttendees.filter(a => a !== name));
-} else {
-setSelectedAttendees([...selectedAttendees, name]);
-}
-};
-
-const toggleRiderSelection = (name: string) => {
-if (selectedRiders.includes(name)) {
-if (selectedRiders.length === 1) return;
-setSelectedRiders(selectedRiders.filter(r => r !== name));
-} else {
-setSelectedRiders([...selectedRiders, name]);
-}
-};
-
-const toggleEditRiderSelection = (name: string) => {
-if (editRiders.includes(name)) {
-if (editRiders.length === 1) return;
-setEditRiders(editRiders.filter(r => r !== name));
-} else {
-setEditRiders([...editRiders, name]);
-}
-};
-
-const toggleDepartingMember = (name: string) => {
-if (departingMembers.includes(name)) {
-if (departingMembers.length === 1) return;
-setDepartingMembers(departingMembers.filter(m => m !== name));
-} else {
-setDepartingMembers([...departingMembers, name]);
-}
-};
-
-const handleCheckIn = async (e: React.FormEvent) => {
-e.preventDefault();
-const now = new Date();
-const localDate = now.toLocaleDateString('en-CA');
-const localTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-
-const newAttendeesList = selectedAttendees.length > 0 ? selectedAttendees : ['Just Me'];
+};const rideCountsMap = getRideCountsMap(filteredVisits, selectedAttendee);const toggleCheckInAttendee = (name: string) => {if (selectedAttendees.includes(name)) {setSelectedAttendees(selectedAttendees.filter(a => a !== name));} else {setSelectedAttendees([...selectedAttendees, name]);}};const toggleRiderSelection = (name: string) => {if (selectedRiders.includes(name)) {if (selectedRiders.length === 1) return;setSelectedRiders(selectedRiders.filter(r => r !== name));} else {setSelectedRiders([...selectedRiders, name]);}};const toggleEditRiderSelection = (name: string) => {if (editRiders.includes(name)) {if (editRiders.length === 1) return;setEditRiders(editRiders.filter(r => r !== name));} else {setEditRiders([...editRiders, name]);}};const toggleDepartingMember = (name: string) => {if (departingMembers.includes(name)) {if (departingMembers.length === 1) return;setDepartingMembers(departingMembers.filter(m => m !== name));} else {setDepartingMembers([...departingMembers, name]);}};const handleCheckIn = async (e: React.FormEvent) => {e.preventDefault();const now = new Date();const localDate = now.toLocaleDateString('en-CA');const localTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });const newAttendeesList = selectedAttendees.length > 0 ? selectedAttendees : ['Just Me'];
 const attendeesDbStr = newAttendeesList.join(', ');
 
 const supabase = await getSupabase();
@@ -564,17 +126,7 @@ setActiveVisit(newVisit);
 setSelectedRiders(newAttendeesList);
 setDepartingMembers(newAttendeesList);
 setSelectedAttendees([]);
-
-
-};
-
-const handleAddRideLive = async () => {
-if (!activeVisit || !rideName) return;
-const waitMins = parseInt(waitTime) || 0;
-const notesVal = rideName === 'Character Meeting' && characterName ? characterName : undefined;
-const ridersStr = selectedRiders.join(', ');
-
-const supabase = await getSupabase();
+};const handleAddRideLive = async () => {if (!activeVisit || !rideName) return;const waitMins = parseInt(waitTime) || 0;const notesVal = rideName === 'Character Meeting' && characterName ? characterName : undefined;const ridersStr = selectedRiders.join(', ');const supabase = await getSupabase();
 let { data, error } = await supabase
   .from('activities')
   .insert({
@@ -620,25 +172,7 @@ const newActivity: Activity = {
 setActiveVisit({ ...activeVisit, activities: [...activeVisit.activities, newActivity] });
 setWaitTime('');
 setCharacterName('');
-
-
-};
-
-const handleStartQueueTimer = () => {
-const now = new Date();
-const timeString = now.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' });
-setQueueStartTimestamp(now.getTime());
-setQueueStartTimeStr(timeString);
-};
-
-const handleEndQueueTimer = async () => {
-if (!activeVisit || !queueStartTimestamp) return;
-const nowMs = Date.now();
-const diffMs = nowMs - queueStartTimestamp;
-let calculatedWait = Math.round(diffMs / 60000);
-if (calculatedWait <= 0) calculatedWait = 1;
-
-const notesVal = rideName === 'Character Meeting' && characterName ? characterName : undefined;
+};const handleStartQueueTimer = () => {const now = new Date();const timeString = now.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' });setQueueStartTimestamp(now.getTime());setQueueStartTimeStr(timeString);};const handleEndQueueTimer = async () => {if (!activeVisit || !queueStartTimestamp) return;const nowMs = Date.now();const diffMs = nowMs - queueStartTimestamp;let calculatedWait = Math.round(diffMs / 60000);if (calculatedWait <= 0) calculatedWait = 1;const notesVal = rideName === 'Character Meeting' && characterName ? characterName : undefined;
 const ridersStr = selectedRiders.join(', ');
 
 const supabase = await getSupabase();
@@ -689,18 +223,7 @@ setQueueStartTimestamp(null);
 setQueueStartTimeStr(null);
 setCharacterName('');
 setWaitTime('');
-
-
-};
-
-const startEditing = (activity: Activity, visitId: string | null) => {
-setEditingActivityId(activity.id);
-setEditingVisitId(visitId);
-setEditRideName(activity.rideName);
-setEditWaitTime(activity.waitTimeMinutes.toString());
-setEditNotes(activity.notes || '');
-
-let currentParty: string[] = [];
+};const startEditing = (activity: Activity, visitId: string | null) => {setEditingActivityId(activity.id);setEditingVisitId(visitId);setEditRideName(activity.rideName);setEditWaitTime(activity.waitTimeMinutes.toString());setEditNotes(activity.notes || '');let currentParty: string[] = [];
 if (visitId === null && activeVisit) {
   currentParty = parseAttendees(activeVisit.attendees);
 } else {
@@ -710,19 +233,7 @@ if (visitId === null && activeVisit) {
 
 const existingRiders = parseAttendees(activity.riders);
 setEditRiders(existingRiders.length > 0 ? existingRiders : currentParty);
-
-
-};
-
-const cancelEditing = () => {
-setEditingActivityId(null);
-setEditingVisitId(null);
-};
-
-const saveEditedActivity = async () => {
-if (!editingActivityId) return;
-
-const waitMins = parseInt(editWaitTime) || 0;
+};const cancelEditing = () => {setEditingActivityId(null);setEditingVisitId(null);};const saveEditedActivity = async () => {if (!editingActivityId) return;const waitMins = parseInt(editWaitTime) || 0;
 const notesVal = editNotes.trim() ? editNotes : null;
 const ridersStr = editRiders.join(', ');
 
@@ -757,37 +268,8 @@ if (error) {
 
 await fetchCloudVisits();
 cancelEditing();
-
-
-};
-
-const deleteActivity = async (activityId: string) => {
-const supabase = await getSupabase();
-const { error } = await supabase.from('activities').delete().eq('id', activityId);
-if (error) {
-setErrorMessage("Error deleting entry: " + error.message);
-return;
-}
-
-await fetchCloudVisits();
-
-
-};
-
-const openEditVisit = (v: Visit) => {
-setEditingVisit(v);
-setEditVisitStartTime(v.startTime || '');
-setEditVisitEndTime(v.endTime || '');
-setEditVisitMemberEndTimes({ ...(v.memberEndTimes || {}) });
-};
-
-const handleSaveVisitEdit = async () => {
-if (!editingVisit) return;
-const rawAttendeesStr = parseAttendees(editingVisit.attendees).join(', ');
-const jsonEndTimesStr = JSON.stringify(editVisitMemberEndTimes);
-const attendeesWithEndTimes = ${rawAttendeesStr}|ENDTIMES:${jsonEndTimesStr};
-
-const supabase = await getSupabase();
+};const deleteActivity = async (activityId: string) => {const supabase = await getSupabase();const { error } = await supabase.from('activities').delete().eq('id', activityId);if (error) {setErrorMessage("Error deleting entry: " + error.message);return;}await fetchCloudVisits();
+};const openEditVisit = (v: Visit) => {setEditingVisit(v);setEditVisitStartTime(v.startTime || '');setEditVisitEndTime(v.endTime || '');setEditVisitMemberEndTimes({ ...(v.memberEndTimes || {}) });};const handleSaveVisitEdit = async () => {if (!editingVisit) return;const rawAttendeesStr = parseAttendees(editingVisit.attendees).join(', ');const jsonEndTimesStr = JSON.stringify(editVisitMemberEndTimes);const attendeesWithEndTimes = ${rawAttendeesStr}|ENDTIMES:${jsonEndTimesStr};const supabase = await getSupabase();
 const { error } = await supabase
   .from('visits')
   .update({
@@ -805,16 +287,7 @@ if (error) {
 
 setEditingVisit(null);
 await fetchCloudVisits();
-
-
-};
-
-const processCheckout = async (checkoutType: 'selected' | 'everyone') => {
-if (!activeVisit) return;
-const now = new Date();
-const endTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-
-const currentActive = activePartyList;
+};const processCheckout = async (checkoutType: 'selected' | 'everyone') => {if (!activeVisit) return;const now = new Date();const endTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });const currentActive = activePartyList;
 const leavingParty = checkoutType === 'everyone' ? currentActive : departingMembers;
 const remainingActive = currentActive.filter(m => !leavingParty.includes(m));
 
@@ -851,39 +324,14 @@ setShowCheckoutModal(false);
 await fetchCloudVisits();
 setQueueStartTimestamp(null);
 setQueueStartTimeStr(null);
-
-
-};
-
-const deleteVisit = async (id: string) => {
-const confirmDelete = window.confirm("⚠️ Are you sure you want to delete this entire visit log? This action cannot be undone!");
-if (!confirmDelete) return;
-
-const supabase = await getSupabase();
+};const deleteVisit = async (id: string) => {const confirmDelete = window.confirm("⚠️ Are you sure you want to delete this entire visit log? This action cannot be undone!");if (!confirmDelete) return;const supabase = await getSupabase();
 const { error } = await supabase.from('visits').delete().eq('id', id);
 if (error) {
   setErrorMessage("Error deleting visit: " + error.message);
   return;
 }
 await fetchCloudVisits();
-
-
-};
-
-const getElapsedQueueTimeString = () => {
-if (!queueStartTimestamp) return '';
-const diffSeconds = Math.max(0, Math.floor((nowTimestamp - queueStartTimestamp) / 1000));
-const mins = Math.floor(diffSeconds / 60);
-const secs = diffSeconds % 60;
-if (mins === 0) return ${secs}s;
-return ${mins} mins ${secs > 0 ? ${secs}s : ''};
-};
-
-/* STREAMING_CHUNK:Rendering JSX layout with dark horror theme... */
-return (
-<div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', background: '#09090D', minHeight: '100vh' }}>
-
-  {/* 🎃 APP HEADER (Halloween Horror Nights Theme) */}
+};const getElapsedQueueTimeString = () => {if (!queueStartTimestamp) return '';const diffSeconds = Math.max(0, Math.floor((nowTimestamp - queueStartTimestamp) / 1000));const mins = Math.floor(diffSeconds / 60);const secs = diffSeconds % 60;if (mins === 0) return ${secs}s;return ${mins} mins ${secs > 0 ? ${secs}s : ''};};/* STREAMING_CHUNK:Rendering JSX layout with dark horror theme... */return (<div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', background: '#09090D', minHeight: '100vh' }}>  {/* 🎃 APP HEADER (Halloween Horror Nights Theme) */}
   <header style={{ textAlign: 'center', marginBottom: '16px', padding: '8px 0' }}>
     <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#FF5500', letterSpacing: '-0.5px', margin: '0', textShadow: '0 0 12px rgba(255, 85, 0, 0.4)' }}>
       Never Go Alone 😱
@@ -1934,7 +1382,4 @@ return (
   )}
 
 </div>
-
-
-);
-}
+);}
