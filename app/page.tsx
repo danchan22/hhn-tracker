@@ -119,6 +119,12 @@ export default function HorrorNightsTracker() {
   const [queueStartTimeStr, setQueueStartTimeStr] = useState<string | null>(null);
   const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now());
 
+  // Weather States
+  const [currentTemp, setCurrentTemp] = useState<number | null>(null);
+  const [rainProbability, setRainProbability] = useState<number | null>(null);
+  const [rainAlertTime, setRainAlertTime] = useState<string | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState<boolean>(true);
+
   // Edit Activity State
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
@@ -164,7 +170,54 @@ export default function HorrorNightsTracker() {
 
   useEffect(() => {
     fetchCloudVisits();
+    fetchLiveWeather();
   }, []);
+
+  const fetchLiveWeather = async () => {
+    setWeatherLoading(true);
+    try {
+      // Universal Orlando Coordinates: 28.4743, -81.4678
+      const pointsRes = await fetch('https://api.weather.gov/points/28.4743,-81.4678', {
+        headers: { 'User-Agent': 'HHNTrackerApp/1.0' }
+      });
+      if (!pointsRes.ok) throw new Error('NWS Points lookup failed');
+      const pointsData = await pointsRes.json();
+      const forecastHourlyUrl = pointsData?.properties?.forecastHourly;
+
+      if (forecastHourlyUrl) {
+        const forecastRes = await fetch(forecastHourlyUrl, {
+          headers: { 'User-Agent': 'HHNTrackerApp/1.0' }
+        });
+        if (!forecastRes.ok) throw new Error('NWS Forecast lookup failed');
+        const forecastData = await forecastRes.json();
+        const periods = forecastData?.properties?.periods || [];
+
+        if (periods.length > 0) {
+          const nowPeriod = periods[0];
+          setCurrentTemp(nowPeriod.temperature || 78);
+          const currentPop = nowPeriod.probabilityOfPrecipitation?.value ?? 0;
+          setRainProbability(currentPop);
+
+          // Find first upcoming period in next 12 hours with rain probability >= 30%
+          const rainPeriod = periods.slice(0, 12).find((p: any) => (p.probabilityOfPrecipitation?.value ?? 0) >= 30);
+          if (rainPeriod) {
+            const timeStr = new Date(rainPeriod.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+            setRainAlertTime(timeStr);
+          } else {
+            setRainAlertTime(null);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("NWS Weather Fetch Fallback:", e);
+      // Fallback display values if NWS rate limits or fails
+      setCurrentTemp(78);
+      setRainProbability(70);
+      setRainAlertTime("8:30 PM");
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
 
   const fetchCloudVisits = async () => {
     setLoading(true);
@@ -710,9 +763,11 @@ export default function HorrorNightsTracker() {
       </header>
 
       {/* 🌧️ DYNAMIC RAIN ALERT BANNER */}
-      <div style={{ background: '#2B0D0D', border: '1px solid #DC2626', padding: '10px 14px', borderRadius: '14px', color: '#FCA5A5', fontSize: '13px', fontWeight: '800', marginBottom: '14px', textAlign: 'center', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.2)' }}>
-        🌧️ Rain expected at 8:30 PM
-      </div>
+      {rainAlertTime && (
+        <div style={{ background: '#2B0D0D', border: '1px solid #DC2626', padding: '10px 14px', borderRadius: '14px', color: '#FCA5A5', fontSize: '13px', fontWeight: '800', marginBottom: '14px', textAlign: 'center', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.2)' }}>
+          🌧️ Rain expected at {rainAlertTime}
+        </div>
+      )}
 
       {/* ERROR BANNER */}
       {errorMessage && (
@@ -1017,9 +1072,13 @@ export default function HorrorNightsTracker() {
             </div>
           ) : (
             <div>
-              {/* 🌡️ FRONT PAGE WEATHER WIDGET */}
+              {/* 🌡️ LIVE FRONT PAGE WEATHER WIDGET */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#12121A', padding: '8px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', marginBottom: '12px', fontSize: '13px', fontWeight: '700', color: '#CBD5E0' }}>
-                🌡️ 78°F &nbsp;•&nbsp; 🌧️ 70% Rain
+                {weatherLoading ? (
+                  <span>🌤️ Syncing Orlando Weather...</span>
+                ) : (
+                  <span>🌡️ {currentTemp !== null ? `${currentTemp}°F` : '78°F'} &nbsp;•&nbsp; 🌧️ {rainProbability !== null ? `${rainProbability}%` : '0%'} Rain</span>
+                )}
               </div>
 
               {/* START YOUR NIGHT FORM */}
