@@ -1,47 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
-// --- SAFE DYNAMIC SUPABASE CLIENT WRAPPER ---
-let supabaseInstance: any = null;
-
-const getSupabase = async () => {
-  if (supabaseInstance) return supabaseInstance;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-  if (typeof window !== 'undefined' && (window as any).supabase) {
-    supabaseInstance = (window as any).supabase.createClient(supabaseUrl, supabaseAnonKey);
-    return supabaseInstance;
-  }
-
-  try {
-    // @ts-ignore
-    const supabaseModule = await import(/* webpackIgnore: true */ 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    if (supabaseModule && supabaseModule.createClient) {
-      supabaseInstance = supabaseModule.createClient(supabaseUrl, supabaseAnonKey);
-      return supabaseInstance;
-    }
-  } catch (e) {
-    console.warn("CDN import fallback:", e);
-  }
-
-  return {
-    from: () => ({
-      select: () => Promise.resolve({ data: [], error: null }),
-      insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: { id: 'mock-id' }, error: null }) }) }),
-      update: () => ({ eq: () => Promise.resolve({ error: null }) }),
-      delete: () => ({ eq: () => Promise.resolve({ error: null }) }),
-    }),
-    storage: {
-      from: () => ({
-        upload: () => Promise.resolve({ error: null }),
-        getPublicUrl: (path: string) => ({ publicUrl: 'https://mock.supabase.co/storage/v1/object/public/' + path })
-      })
-    }
-  };
-};
+// --- OFFICIAL SUPABASE CLIENT ---
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface Activity {
   id: string;
@@ -198,7 +163,12 @@ export default function HorrorNightsTracker() {
   const fetchCloudVisits = async () => {
     setLoading(true);
     try {
-      const supabase = await getSupabase();
+      if (!supabaseUrl || !supabaseAnonKey) {
+        setErrorMessage("Missing Supabase API keys in Vercel environment variables!");
+        setLoading(false);
+        return;
+      }
+
       const { data: visitsData, error: visitsError } = await supabase
         .from('visits')
         .select('*, activities(*)');
@@ -246,7 +216,7 @@ export default function HorrorNightsTracker() {
       }
     } catch (err: any) {
       console.error("Error fetching Supabase data:", err);
-      setErrorMessage("Could not load cloud visits. " + (err.message || ''));
+      setErrorMessage("Could not load cloud visits: " + (err.message || ''));
     } finally {
       setLoading(false);
     }
@@ -427,8 +397,6 @@ export default function HorrorNightsTracker() {
     const newAttendeesList = selectedAttendees.length > 0 ? selectedAttendees : ['Just Me'];
     const attendeesDbStr = newAttendeesList.join(', ');
 
-    const supabase = await getSupabase();
-    
     const { data, error } = await supabase
       .from('visits')
       .insert({
@@ -469,7 +437,6 @@ export default function HorrorNightsTracker() {
     const notesVal = postedWaitTime ? `Posted: ${postedWaitTime}m` : undefined;
     const ridersStr = selectedRiders.join(', ');
 
-    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('activities')
       .insert({
@@ -518,7 +485,6 @@ export default function HorrorNightsTracker() {
     const notesVal = postedWaitTime ? `Posted: ${postedWaitTime}m` : undefined;
     const ridersStr = selectedRiders.join(', ');
 
-    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('activities')
       .insert({
@@ -583,7 +549,6 @@ export default function HorrorNightsTracker() {
     const notesVal = editNotes.trim() ? editNotes : null;
     const ridersStr = editRiders.join(', ');
 
-    const supabase = await getSupabase();
     const { error } = await supabase
       .from('activities')
       .update({
@@ -604,7 +569,6 @@ export default function HorrorNightsTracker() {
   };
 
   const deleteActivity = async (activityId: string) => {
-    const supabase = await getSupabase();
     const { error } = await supabase.from('activities').delete().eq('id', activityId);
     if (error) {
       setErrorMessage("Error deleting entry: " + error.message);
@@ -627,7 +591,6 @@ export default function HorrorNightsTracker() {
     const jsonEndTimesStr = JSON.stringify(editVisitMemberEndTimes);
     const attendeesWithEndTimes = `${rawAttendeesStr}|ENDTIMES:${jsonEndTimesStr}`;
 
-    const supabase = await getSupabase();
     const { error } = await supabase
       .from('visits')
       .update({
@@ -670,8 +633,6 @@ export default function HorrorNightsTracker() {
     const jsonEndTimesStr = JSON.stringify(updatedEndTimes);
     const attendeesWithEndTimes = `${rawAttendeesStr}|ENDTIMES:${jsonEndTimesStr}`;
 
-    const supabase = await getSupabase();
-
     const { error } = await supabase
       .from('visits')
       .update({
@@ -695,7 +656,6 @@ export default function HorrorNightsTracker() {
     const confirmDelete = window.confirm("⚠️ Are you sure you want to delete this entire visit log? This action cannot be undone!");
     if (!confirmDelete) return;
 
-    const supabase = await getSupabase();
     const { error } = await supabase.from('visits').delete().eq('id', id);
     if (error) {
       setErrorMessage("Error deleting visit: " + error.message);
