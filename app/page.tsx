@@ -192,14 +192,24 @@ export default function HorrorNightsTracker() {
         const forecastData = await forecastRes.json();
         const periods = forecastData?.properties?.periods || [];
 
+        const now = new Date();
+
         if (periods.length > 0) {
-          const nowPeriod = periods[0];
-          setCurrentTemp(nowPeriod.temperature || 78);
-          const currentPop = nowPeriod.probabilityOfPrecipitation?.value ?? 0;
+          // Filter out periods in the past
+          const upcomingPeriods = periods.filter((p: any) => new Date(p.endTime) > now);
+          const currentPeriod = upcomingPeriods[0] || periods[0];
+
+          setCurrentTemp(currentPeriod.temperature || 78);
+          const currentPop = currentPeriod.probabilityOfPrecipitation?.value ?? 0;
           setRainProbability(currentPop);
 
-          // Find first upcoming period in next 12 hours with rain probability >= 30%
-          const rainPeriod = periods.slice(0, 12).find((p: any) => (p.probabilityOfPrecipitation?.value ?? 0) >= 30);
+          // Find first future period (strictly starting after now) with rain probability >= 30%
+          const rainPeriod = upcomingPeriods.find((p: any) => {
+            const periodStart = new Date(p.startTime);
+            const pop = p.probabilityOfPrecipitation?.value ?? 0;
+            return periodStart > now && pop >= 30;
+          });
+
           if (rainPeriod) {
             const timeStr = new Date(rainPeriod.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
             setRainAlertTime(timeStr);
@@ -210,10 +220,9 @@ export default function HorrorNightsTracker() {
       }
     } catch (e) {
       console.warn("NWS Weather Fetch Fallback:", e);
-      // Fallback display values if NWS rate limits or fails
       setCurrentTemp(78);
-      setRainProbability(70);
-      setRainAlertTime("8:30 PM");
+      setRainProbability(30);
+      setRainAlertTime(null);
     } finally {
       setWeatherLoading(false);
     }
@@ -753,7 +762,7 @@ export default function HorrorNightsTracker() {
       `}</style>
 
       {/* 🎃 APP HEADER */}
-      <header style={{ textAlign: 'center', marginBottom: '12px', padding: '10px 0 0 0' }}>
+      <header style={{ textAlign: 'center', marginBottom: '8px', padding: '10px 0 0 0' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#FF5500', letterSpacing: '-0.5px', margin: '0', textShadow: '0 0 12px rgba(255, 85, 0, 0.4)' }}>
           Never Go Alone 😱
         </h1>
@@ -764,10 +773,19 @@ export default function HorrorNightsTracker() {
 
       {/* 🌧️ DYNAMIC RAIN ALERT BANNER */}
       {rainAlertTime && (
-        <div style={{ background: '#2B0D0D', border: '1px solid #DC2626', padding: '10px 14px', borderRadius: '14px', color: '#FCA5A5', fontSize: '13px', fontWeight: '800', marginBottom: '14px', textAlign: 'center', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.2)' }}>
+        <div style={{ background: '#2B0D0D', border: '1px solid #DC2626', padding: '10px 14px', borderRadius: '14px', color: '#FCA5A5', fontSize: '13px', fontWeight: '800', marginBottom: '10px', textAlign: 'center', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.2)' }}>
           🌧️ Rain expected at {rainAlertTime}
         </div>
       )}
+
+      {/* 🌡️ ALWAYS-VISIBLE LIVE WEATHER WIDGET */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#12121A', padding: '8px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', marginBottom: '12px', fontSize: '13px', fontWeight: '700', color: '#CBD5E0' }}>
+        {weatherLoading ? (
+          <span>🌤️ Syncing Orlando Weather...</span>
+        ) : (
+          <span>🌡️ {currentTemp !== null ? `${currentTemp}°F` : '78°F'} &nbsp;•&nbsp; 🌧️ {rainProbability !== null ? `${rainProbability}%` : '0%'} Rain</span>
+        )}
+      </div>
 
       {/* ERROR BANNER */}
       {errorMessage && (
@@ -1071,53 +1089,42 @@ export default function HorrorNightsTracker() {
               </button>
             </div>
           ) : (
-            <div>
-              {/* 🌡️ LIVE FRONT PAGE WEATHER WIDGET */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#12121A', padding: '8px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', marginBottom: '12px', fontSize: '13px', fontWeight: '700', color: '#CBD5E0' }}>
-                {weatherLoading ? (
-                  <span>🌤️ Syncing Orlando Weather...</span>
-                ) : (
-                  <span>🌡️ {currentTemp !== null ? `${currentTemp}°F` : '78°F'} &nbsp;•&nbsp; 🌧️ {rainProbability !== null ? `${rainProbability}%` : '0%'} Rain</span>
-                )}
+            /* START YOUR NIGHT FORM */
+            <form onSubmit={handleCheckIn} style={{ background: '#12121A', padding: '22px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', border: '1px solid #2A2A3C' }}>
+              <h2 style={{ marginTop: 0, fontSize: '20px', fontWeight: '900', color: '#FF5500', marginBottom: '16px', textAlign: 'center' }}>Start Your Night</h2>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>WHO'S ATTENDING?</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {FIXED_FAMILY_MEMBERS.map((name) => {
+                    const isSelected = selectedAttendees.includes(name);
+                    return (
+                      <button key={name} type="button" onClick={() => toggleCheckInAttendee(name)} style={{ padding: '10px 4px', borderRadius: '10px', border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C', background: isSelected ? '#FF5500' : '#1A1A26', color: isSelected ? '#FFF' : '#CBD5E0', fontSize: '13px', fontWeight: isSelected ? '800' : '500', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+                        {isSelected ? `✓ ${name}` : name}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* START YOUR NIGHT FORM */}
-              <form onSubmit={handleCheckIn} style={{ background: '#12121A', padding: '22px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', border: '1px solid #2A2A3C' }}>
-                <h2 style={{ marginTop: 0, fontSize: '20px', fontWeight: '900', color: '#FF5500', marginBottom: '16px', textAlign: 'center' }}>Start Your Night</h2>
-
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>WHO'S ATTENDING?</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                    {FIXED_FAMILY_MEMBERS.map((name) => {
-                      const isSelected = selectedAttendees.includes(name);
-                      return (
-                        <button key={name} type="button" onClick={() => toggleCheckInAttendee(name)} style={{ padding: '10px 4px', borderRadius: '10px', border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C', background: isSelected ? '#FF5500' : '#1A1A26', color: isSelected ? '#FFF' : '#CBD5E0', fontSize: '13px', fontWeight: isSelected ? '800' : '500', cursor: 'pointer', transition: 'all 0.15s ease' }}>
-                          {isSelected ? `✓ ${name}` : name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    background: '#FF5500',
-                    color: '#FFF',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(255, 85, 0, 0.35)'
-                  }}
-                >
-                  Enter the fog... 🎃
-                </button>
-              </form>
-            </div>
+              <button
+                type="submit"
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  background: '#FF5500',
+                  color: '#FFF',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(255, 85, 0, 0.35)'
+                }}
+              >
+                Enter the fog... 🎃
+              </button>
+            </form>
           )}
 
           {/* TOTALS & SUMMARY STATS WIDGET */}
