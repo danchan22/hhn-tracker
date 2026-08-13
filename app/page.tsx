@@ -209,7 +209,7 @@ export default function HorrorNightsTracker() {
         const formattedVisits: Visit[] = visitsData.map((v: any) => {
           const vDate = v.visitDate || v.visitdate || '';
           const sTime = v.startTime || v.starttime || '';
-          const eTime = v.endTime !== undefined ? v.endTime : (v.endtime !== undefined ? v.endtime : '');
+          const eTime = v.endTime !== undefined && v.endTime !== null ? v.endTime : (v.endtime !== undefined && v.endtime !== null ? v.endtime : '');
           const pName = v.parkName || v.parkname || 'Halloween Horror Nights';
 
           return {
@@ -238,8 +238,8 @@ export default function HorrorNightsTracker() {
           return dateB - dateA;
         });
 
-        const ongoing = formattedVisits.find(v => !v.endTime);
-        const completed = formattedVisits.filter(v => !!v.endTime);
+        const ongoing = formattedVisits.find(v => !v.endTime || v.endTime.trim() === '');
+        const completed = formattedVisits.filter(v => !!v.endTime && v.endTime.trim() !== '');
 
         setActiveVisit(ongoing || null);
         setVisits(completed);
@@ -337,6 +337,11 @@ export default function HorrorNightsTracker() {
     return allCompletedActivities.reduce((sum, a) => sum + (a.waitTimeMinutes || 0), 0);
   }, [allCompletedActivities]);
 
+  const lineTimePercentage = useMemo(() => {
+    if (totalTimeInParkMins <= 0) return 0;
+    return Math.min(100, Math.round((totalTimeInLinesMins / totalTimeInParkMins) * 100));
+  }, [totalTimeInParkMins, totalTimeInLinesMins]);
+
   // Top House
   const topHouseData = useMemo(() => {
     const houseMap: Record<string, { count: number; totalWait: number }> = {};
@@ -423,21 +428,34 @@ export default function HorrorNightsTracker() {
     const attendeesDbStr = newAttendeesList.join(', ');
 
     const supabase = await getSupabase();
-    const { data, error } = await supabase
+    
+    let { data, error } = await supabase
       .from('visits')
       .insert({
         visitDate: localDate,
-        visitdate: localDate,
         startTime: localTime,
-        starttime: localTime,
         endTime: '',
-        endtime: '',
         parkName: 'Halloween Horror Nights',
-        parkname: 'Halloween Horror Nights',
         attendees: attendeesDbStr
       })
       .select()
       .single();
+
+    if (error) {
+      const fallbackRes = await supabase
+        .from('visits')
+        .insert({
+          visitdate: localDate,
+          starttime: localTime,
+          endtime: '',
+          parkname: 'Halloween Horror Nights',
+          attendees: attendeesDbStr
+        })
+        .select()
+        .single();
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
 
     if (error) {
       setErrorMessage("Error checking in: " + error.message);
@@ -479,6 +497,22 @@ export default function HorrorNightsTracker() {
       })
       .select()
       .single();
+
+    if (error) {
+      const fallbackRes = await supabase
+        .from('activities')
+        .insert({
+          visit_id: activeVisit.id,
+          ridename: rideName,
+          waittimeminutes: waitMins,
+          notes: notesVal,
+          riders: ridersStr
+        })
+        .select()
+        .single();
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
 
     if (error) {
       setErrorMessage("Error logging attraction: " + error.message);
@@ -528,6 +562,22 @@ export default function HorrorNightsTracker() {
       })
       .select()
       .single();
+
+    if (error) {
+      const fallbackRes = await supabase
+        .from('activities')
+        .insert({
+          visit_id: activeVisit.id,
+          ridename: rideName,
+          waittimeminutes: calculatedWait,
+          notes: notesVal,
+          riders: ridersStr
+        })
+        .select()
+        .single();
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
 
     if (error) {
       alert("Error logging timer activity: " + error.message);
@@ -593,6 +643,19 @@ export default function HorrorNightsTracker() {
       .eq('id', editingActivityId);
 
     if (error) {
+      const fallbackRes = await supabase
+        .from('activities')
+        .update({
+          ridename: editRideName,
+          waittimeminutes: waitMins,
+          notes: notesVal,
+          riders: ridersStr
+        })
+        .eq('id', editingActivityId);
+      error = fallbackRes.error;
+    }
+
+    if (error) {
       setErrorMessage("Error saving edits: " + error.message);
       return;
     }
@@ -626,17 +689,28 @@ export default function HorrorNightsTracker() {
     const attendeesWithEndTimes = `${rawAttendeesStr}|ENDTIMES:${jsonEndTimesStr}`;
 
     const supabase = await getSupabase();
-    const { error } = await supabase
+    let { error } = await supabase
       .from('visits')
       .update({
         startTime: editVisitStartTime,
-        starttime: editVisitStartTime,
         endTime: editVisitEndTime,
-        endtime: editVisitEndTime,
         attendees: attendeesWithEndTimes,
         notes: jsonEndTimesStr
       })
       .eq('id', editingVisit.id);
+
+    if (error) {
+      const fallbackRes = await supabase
+        .from('visits')
+        .update({
+          starttime: editVisitStartTime,
+          endtime: editVisitEndTime,
+          attendees: attendeesWithEndTimes,
+          notes: jsonEndTimesStr
+        })
+        .eq('id', editingVisit.id);
+      error = fallbackRes.error;
+    }
 
     if (error) {
       setErrorMessage("Error updating visit log: " + error.message);
@@ -672,14 +746,24 @@ export default function HorrorNightsTracker() {
 
     const supabase = await getSupabase();
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from('visits')
       .update({
         endTime: finalEndTime,
-        endtime: finalEndTime,
         attendees: attendeesWithEndTimes
       })
       .eq('id', activeVisit.id);
+
+    if (error) {
+      const fallbackRes = await supabase
+        .from('visits')
+        .update({
+          endtime: finalEndTime,
+          attendees: attendeesWithEndTimes
+        })
+        .eq('id', activeVisit.id);
+      error = fallbackRes.error;
+    }
 
     if (error) {
       setErrorMessage("Error saving departure time: " + error.message);
@@ -716,6 +800,18 @@ export default function HorrorNightsTracker() {
 
   return (
     <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', background: '#09090D', minHeight: '100vh' }}>
+      
+      {/* GLOBAL CSS FOR HIDING NUMBER INPUT SPINNERS */}
+      <style>{`
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type=number] {
+          -moz-appearance: textfield;
+        }
+      `}</style>
 
       {/* 🎃 APP HEADER */}
       <header style={{ textAlign: 'center', marginBottom: '16px', padding: '10px 0' }}>
@@ -959,7 +1055,7 @@ export default function HorrorNightsTracker() {
                       value={postedWaitTime}
                       onChange={(e) => setPostedWaitTime(e.target.value)}
                       disabled={!!queueStartTimestamp}
-                      style={{ width: '90px', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '13px', textAlign: 'center', fontWeight: 'bold' }}
+                      style={{ width: '80px', padding: '6px 8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '13px', textAlign: 'center', fontWeight: 'bold' }}
                     />
                   </div>
 
@@ -1093,15 +1189,19 @@ export default function HorrorNightsTracker() {
               </div>
             </div>
 
-            {/* ROW 2: TIME METRICS */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
-              <div style={{ background: '#1A1A26', padding: '12px', borderRadius: '14px', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '20px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(totalTimeInParkMins)}</div>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TIME IN PARKS</div>
+            {/* ROW 2: TIME METRICS + LINE % */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '15px' }}>
+              <div style={{ background: '#1A1A26', padding: '10px 4px', borderRadius: '12px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
+                <div style={{ fontSize: '18px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(totalTimeInParkMins)}</div>
+                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TIME IN PARKS</div>
               </div>
-              <div style={{ background: '#1A1A26', padding: '12px', borderRadius: '14px', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '20px', fontWeight: '800', color: '#F97316' }}>{formatMinutes(totalTimeInLinesMins)}</div>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TIME IN LINES</div>
+              <div style={{ background: '#1A1A26', padding: '10px 4px', borderRadius: '12px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
+                <div style={{ fontSize: '18px', fontWeight: '800', color: '#F97316' }}>{formatMinutes(totalTimeInLinesMins)}</div>
+                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TIME IN LINES</div>
+              </div>
+              <div style={{ background: '#1A1A26', padding: '10px 4px', borderRadius: '12px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
+                <div style={{ fontSize: '18px', fontWeight: '800', color: '#EF4444' }}>{lineTimePercentage}%</div>
+                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>WAITING IN LINE</div>
               </div>
             </div>
 
@@ -1133,7 +1233,9 @@ export default function HorrorNightsTracker() {
 
             {/* AVERAGES SECTION */}
             <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: '0 0 10px 0', letterSpacing: '0.8px' }}>AVERAGES</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
+            
+            {/* ROW 1: HOUSES | RIDES | SHOWS */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '8px' }}>
               <div style={{ background: '#1A1A26', padding: '10px 2px', borderRadius: '10px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
                 <div style={{ fontSize: '15px', fontWeight: '800', color: '#F3F4F6' }}>{avgHousesPerVisit}</div>
                 <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>HOUSES</div>
@@ -1146,9 +1248,13 @@ export default function HorrorNightsTracker() {
                 <div style={{ fontSize: '15px', fontWeight: '800', color: '#F3F4F6' }}>{avgShowsPerVisit}</div>
                 <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>SHOWS</div>
               </div>
+            </div>
+
+            {/* ROW 2: TIME IN PARKS | WAIT TIME */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div style={{ background: '#1A1A26', padding: '10px 2px', borderRadius: '10px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
                 <div style={{ fontSize: '15px', fontWeight: '800', color: '#F3F4F6' }}>{formatMinutes(avgDurationPerVisit)}</div>
-                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>DURATION</div>
+                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TIME IN PARKS</div>
               </div>
               <div style={{ background: '#1A1A26', padding: '10px 2px', borderRadius: '10px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
                 <div style={{ fontSize: '15px', fontWeight: '800', color: '#F3F4F6' }}>{avgWaitPerActivity}m</div>
