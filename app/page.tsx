@@ -63,28 +63,28 @@ const HHN_RIDES = [
 
 const HHN_SHOWS = [
   'Nightmare Fuel: Blood Noir',
-  'Stranger Things Lagoon Show'
+  'Stranger Things (Lagoon Show)'
 ];
 
-// Layout mapping for Live Wait Times Widget
+// Updated Layout mapping for Live Wait Times Widget
 const HOUSE_GRID_LAYOUT = [
   [
     { name: 'Sinners', apiKey: 'Sinners' },
-    { name: 'Hellraiser', apiKey: 'Hellraiser' },
-    { name: 'Ozzy', apiKey: 'Ozzy Osbourne' }
+    { name: 'Hellraiser', apiKey: 'Hellraiser' }
   ],
   [
-    { name: 'Stranger Things 5', apiKey: 'Stranger Things 5' },
+    { name: 'Ozzy', apiKey: 'Ozzy Osbourne' },
     { name: 'Evil Dead', apiKey: 'Evil Dead Burn' }
+  ],
+  [
+    { name: 'Stranger Things', apiKey: 'Stranger Things 5' },
+    { name: 'INVASION', apiKey: 'INVASION: Alien Abduction' },
+    { name: 'Cybergoria', apiKey: 'Cybergoria' }
   ],
   [
     { name: 'Oddfellow', apiKey: 'Jack & Oddfellow' },
     { name: 'Bloodengutz', apiKey: 'H.R. Bloodengutz' },
-    { name: 'Cybergoria', apiKey: 'Cybergoria' }
-  ],
-  [
-    { name: 'Madlands', apiKey: 'Madlands: Caged Cannibals' },
-    { name: 'INVASION', apiKey: 'INVASION: Alien Abduction' }
+    { name: 'Madlands', apiKey: 'Madlands: Caged Cannibals' }
   ]
 ];
 
@@ -99,7 +99,7 @@ const RIDE_GRID_LAYOUT = [
   ]
 ];
 
-// Fallback initial wait times if API is offline
+// Initial default waits when API is offline / off-hours
 const INITIAL_MOCK_WAITS: Record<string, number> = {
   'Sinners': 25,
   'Hellraiser': 40,
@@ -229,7 +229,6 @@ export default function HorrorNightsTracker() {
     fetchThemeParkWaitTimes();
   }, []);
 
-  // Update posted wait time field whenever dropdown ride selection changes
   useEffect(() => {
     if (rideName && liveWaitTimes[rideName] !== undefined) {
       setPostedWaitTime(liveWaitTimes[rideName].toString());
@@ -239,7 +238,6 @@ export default function HorrorNightsTracker() {
   const fetchThemeParkWaitTimes = async () => {
     setWaitsSyncing(true);
     try {
-      // ThemeParks.wiki Universal Studios Florida ID: 75ea57e0-5612-4e8f-b703-9f09d176c378
       const res = await fetch('https://api.themeparks.wiki/v1/entity/75ea57e0-5612-4e8f-b703-9f09d176c378/live');
       if (res.ok) {
         const data = await res.json();
@@ -425,7 +423,7 @@ export default function HorrorNightsTracker() {
     return v.endTime || '';
   };
 
-  // Helper for wait time box conditional formatting
+  // Helper for wait time box conditional formatting (Updated 91+ to dark card + red text)
   const getWaitBoxStyle = (minutes: number) => {
     if (minutes <= 30) {
       return {
@@ -457,10 +455,10 @@ export default function HorrorNightsTracker() {
       };
     } else {
       return {
-        bg: '#DC2626',
-        border: '#EF4444',
-        titleColor: '#FFFFFF',
-        numColor: '#FFFFFF'
+        bg: '#1A1A26',
+        border: '#2A2A3C',
+        titleColor: '#A0AEC0',
+        numColor: '#EF4444'
       };
     }
   };
@@ -1365,11 +1363,11 @@ export default function HorrorNightsTracker() {
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ background: '#1A1A26', padding: '10px 12px', borderRadius: '12px', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: '#FF5500', marginBottom: '4px' }}>🔥 Nightmare Fuel</div>
+                <div style={{ fontSize: '12px', fontWeight: '800', color: '#FF5500', marginBottom: '4px' }}>🔥 Nightmare Fuel: Blood Noir</div>
                 <div style={{ fontSize: '13px', fontWeight: '700', color: '#F3F4F6' }}>8:00 • 9:30 • 11:00 • 12:30</div>
               </div>
               <div style={{ background: '#1A1A26', padding: '10px 12px', borderRadius: '12px', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: '#3B82F6', marginBottom: '4px' }}>🌊 Stranger Things Lagoon</div>
+                <div style={{ fontSize: '12px', fontWeight: '800', color: '#3B82F6', marginBottom: '4px' }}>🌊 Stranger Things (Lagoon Show)</div>
                 <div style={{ fontSize: '13px', fontWeight: '700', color: '#F3F4F6' }}>10:00 • 11:00 • 12:00</div>
               </div>
             </div>
