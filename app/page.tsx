@@ -70,7 +70,7 @@ const HHN_SHOWS = [
 interface MapPOI {
   id: string;
   name: string;
-  category: 'house' | 'ride' | 'show' | 'scarezone' | 'food';
+  category: 'house' | 'ride' | 'show' | 'scarezone';
   lat: number;
   lng: number;
   apiKey?: string;
@@ -209,6 +209,8 @@ export default function HorrorNightsTracker() {
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<any>(null);
+  const userMarkerRef = useRef<any>(null);
+  const poiMarkersRef = useRef<any[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -293,14 +295,14 @@ export default function HorrorNightsTracker() {
     fetchLiveWeather();
     fetchThemeParkWaitTimes();
 
-    // Watch User Location
-    if (navigator.geolocation) {
+    // GPS Position Tracking
+    if (typeof window !== 'undefined' && navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
         (pos) => {
           setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         },
-        (err) => console.warn('GPS position watch error:', err),
-        { enableHighAccuracy: true }
+        (err) => console.warn('GPS position error:', err),
+        { enableHighAccuracy: true, timeout: 10000 }
       );
       return () => navigator.geolocation.clearWatch(watchId);
     }
@@ -312,26 +314,23 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
-  // Leaflet Dynamic Injection & Re-render Effect
+  // Stable Leaflet Map Initialization & Rendering (Prevents Glitching / Refresh Loops)
   useEffect(() => {
-    if (mainTab === 'map' && mapMode === 'gps' && mapContainerRef.current) {
-      if (!document.getElementById('leaflet-css')) {
-        const link = document.createElement('link');
-        link.id = 'leaflet-css';
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-      }
+    if (mainTab !== 'map' || mapMode !== 'gps' || !mapContainerRef.current) return;
 
-      const initLeaflet = () => {
-        const L = (window as any).L;
-        if (!L) return;
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link');
+      link.id = 'leaflet-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
 
-        if (leafletMapRef.current) {
-          leafletMapRef.current.remove();
-        }
+    const renderMap = () => {
+      const L = (window as any).L;
+      if (!L) return;
 
-        // Center on Universal Studios Florida
+      if (!leafletMapRef.current) {
         const map = L.map(mapContainerRef.current).setView([28.4748, -81.4670], 17);
         leafletMapRef.current = map;
 
@@ -339,65 +338,77 @@ export default function HorrorNightsTracker() {
           maxZoom: 19,
           attribution: '&copy; OpenStreetMap'
         }).addTo(map);
+      }
 
-        // Render User Location
-        if (userLocation) {
-          L.circleMarker([userLocation.lat, userLocation.lng], {
+      const map = leafletMapRef.current;
+
+      // Update User GPS Marker cleanly
+      if (userLocation) {
+        if (userMarkerRef.current) {
+          userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
+        } else {
+          userMarkerRef.current = L.circleMarker([userLocation.lat, userLocation.lng], {
             radius: 8,
             fillColor: '#3B82F6',
             color: '#FFFFFF',
             weight: 2,
             opacity: 1,
             fillOpacity: 0.9
-          }).addTo(map).bindPopup('<b>📍 Your Current Location</b>');
+          }).addTo(map).bindPopup('<b>📍 You are here</b>');
         }
-
-        // Render POIs
-        const filteredLocations = mapCategoryFilter === 'all'
-          ? HHN_MAP_LOCATIONS
-          : HHN_MAP_LOCATIONS.filter(p => p.category === mapCategoryFilter);
-
-        filteredLocations.forEach(poi => {
-          const waitMins = poi.apiKey ? (liveWaitTimes[poi.apiKey] ?? 30) : null;
-          
-          let badgeColor = '#FF5500';
-          if (poi.category === 'ride') badgeColor = '#3B82F6';
-          if (poi.category === 'show') badgeColor = '#10B981';
-          if (poi.category === 'scarezone') badgeColor = '#A855F7';
-
-          const iconHtml = `
-            <div style="background: ${badgeColor}; color: #FFF; border: 2px solid #FFF; border-radius: 12px; padding: 2px 6px; font-size: 11px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; white-space: nowrap;">
-              ${poi.name.split(' ')[0]} ${waitMins !== null ? `(${waitMins}m)` : ''}
-            </div>
-          `;
-
-          const customIcon = L.divIcon({
-            html: iconHtml,
-            className: 'custom-map-pin',
-            iconSize: [80, 24],
-            iconAnchor: [40, 12]
-          });
-
-          const popupContent = `
-            <div style="color: #000; font-family: sans-serif; padding: 4px;">
-              <strong style="font-size: 13px; color: ${badgeColor};">${poi.name}</strong><br/>
-              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#666' }}>Type: ${poi.category}</span><br/>
-              ${waitMins !== null ? `<b>Current Wait:</b> ${waitMins} mins` : ''}
-            </div>
-          `;
-
-          L.marker([poi.lat, poi.lng], { icon: customIcon }).addTo(map).bindPopup(popupContent);
-        });
-      };
-
-      if ((window as any).L) {
-        initLeaflet();
-      } else {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.onload = initLeaflet;
-        document.body.appendChild(script);
       }
+
+      // Clear previous POI markers
+      poiMarkersRef.current.forEach(m => map.removeLayer(m));
+      poiMarkersRef.current = [];
+
+      // Filter & Add POIs
+      const filtered = mapCategoryFilter === 'all'
+        ? HHN_MAP_LOCATIONS
+        : HHN_MAP_LOCATIONS.filter(p => p.category === mapCategoryFilter);
+
+      filtered.forEach(poi => {
+        const waitMins = poi.apiKey ? (liveWaitTimes[poi.apiKey] ?? null) : null;
+        
+        let badgeColor = '#FF5500';
+        if (poi.category === 'ride') badgeColor = '#3B82F6';
+        if (poi.category === 'show') badgeColor = '#10B981';
+        if (poi.category === 'scarezone') badgeColor = '#A855F7';
+
+        // Clean icon without wait time on the map pill
+        const iconHtml = `
+          <div style="background: ${badgeColor}; color: #FFF; border: 2px solid #FFF; border-radius: 12px; padding: 2px 8px; font-size: 11px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; white-space: nowrap;">
+            ${poi.name.split(' ')[0]}
+          </div>
+        `;
+
+        const customIcon = L.divIcon({
+          html: iconHtml,
+          className: 'custom-map-pin',
+          iconSize: [80, 24],
+          iconAnchor: [40, 12]
+        });
+
+        // Clean popup without Type: label
+        const popupContent = `
+          <div style="color: #000; font-family: sans-serif; padding: 4px; text-align: center;">
+            <strong style="font-size: 14px; color: ${badgeColor}; display: block; margin-bottom: 4px;">${poi.name}</strong>
+            ${waitMins !== null ? `<div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">⏱️ Current Wait: <span style="color: #FF5500;">${waitMins} mins</span></div>` : ''}
+          </div>
+        `;
+
+        const marker = L.marker([poi.lat, poi.lng], { icon: customIcon }).addTo(map).bindPopup(popupContent);
+        poiMarkersRef.current.push(marker);
+      });
+    };
+
+    if ((window as any).L) {
+      renderMap();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.onload = renderMap;
+      document.body.appendChild(script);
     }
   }, [mainTab, mapMode, mapCategoryFilter, liveWaitTimes, userLocation]);
 
@@ -1490,14 +1501,14 @@ export default function HorrorNightsTracker() {
             <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '14px', border: '1px solid #2A2A3C', textAlign: 'center', backdropFilter: 'blur(8px)' }}>
               <div style={{ overflow: 'auto', maxHeight: '500px', borderRadius: '16px', border: '1px solid #2A2A3C' }}>
                 <img
-                  src="/HHN Map 2025 - lock screen.jpg"
+                  src="/hhn-map.png"
                   alt="HHN Custom Map"
                   onError={(e: any) => { e.target.src = '/hhn-bg.jpg'; }}
                   style={{ width: '100%', minWidth: '350px', height: 'auto', display: 'block' }}
                 />
               </div>
               <p style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '10px', marginBottom: 0 }}>
-                💡 Pinch or zoom to pan around your custom lock screen map layout.
+                💡 Pinch or zoom to pan around your custom map layout.
               </p>
             </div>
           )}
