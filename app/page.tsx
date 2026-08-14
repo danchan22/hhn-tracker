@@ -66,7 +66,7 @@ const HHN_SHOWS = [
   'Stranger Things (Lagoon Show)'
 ];
 
-// Updated Layout mapping for Live Wait Times Widget
+// Layout mapping for Live Wait Times Widget
 const HOUSE_GRID_LAYOUT = [
   [
     { name: 'Sinners', apiKey: 'Sinners' },
@@ -423,7 +423,6 @@ export default function HorrorNightsTracker() {
     return v.endTime || '';
   };
 
-  // Helper for wait time box conditional formatting (Updated 91+ to dark card + red text)
   const getWaitBoxStyle = (minutes: number) => {
     if (minutes <= 30) {
       return {
@@ -434,28 +433,28 @@ export default function HorrorNightsTracker() {
       };
     } else if (minutes <= 45) {
       return {
-        bg: '#1A1A26',
+        bg: 'rgba(26, 26, 38, 0.85)',
         border: '#2A2A3C',
         titleColor: '#A0AEC0',
         numColor: '#22C55E'
       };
     } else if (minutes <= 60) {
       return {
-        bg: '#1A1A26',
+        bg: 'rgba(26, 26, 38, 0.85)',
         border: '#2A2A3C',
         titleColor: '#A0AEC0',
         numColor: '#EAB308'
       };
     } else if (minutes <= 90) {
       return {
-        bg: '#1A1A26',
+        bg: 'rgba(26, 26, 38, 0.85)',
         border: '#2A2A3C',
         titleColor: '#A0AEC0',
         numColor: '#F97316'
       };
     } else {
       return {
-        bg: '#1A1A26',
+        bg: 'rgba(26, 26, 38, 0.85)',
         border: '#2A2A3C',
         titleColor: '#A0AEC0',
         numColor: '#EF4444'
@@ -875,7 +874,7 @@ export default function HorrorNightsTracker() {
   };
 
   return (
-    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', background: '#09090D url("/hhn-bg.jpg") no-repeat center top fixed', backgroundSize: 'cover', minHeight: '100vh' }}>
+    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', background: 'radial-gradient(circle at top, rgba(18, 18, 26, 0.75) 0%, rgba(9, 9, 13, 0.95) 100%), url("/hhn-bg.jpg") no-repeat center top', backgroundSize: 'cover', minHeight: '100vh' }}>
       
       {/* GLOBAL CSS FOR HIDING NUMBER INPUT SPINNERS */}
       <style>{`
@@ -901,14 +900,14 @@ export default function HorrorNightsTracker() {
 
       {/* ERROR BANNER */}
       {errorMessage && (
-        <div style={{ background: '#2D0A0A', border: '1px solid #DC2626', padding: '10px 14px', borderRadius: '12px', color: '#FCA5A5', fontSize: '13px', fontWeight: 'bold', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'rgba(45, 10, 10, 0.9)', border: '1px solid #DC2626', padding: '10px 14px', borderRadius: '12px', color: '#FCA5A5', fontSize: '13px', fontWeight: 'bold', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>{errorMessage}</span>
           <button onClick={() => setErrorMessage(null)} style={{ background: 'none', border: 'none', color: '#FCA5A5', fontWeight: '900', cursor: 'pointer' }}>✕</button>
         </div>
       )}
 
       {/* 1. MAIN HEADER MENU */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', background: '#12121A', borderRadius: '16px', border: '1px solid #27273A', padding: '6px', marginBottom: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '16px', border: '1px solid #27273A', padding: '6px', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
         
         {/* Tracker */}
         <button
@@ -1033,7 +1032,7 @@ export default function HorrorNightsTracker() {
 
       {/* 2. SUBHEADER NAVS */}
       {mainTab === 'tracker' && (
-        <div style={{ display: 'flex', background: '#12121A', borderRadius: '12px', border: '1px solid #27273A', padding: '3px', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '12px', border: '1px solid #27273A', padding: '3px', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
           <button onClick={() => setTrackerSubTab('Visit HHN')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: trackerSubTab === 'Visit HHN' ? '#FF5500' : 'transparent', color: trackerSubTab === 'Visit HHN' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
             Visit HHN
           </button>
@@ -1052,7 +1051,7 @@ export default function HorrorNightsTracker() {
           style={{
             display: 'block',
             textDecoration: 'none',
-            background: rainAlertTime ? '#2B0D0D' : '#12121A',
+            background: rainAlertTime ? 'rgba(43, 13, 13, 0.9)' : 'rgba(18, 18, 26, 0.85)',
             border: rainAlertTime ? '1px solid #DC2626' : '1px solid #2A2A3C',
             padding: '10px 14px',
             borderRadius: '14px',
@@ -1062,7 +1061,8 @@ export default function HorrorNightsTracker() {
             marginBottom: '16px',
             textAlign: 'center',
             boxShadow: rainAlertTime ? '0 4px 12px rgba(220, 38, 38, 0.2)' : 'none',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            backdropFilter: 'blur(8px)'
           }}
         >
           {weatherLoading ? (
@@ -1080,7 +1080,7 @@ export default function HorrorNightsTracker() {
         <div>
           {activeVisit ? (
             /* ACTIVE VISIT LIVE WIDGET */
-            <div style={{ background: 'linear-gradient(135deg, #1F0808 0%, #0D0510 100%)', color: '#FFF', padding: '20px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)', border: '2px solid #DC2626' }}>
+            <div style={{ background: 'linear-gradient(135deg, rgba(31, 8, 8, 0.9) 0%, rgba(13, 5, 16, 0.95) 100%)', color: '#FFF', padding: '20px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)', border: '2px solid #DC2626', backdropFilter: 'blur(8px)' }}>
               
               <div style={{ marginBottom: '12px' }}>
                 <span style={{ background: '#DC2626', color: '#FFF', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '900', display: 'inline-block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -1097,7 +1097,7 @@ export default function HorrorNightsTracker() {
               </p>
 
               {/* TRACK ATTRACTION CARD */}
-              <div style={{ background: '#12121A', padding: '16px', borderRadius: '18px', marginBottom: '15px', color: '#F3F4F6', border: '1px solid #2A2A3C' }}>
+              <div style={{ background: 'rgba(18, 18, 26, 0.9)', padding: '16px', borderRadius: '18px', marginBottom: '15px', color: '#F3F4F6', border: '1px solid #2A2A3C' }}>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '800', color: '#FF5500' }}>Track an Attraction:</h3>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1234,7 +1234,7 @@ export default function HorrorNightsTracker() {
             </div>
           ) : (
             /* START YOUR NIGHT FORM */
-            <form onSubmit={handleCheckIn} style={{ background: '#12121A', padding: '22px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', border: '1px solid #2A2A3C' }}>
+            <form onSubmit={handleCheckIn} style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '22px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
               <h2 style={{ marginTop: 0, fontSize: '20px', fontWeight: '900', color: '#FF5500', marginBottom: '16px', textAlign: 'center' }}>Start Your Night</h2>
 
               <div style={{ marginBottom: '20px' }}>
@@ -1272,7 +1272,7 @@ export default function HorrorNightsTracker() {
           )}
 
           {/* 🎪 LIVE WAIT TIMES & SHOW TIMES WIDGET */}
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '18px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', border: '1px solid #2A2A3C' }}>
+          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: 0, letterSpacing: '0.8px' }}>
                 HOUSE WAIT TIMES
@@ -1375,7 +1375,7 @@ export default function HorrorNightsTracker() {
           </div>
 
           {/* TOTALS & SUMMARY STATS WIDGET */}
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '18px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', border: '1px solid #2A2A3C' }}>
+          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
             <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: '0 0 12px 0', letterSpacing: '0.8px' }}>
               TOTALS
             </h3>
@@ -1501,7 +1501,7 @@ export default function HorrorNightsTracker() {
               const hasStaggeredCheckout = uniqueDepTimes.length > 1;
 
               return (
-                <div key={v.id} style={{ border: '1px solid #2A2A3C', borderRadius: '20px', padding: '16px', marginBottom: '12px', background: '#12121A' }}>
+                <div key={v.id} style={{ border: '1px solid #2A2A3C', borderRadius: '20px', padding: '16px', marginBottom: '12px', background: 'rgba(18, 18, 26, 0.85)', backdropFilter: 'blur(8px)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #2A2A3C', paddingBottom: '8px', marginBottom: '10px' }}>
                     <strong style={{ color: '#FF5500', fontSize: '16px', fontWeight: '800' }}>
                       🎃 Halloween Horror Nights
