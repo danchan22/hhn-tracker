@@ -166,8 +166,8 @@ export default function HorrorNightsTracker() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Analytics Attendee Filter State
-  const [selectedAttendeeFilter, setSelectedAttendeeFilter] = useState<string>('Dan');
+  // Analytics Attendee Filter State ("All Party" or individual name)
+  const [selectedAttendeeFilter, setSelectedAttendeeFilter] = useState<string>('All Party');
 
   // Form States
   const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);
@@ -184,10 +184,6 @@ export default function HorrorNightsTracker() {
   const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now());
 
   // Weather States
-  const [currentTemp, setCurrentTemp] = useState<number | null>(null);
-  const [rainProbability, setRainProbability] = useState<number | null>(null);
-  const [rainAlertTime, setRainAlertTime] = useState<string | null>(null);
-  const [weatherLoading, setWeatherLoading] = useState<boolean>(true);
   const [hourlyForecast, setHourlyForecast] = useState<Array<{ hourLabel: string; temp: number; pop: number }>>([
     { hourLabel: '6 PM', temp: 86, pop: 20 },
     { hourLabel: '7 PM', temp: 84, pop: 30 },
@@ -196,6 +192,7 @@ export default function HorrorNightsTracker() {
     { hourLabel: '10 PM', temp: 78, pop: 20 },
     { hourLabel: '11 PM', temp: 77, pop: 10 },
   ]);
+  const [weatherLoading, setWeatherLoading] = useState<boolean>(true);
 
   // Live Wait Times State
   const [liveWaitTimes, setLiveWaitTimes] = useState<Record<string, number>>(INITIAL_MOCK_WAITS);
@@ -259,7 +256,7 @@ export default function HorrorNightsTracker() {
   const fetchThemeParkWaitTimes = async () => {
     setWaitsSyncing(true);
     try {
-      const res = await fetch('https://api.themeparks.wiki/v1/entity/75ea57e0-5612-4e8f-b703-9f09d176c378/live');
+      const res = await fetch('https://api.themeparks.wiki/v1/entity/eb3f4560-2383-4a36-9152-6b3e5ed6bc57/live');
       if (res.ok) {
         const data = await res.json();
         const liveList = data?.liveData || [];
@@ -488,6 +485,14 @@ export default function HorrorNightsTracker() {
     return visits.flatMap(v => v.activities.map(a => ({ ...a, visitDate: v.visitDate })));
   }, [visits]);
 
+  // Filtered activities based on selected Attendee filter ("All Party" or single name)
+  const filteredCompletedActivities = useMemo(() => {
+    if (selectedAttendeeFilter === 'All Party') {
+      return allCompletedActivities;
+    }
+    return allCompletedActivities.filter(a => parseAttendees(a.riders).includes(selectedAttendeeFilter));
+  }, [allCompletedActivities, selectedAttendeeFilter]);
+
   const totalEventVisits = visits.length;
 
   const totalHousesCount = useMemo(() => {
@@ -566,8 +571,8 @@ export default function HorrorNightsTracker() {
 
   // --- ANALYTICS DETAILED STATS (HOUSES & RIDES) ---
   const houseAnalyticsStats = useMemo(() => {
-    return HHN_HOUSES.map(houseName => {
-      const houseActivities = allCompletedActivities.filter(a => a.rideName === houseName);
+    const stats = HHN_HOUSES.map(houseName => {
+      const houseActivities = filteredCompletedActivities.filter(a => a.rideName === houseName);
       const visitsCount = houseActivities.length;
       const totalWait = houseActivities.reduce((sum, a) => sum + (a.waitTimeMinutes || 0), 0);
       const avgWait = visitsCount > 0 ? Math.round(totalWait / visitsCount) : 0;
@@ -585,11 +590,14 @@ export default function HorrorNightsTracker() {
         diff
       };
     });
-  }, [allCompletedActivities]);
+
+    // Sort Houses by Most Visits
+    return stats.sort((a, b) => b.visits - a.visits || b.totalWait - a.totalWait);
+  }, [filteredCompletedActivities]);
 
   const rideAnalyticsStats = useMemo(() => {
-    return HHN_RIDES.map(rideName => {
-      const rideActivities = allCompletedActivities.filter(a => a.rideName === rideName);
+    const stats = HHN_RIDES.map(rideName => {
+      const rideActivities = filteredCompletedActivities.filter(a => a.rideName === rideName);
       const visitsCount = rideActivities.length;
       const totalWait = rideActivities.reduce((sum, a) => sum + (a.waitTimeMinutes || 0), 0);
       const avgWait = visitsCount > 0 ? Math.round(totalWait / visitsCount) : 0;
@@ -607,51 +615,73 @@ export default function HorrorNightsTracker() {
         diff
       };
     });
-  }, [allCompletedActivities]);
+
+    // Sort Rides by Most Visits
+    return stats.sort((a, b) => b.visits - a.visits || b.totalWait - a.totalWait);
+  }, [filteredCompletedActivities]);
 
   // Longest Individual Waits (Houses)
   const longestHouseWaits = useMemo(() => {
-    return allCompletedActivities
+    return [...filteredCompletedActivities]
       .filter(a => HHN_HOUSES.includes(a.rideName))
       .sort((a, b) => b.waitTimeMinutes - a.waitTimeMinutes)
       .slice(0, 10);
-  }, [allCompletedActivities]);
+  }, [filteredCompletedActivities]);
+
+  // Shortest Individual Waits (Houses)
+  const shortestHouseWaits = useMemo(() => {
+    return [...filteredCompletedActivities]
+      .filter(a => HHN_HOUSES.includes(a.rideName))
+      .sort((a, b) => a.waitTimeMinutes - b.waitTimeMinutes)
+      .slice(0, 10);
+  }, [filteredCompletedActivities]);
 
   // Longest Individual Waits (Rides)
   const longestRideWaits = useMemo(() => {
-    return allCompletedActivities
+    return [...filteredCompletedActivities]
       .filter(a => HHN_RIDES.includes(a.rideName))
       .sort((a, b) => b.waitTimeMinutes - a.waitTimeMinutes)
       .slice(0, 10);
-  }, [allCompletedActivities]);
+  }, [filteredCompletedActivities]);
+
+  // Shortest Individual Waits (Rides)
+  const shortestRideWaits = useMemo(() => {
+    return [...filteredCompletedActivities]
+      .filter(a => HHN_RIDES.includes(a.rideName))
+      .sort((a, b) => a.waitTimeMinutes - b.waitTimeMinutes)
+      .slice(0, 10);
+  }, [filteredCompletedActivities]);
 
   // --- ATTENDEE CHECKLIST STATS ---
   const attendeeChecklistData = useMemo(() => {
-    const attendee = selectedAttendeeFilter;
-    
-    // Filter activities where rider list includes the selected attendee
-    const personActivities = allCompletedActivities.filter(a => {
-      const riders = parseAttendees(a.riders);
-      return riders.includes(attendee);
-    });
+    const personActivities = filteredCompletedActivities;
 
-    const houseCounts: Record<string, number> = {};
-    HHN_HOUSES.forEach(h => {
-      houseCounts[h] = personActivities.filter(a => a.rideName === h).length;
-    });
+    const houseList = HHN_HOUSES.map(h => {
+      const items = personActivities.filter(a => a.rideName === h);
+      const visits = items.length;
+      const totalWait = items.reduce((sum, a) => sum + (a.waitTimeMinutes || 0), 0);
+      const avgWait = visits > 0 ? Math.round(totalWait / visits) : 0;
+      return { name: h, visits, totalWait, avgWait };
+    }).sort((a, b) => b.visits - a.visits || b.totalWait - a.totalWait);
 
-    const rideCounts: Record<string, number> = {};
-    HHN_RIDES.forEach(r => {
-      rideCounts[r] = personActivities.filter(a => a.rideName === r).length;
-    });
+    const rideList = HHN_RIDES.map(r => {
+      const items = personActivities.filter(a => a.rideName === r);
+      const visits = items.length;
+      const totalWait = items.reduce((sum, a) => sum + (a.waitTimeMinutes || 0), 0);
+      const avgWait = visits > 0 ? Math.round(totalWait / visits) : 0;
+      return { name: r, visits, totalWait, avgWait };
+    }).sort((a, b) => b.visits - a.visits || b.totalWait - a.totalWait);
 
-    const showCounts: Record<string, number> = {};
-    HHN_SHOWS.forEach(s => {
-      showCounts[s] = personActivities.filter(a => a.rideName === s).length;
-    });
+    const showList = HHN_SHOWS.map(s => {
+      const items = personActivities.filter(a => a.rideName === s);
+      const visits = items.length;
+      const totalWait = items.reduce((sum, a) => sum + (a.waitTimeMinutes || 0), 0);
+      const avgWait = visits > 0 ? Math.round(totalWait / visits) : 0;
+      return { name: s, visits, totalWait, avgWait };
+    }).sort((a, b) => b.visits - a.visits || b.totalWait - a.totalWait);
 
-    return { houseCounts, rideCounts, showCounts };
-  }, [allCompletedActivities, selectedAttendeeFilter]);
+    return { houseList, rideList, showList };
+  }, [filteredCompletedActivities]);
 
   const toggleCheckInAttendee = (name: string) => {
     if (selectedAttendees.includes(name)) {
@@ -1764,14 +1794,55 @@ export default function HorrorNightsTracker() {
       {/* 4. ANALYTICS TAB VIEWS */}
       {mainTab === 'analytics' && (
         <div>
+          {/* SHARED ATTENDEE FILTER SELECTOR */}
+          <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '12px 14px', borderRadius: '18px', border: '1px solid #2A2A3C', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
+            <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>
+              FILTER BY ATTENDEE:
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+              <button
+                onClick={() => setSelectedAttendeeFilter('All Party')}
+                style={{
+                  padding: '7px 2px',
+                  borderRadius: '10px',
+                  border: selectedAttendeeFilter === 'All Party' ? '2px solid #FF5500' : '1px solid #2A2A3C',
+                  background: selectedAttendeeFilter === 'All Party' ? '#FF5500' : '#1A1A26',
+                  color: selectedAttendeeFilter === 'All Party' ? '#FFF' : '#CBD5E0',
+                  fontSize: '11px',
+                  fontWeight: selectedAttendeeFilter === 'All Party' ? '800' : '600',
+                  cursor: 'pointer'
+                }}
+              >
+                All Party
+              </button>
+              {FIXED_FAMILY_MEMBERS.map(name => {
+                const isSelected = selectedAttendeeFilter === name;
+                return (
+                  <button
+                    key={name}
+                    onClick={() => setSelectedAttendeeFilter(name)}
+                    style={{
+                      padding: '7px 2px',
+                      borderRadius: '10px',
+                      border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C',
+                      background: isSelected ? '#FF5500' : '#1A1A26',
+                      color: isSelected ? '#FFF' : '#CBD5E0',
+                      fontSize: '11px',
+                      fontWeight: isSelected ? '800' : '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* HOUSES ANALYTICS SUBTAB */}
           {analyticsSubTab === 'Houses' && (
             <div>
-              <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#DC2626', marginBottom: '14px', paddingLeft: '2px' }}>
-                House Analytics
-              </h2>
-
-              {/* HOUSE STATS GRID */}
+              {/* HOUSE STATS GRID (Sorted by Most Visits) */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                 {houseAnalyticsStats.map(stat => (
                   <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
@@ -1785,22 +1856,22 @@ export default function HorrorNightsTracker() {
                         <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>VISITS</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL WAIT</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
                         <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG WAIT</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL WAIT</div>
+                      </div>
+                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>EXPECTED</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG POSTED</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
                           {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
                         </div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/- EXP</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/- POSTED</div>
                       </div>
                     </div>
                   </div>
@@ -1808,8 +1879,8 @@ export default function HorrorNightsTracker() {
               </div>
 
               {/* LONGEST INDIVIDUAL WAIT TIMES (HOUSES) */}
-              <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#DC2626', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', marginBottom: '20px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#DC2626', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   🔥 Longest Individual Wait Times
                 </h3>
 
@@ -1828,7 +1899,6 @@ export default function HorrorNightsTracker() {
                               {act.rideName}
                             </div>
                             <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                              🎃 Universal Studios Florida <br />
                               📅 {formatDisplayDate(act.visitDate)} <br />
                               👥 {parseAttendees(act.riders).join(', ')}
                             </div>
@@ -1842,17 +1912,48 @@ export default function HorrorNightsTracker() {
                   </div>
                 )}
               </div>
+
+              {/* SHORTEST INDIVIDUAL WAIT TIMES (HOUSES) */}
+              <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#22C55E', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  ⚡ Shortest Individual Wait Times
+                </h3>
+
+                {shortestHouseWaits.length === 0 ? (
+                  <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No house visits logged yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {shortestHouseWaits.map((act, index) => (
+                      <div key={act.id + index} style={{ background: '#0B231A', border: '1px solid #15803D', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                          <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {index + 1}
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {act.rideName}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                              📅 {formatDisplayDate(act.visitDate)} <br />
+                              👥 {parseAttendees(act.riders).join(', ')}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
+                          {act.waitTimeMinutes}m
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           {/* RIDES ANALYTICS SUBTAB */}
           {analyticsSubTab === 'Rides' && (
             <div>
-              <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#3B82F6', marginBottom: '14px', paddingLeft: '2px' }}>
-                Ride Analytics
-              </h2>
-
-              {/* RIDE STATS GRID */}
+              {/* RIDE STATS GRID (Sorted by Most Visits) */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                 {rideAnalyticsStats.map(stat => (
                   <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
@@ -1866,22 +1967,22 @@ export default function HorrorNightsTracker() {
                         <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>VISITS</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL WAIT</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
                         <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG WAIT</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL WAIT</div>
+                      </div>
+                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>EXPECTED</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG POSTED</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
                           {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
                         </div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/- EXP</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/- POSTED</div>
                       </div>
                     </div>
                   </div>
@@ -1889,8 +1990,8 @@ export default function HorrorNightsTracker() {
               </div>
 
               {/* LONGEST INDIVIDUAL WAIT TIMES (RIDES) */}
-              <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#3B82F6', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', marginBottom: '20px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#3B82F6', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   🔥 Longest Individual Wait Times
                 </h3>
 
@@ -1909,7 +2010,6 @@ export default function HorrorNightsTracker() {
                               {act.rideName}
                             </div>
                             <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                              🎢 Universal Studios Florida <br />
                               📅 {formatDisplayDate(act.visitDate)} <br />
                               👥 {parseAttendees(act.riders).join(', ')}
                             </div>
@@ -1923,115 +2023,104 @@ export default function HorrorNightsTracker() {
                   </div>
                 )}
               </div>
+
+              {/* SHORTEST INDIVIDUAL WAIT TIMES (RIDES) */}
+              <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#22C55E', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  ⚡ Shortest Individual Wait Times
+                </h3>
+
+                {shortestRideWaits.length === 0 ? (
+                  <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No ride visits logged yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {shortestRideWaits.map((act, index) => (
+                      <div key={act.id + index} style={{ background: '#0B231A', border: '1px solid #15803D', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                          <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {index + 1}
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {act.rideName}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                              📅 {formatDisplayDate(act.visitDate)} <br />
+                              👥 {parseAttendees(act.riders).join(', ')}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
+                          {act.waitTimeMinutes}m
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           {/* ATTENDEES ANALYTICS SUBTAB */}
           {analyticsSubTab === 'Attendees' && (
             <div>
-              <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#F59E0B', marginBottom: '14px', paddingLeft: '2px' }}>
-                Attendee Experience Checklist
-              </h2>
-
-              {/* ATTENDEE FILTER SELECTOR */}
-              <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '14px', borderRadius: '18px', border: '1px solid #2A2A3C', marginBottom: '18px', backdropFilter: 'blur(8px)' }}>
-                <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>
-                  FILTER BY ATTENDEE:
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-                  {FIXED_FAMILY_MEMBERS.map(name => {
-                    const isSelected = selectedAttendeeFilter === name;
-                    return (
-                      <button
-                        key={name}
-                        onClick={() => setSelectedAttendeeFilter(name)}
-                        style={{
-                          padding: '8px 2px',
-                          borderRadius: '10px',
-                          border: isSelected ? '2px solid #F59E0B' : '1px solid #2A2A3C',
-                          background: isSelected ? '#F59E0B' : '#1A1A26',
-                          color: isSelected ? '#FFF' : '#CBD5E0',
-                          fontSize: '12px',
-                          fontWeight: isSelected ? '800' : '600',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
               {/* CHECKLIST MATRIX FOR HOUSES, RIDES, SHOWS */}
               <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: '900', color: '#FF5500', margin: '0 0 12px 0' }}>
-                  🏚️ HOUSES LOGGED ({selectedAttendeeFilter})
+                  🏚️ HOUSES ({selectedAttendeeFilter})
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                  {HHN_HOUSES.map(house => {
-                    const count = attendeeChecklistData.houseCounts[house] || 0;
-                    const isDone = count > 0;
-                    return (
-                      <div key={house} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div>
-                          <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{house}</div>
-                          <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                            Logged: <strong>{count}x</strong>
-                          </div>
-                        </div>
-                        <div style={{ background: isDone ? '#15803D' : '#2A2A3C', color: isDone ? '#FFF' : '#718096', fontSize: '11px', fontWeight: '800', padding: '4px 10px', borderRadius: '8px' }}>
-                          {isDone ? '✓ Done' : 'Not Yet'}
+                  {attendeeChecklistData.houseList.map(item => (
+                    <div key={item.name} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{item.name}</div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                          Avg Wait: <strong>{item.avgWait}m</strong> &nbsp;•&nbsp; Total Wait: <strong>{formatMinutes(item.totalWait)}</strong>
                         </div>
                       </div>
-                    );
-                  })}
+                      <div style={{ background: item.visits > 0 ? '#FF5500' : '#2A2A3C', color: item.visits > 0 ? '#FFF' : '#718096', fontSize: '12px', fontWeight: '900', padding: '6px 12px', borderRadius: '10px' }}>
+                        {item.visits} {item.visits === 1 ? 'Visit' : 'Visits'}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <h3 style={{ fontSize: '14px', fontWeight: '900', color: '#3B82F6', margin: '0 0 12px 0' }}>
-                  🎢 RIDES LOGGED ({selectedAttendeeFilter})
+                  🎢 RIDES ({selectedAttendeeFilter})
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                  {HHN_RIDES.map(ride => {
-                    const count = attendeeChecklistData.rideCounts[ride] || 0;
-                    const isDone = count > 0;
-                    return (
-                      <div key={ride} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div>
-                          <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{ride}</div>
-                          <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                            Logged: <strong>{count}x</strong>
-                          </div>
-                        </div>
-                        <div style={{ background: isDone ? '#1E40AF' : '#2A2A3C', color: isDone ? '#FFF' : '#718096', fontSize: '11px', fontWeight: '800', padding: '4px 10px', borderRadius: '8px' }}>
-                          {isDone ? '✓ Done' : 'Not Yet'}
+                  {attendeeChecklistData.rideList.map(item => (
+                    <div key={item.name} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{item.name}</div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                          Avg Wait: <strong>{item.avgWait}m</strong> &nbsp;•&nbsp; Total Wait: <strong>{formatMinutes(item.totalWait)}</strong>
                         </div>
                       </div>
-                    );
-                  })}
+                      <div style={{ background: item.visits > 0 ? '#3B82F6' : '#2A2A3C', color: item.visits > 0 ? '#FFF' : '#718096', fontSize: '12px', fontWeight: '900', padding: '6px 12px', borderRadius: '10px' }}>
+                        {item.visits} {item.visits === 1 ? 'Visit' : 'Visits'}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <h3 style={{ fontSize: '14px', fontWeight: '900', color: '#10B981', margin: '0 0 12px 0' }}>
-                  🎭 SHOWS LOGGED ({selectedAttendeeFilter})
+                  🎭 SHOWS ({selectedAttendeeFilter})
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {HHN_SHOWS.map(show => {
-                    const count = attendeeChecklistData.showCounts[show] || 0;
-                    const isDone = count > 0;
-                    return (
-                      <div key={show} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div>
-                          <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{show}</div>
-                          <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                            Logged: <strong>{count}x</strong>
-                          </div>
-                        </div>
-                        <div style={{ background: isDone ? '#047857' : '#2A2A3C', color: isDone ? '#FFF' : '#718096', fontSize: '11px', fontWeight: '800', padding: '4px 10px', borderRadius: '8px' }}>
-                          {isDone ? '✓ Done' : 'Not Yet'}
+                  {attendeeChecklistData.showList.map(item => (
+                    <div key={item.name} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{item.name}</div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                          Avg Wait: <strong>{item.avgWait}m</strong> &nbsp;•&nbsp; Total Wait: <strong>{formatMinutes(item.totalWait)}</strong>
                         </div>
                       </div>
-                    );
-                  })}
+                      <div style={{ background: item.visits > 0 ? '#10B981' : '#2A2A3C', color: item.visits > 0 ? '#FFF' : '#718096', fontSize: '12px', fontWeight: '900', padding: '6px 12px', borderRadius: '10px' }}>
+                        {item.visits} {item.visits === 1 ? 'Visit' : 'Visits'}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
               </div>
