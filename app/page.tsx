@@ -206,6 +206,7 @@ export default function HorrorNightsTracker() {
   const [mapMode, setMapMode] = useState<'gps' | 'graphic'>('gps');
   const [mapCategoryFilter, setMapCategoryFilter] = useState<'all' | 'house' | 'ride' | 'show' | 'scarezone'>('all');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isMapFullscreen, setIsMapFullscreen] = useState<boolean>(false);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<any>(null);
@@ -314,7 +315,16 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
-  // Stable Leaflet Map Initialization & Rendering (Prevents Glitching / Refresh Loops)
+  // Leaflet Map Invalidate Size Trigger for Fullscreen Toggle
+  useEffect(() => {
+    if (leafletMapRef.current) {
+      setTimeout(() => {
+        leafletMapRef.current.invalidateSize();
+      }, 200);
+    }
+  }, [isMapFullscreen]);
+
+  // Stable Leaflet Map Initialization & Rendering
   useEffect(() => {
     if (mainTab !== 'map' || mapMode !== 'gps' || !mapContainerRef.current) return;
 
@@ -375,7 +385,6 @@ export default function HorrorNightsTracker() {
         if (poi.category === 'show') badgeColor = '#10B981';
         if (poi.category === 'scarezone') badgeColor = '#A855F7';
 
-        // Clean icon without wait time on the map pill
         const iconHtml = `
           <div style="background: ${badgeColor}; color: #FFF; border: 2px solid #FFF; border-radius: 12px; padding: 2px 8px; font-size: 11px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; white-space: nowrap;">
             ${poi.name.split(' ')[0]}
@@ -389,7 +398,6 @@ export default function HorrorNightsTracker() {
           iconAnchor: [40, 12]
         });
 
-        // Clean popup without Type: label
         const popupContent = `
           <div style="color: #000; font-family: sans-serif; padding: 4px; text-align: center;">
             <strong style="font-size: 14px; color: ${badgeColor}; display: block; margin-bottom: 4px;">${poi.name}</strong>
@@ -1453,45 +1461,78 @@ export default function HorrorNightsTracker() {
 
           {/* VIEW 1: INTERACTIVE GPS MAP */}
           {mapMode === 'gps' && (
-            <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '14px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-              {/* CATEGORY FILTERS */}
-              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '10px', scrollbarWidth: 'none' }}>
+            <div style={{
+              position: isMapFullscreen ? 'fixed' : 'relative',
+              top: isMapFullscreen ? 0 : 'auto',
+              left: isMapFullscreen ? 0 : 'auto',
+              right: isMapFullscreen ? 0 : 'auto',
+              bottom: isMapFullscreen ? 0 : 'auto',
+              width: isMapFullscreen ? '100vw' : '100%',
+              height: isMapFullscreen ? '100vh' : 'auto',
+              zIndex: isMapFullscreen ? 99999 : 'auto',
+              background: 'rgba(18, 18, 26, 0.95)',
+              borderRadius: isMapFullscreen ? 0 : '24px',
+              padding: isMapFullscreen ? '10px' : '14px',
+              border: isMapFullscreen ? 'none' : '1px solid #2A2A3C',
+              backdropFilter: 'blur(8px)'
+            }}>
+              {/* CATEGORY FILTERS & FULLSCREEN TOGGLE */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none', flex: 1 }}>
+                  <button
+                    onClick={() => setMapCategoryFilter('all')}
+                    style={{ padding: '6px 10px', borderRadius: '8px', border: mapCategoryFilter === 'all' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'all' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setMapCategoryFilter('house')}
+                    style={{ padding: '6px 10px', borderRadius: '8px', border: mapCategoryFilter === 'house' ? '2px solid #FF5500' : '1px solid #2A2A3C', background: mapCategoryFilter === 'house' ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    🏚️ Houses
+                  </button>
+                  <button
+                    onClick={() => setMapCategoryFilter('ride')}
+                    style={{ padding: '6px 10px', borderRadius: '8px', border: mapCategoryFilter === 'ride' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'ride' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    🎢 Rides
+                  </button>
+                  <button
+                    onClick={() => setMapCategoryFilter('show')}
+                    style={{ padding: '6px 10px', borderRadius: '8px', border: mapCategoryFilter === 'show' ? '2px solid #10B981' : '1px solid #2A2A3C', background: mapCategoryFilter === 'show' ? '#10B981' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    🎭 Shows
+                  </button>
+                  <button
+                    onClick={() => setMapCategoryFilter('scarezone')}
+                    style={{ padding: '6px 10px', borderRadius: '8px', border: mapCategoryFilter === 'scarezone' ? '2px solid #A855F7' : '1px solid #2A2A3C', background: mapCategoryFilter === 'scarezone' ? '#A855F7' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    🧟 Scare Zones
+                  </button>
+                </div>
+
                 <button
-                  onClick={() => setMapCategoryFilter('all')}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'all' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'all' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                  onClick={() => setIsMapFullscreen(!isMapFullscreen)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    background: '#FF5500',
+                    color: '#FFF',
+                    border: 'none',
+                    fontSize: '11px',
+                    fontWeight: '900',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
                 >
-                  All
-                </button>
-                <button
-                  onClick={() => setMapCategoryFilter('house')}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'house' ? '2px solid #FF5500' : '1px solid #2A2A3C', background: mapCategoryFilter === 'house' ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
-                >
-                  🏚️ Houses
-                </button>
-                <button
-                  onClick={() => setMapCategoryFilter('ride')}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'ride' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'ride' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
-                >
-                  🎢 Rides
-                </button>
-                <button
-                  onClick={() => setMapCategoryFilter('show')}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'show' ? '2px solid #10B981' : '1px solid #2A2A3C', background: mapCategoryFilter === 'show' ? '#10B981' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
-                >
-                  🎭 Shows
-                </button>
-                <button
-                  onClick={() => setMapCategoryFilter('scarezone')}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'scarezone' ? '2px solid #A855F7' : '1px solid #2A2A3C', background: mapCategoryFilter === 'scarezone' ? '#A855F7' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
-                >
-                  🧟 Scare Zones
+                  {isMapFullscreen ? '✕ Exit' : '⛶ Fullscreen'}
                 </button>
               </div>
 
               {/* LEAFLET MAP CONTAINER */}
               <div
                 ref={mapContainerRef}
-                style={{ width: '100%', height: '420px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2A2A3C', position: 'relative', zIndex: 1 }}
+                style={{ width: '100%', height: isMapFullscreen ? 'calc(100vh - 65px)' : '420px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2A2A3C', position: 'relative', zIndex: 1 }}
               />
             </div>
           )}
