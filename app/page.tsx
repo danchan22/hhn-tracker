@@ -66,7 +66,7 @@ const HHN_SHOWS = [
   'Stranger Things (Lagoon Show)'
 ];
 
-// Updated Layout mapping for Live Wait Times Widget
+// Layout mapping for Live Wait Times Widget
 const HOUSE_GRID_LAYOUT = [
   [
     { name: 'Sinners', apiKey: 'Sinners' },
@@ -98,6 +98,9 @@ const RIDE_GRID_LAYOUT = [
     { name: 'Mummy', apiKey: 'Revenge of the Mummy' }
   ]
 ];
+
+// Default target hours for HHN Evening Forecast
+const EVENING_HOURS = [18, 19, 20, 21, 22, 23]; // 6pm to 11pm
 
 // Initial default waits when API is offline / off-hours
 const INITIAL_MOCK_WAITS: Record<string, number> = {
@@ -171,9 +174,14 @@ export default function HorrorNightsTracker() {
   const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now());
 
   // Weather States
-  const [currentTemp, setCurrentTemp] = useState<number | null>(null);
-  const [rainProbability, setRainProbability] = useState<number | null>(null);
-  const [rainAlertTime, setRainAlertTime] = useState<string | null>(null);
+  const [hourlyForecast, setHourlyForecast] = useState<Array<{ hourLabel: string; temp: number; pop: number }>>([
+    { hourLabel: '6 PM', temp: 86, pop: 20 },
+    { hourLabel: '7 PM', temp: 84, pop: 30 },
+    { hourLabel: '8 PM', temp: 82, pop: 40 },
+    { hourLabel: '9 PM', temp: 80, pop: 30 },
+    { hourLabel: '10 PM', temp: 78, pop: 20 },
+    { hourLabel: '11 PM', temp: 77, pop: 10 },
+  ]);
   const [weatherLoading, setWeatherLoading] = useState<boolean>(true);
 
   // Live Wait Times State
@@ -280,37 +288,23 @@ export default function HorrorNightsTracker() {
         });
         if (!forecastRes.ok) throw new Error('NWS Forecast lookup failed');
         const forecastData = await forecastRes.json();
-        const periods = forecastData?.properties?.periods || [];
-
-        const now = new Date();
+        const periods: any[] = forecastData?.properties?.periods || [];
 
         if (periods.length > 0) {
-          const upcomingPeriods = periods.filter((p: any) => new Date(p.endTime) > now);
-          const currentPeriod = upcomingPeriods[0] || periods[0];
-
-          setCurrentTemp(currentPeriod.temperature || 78);
-          const currentPop = currentPeriod.probabilityOfPrecipitation?.value ?? 0;
-          setRainProbability(currentPop);
-
-          const rainPeriod = upcomingPeriods.find((p: any) => {
-            const periodStart = new Date(p.startTime);
-            const pop = p.probabilityOfPrecipitation?.value ?? 0;
-            return periodStart > now && pop >= 30;
+          const parsed = EVENING_HOURS.map(targetHour => {
+            const found = periods.find(p => new Date(p.startTime).getHours() === targetHour);
+            const label = targetHour === 12 ? '12 PM' : `${targetHour % 12} PM`;
+            return {
+              hourLabel: label,
+              temp: found?.temperature ?? (86 - (targetHour - 18) * 1.5),
+              pop: found?.probabilityOfPrecipitation?.value ?? 10
+            };
           });
-
-          if (rainPeriod) {
-            const timeStr = new Date(rainPeriod.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-            setRainAlertTime(timeStr);
-          } else {
-            setRainAlertTime(null);
-          }
+          setHourlyForecast(parsed);
         }
       }
     } catch (e) {
       console.warn("NWS Weather Fetch Fallback:", e);
-      setCurrentTemp(78);
-      setRainProbability(10);
-      setRainAlertTime(null);
     } finally {
       setWeatherLoading(false);
     }
@@ -330,7 +324,7 @@ export default function HorrorNightsTracker() {
         const formattedVisits: Visit[] = visitsData.map((v: any) => {
           const vDate = v.visitdate || v.visitDate || '';
           const sTime = v.starttime || v.startTime || '';
-          const eTime = v.endtime !== undefined && v.endtime !== null ? v.endtime : (v.endTime !== undefined && v.endTime !== null ? v.endTime : '');
+          const eTime = v.endtime !== undefined && v.endtime !== null ? v.endtime : (v.endTime !== undefined && v.endTime !== null ? v.endtime : '');
           const pName = v.parkname || v.parkName || 'Halloween Horror Nights';
 
           return {
@@ -395,7 +389,6 @@ export default function HorrorNightsTracker() {
   const parseTimeToMinutes = (timeStr?: string) => {
     if (!timeStr) return 0;
     
-    // Handle 12-hour format strings like "8:30 PM"
     if (timeStr.includes('AM') || timeStr.includes('PM')) {
       const isPM = timeStr.toUpperCase().includes('PM');
       const cleanStr = timeStr.replace(/AM|PM/i, '').trim();
@@ -438,7 +431,6 @@ export default function HorrorNightsTracker() {
     return v.endTime || '';
   };
 
-  // Helper for wait time box conditional formatting (Updated 91+ to dark card + red text)
   const getWaitBoxStyle = (minutes: number) => {
     if (minutes <= 30) {
       return {
@@ -1064,7 +1056,7 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
-      {/* 🌧️ TRACKER TAB ONLY: COMBINED CLICKABLE WEATHER BANNER */}
+      {/* 🌧️ TRACKER TAB ONLY: CLEAN 6-HOUR EVENING WEATHER GRID */}
       {mainTab === 'tracker' && (
         <a
           href="https://www.timeanddate.com/weather/@6942262/hourly"
@@ -1073,26 +1065,43 @@ export default function HorrorNightsTracker() {
           style={{
             display: 'block',
             textDecoration: 'none',
-            background: rainAlertTime ? 'rgba(43, 13, 13, 0.9)' : 'rgba(18, 18, 26, 0.85)',
-            border: rainAlertTime ? '1px solid #DC2626' : '1px solid #2A2A3C',
-            padding: '10px 14px',
-            borderRadius: '14px',
-            color: rainAlertTime ? '#FCA5A5' : '#CBD5E0',
-            fontSize: '13px',
-            fontWeight: '800',
+            background: 'rgba(18, 18, 26, 0.85)',
+            border: '1px solid #2A2A3C',
+            padding: '12px 10px',
+            borderRadius: '16px',
             marginBottom: '16px',
-            textAlign: 'center',
-            boxShadow: rainAlertTime ? '0 4px 12px rgba(220, 38, 38, 0.2)' : 'none',
-            transition: 'all 0.2s ease',
             backdropFilter: 'blur(8px)'
           }}
         >
           {weatherLoading ? (
-            <span>🌤️ Syncing Weather...</span>
-          ) : rainAlertTime ? (
-            <span>🌧️ Rain expected at {rainAlertTime}</span>
+            <div style={{ textAlign: 'center', color: '#A0AEC0', fontSize: '12px', padding: '4px 0' }}>
+              🌤️ Syncing Weather...
+            </div>
           ) : (
-            <span>🌡️ {currentTemp !== null ? `${currentTemp}°F` : '78°F'} &nbsp;•&nbsp; 🌧️ {rainProbability !== null ? `${rainProbability}%` : '0%'} Rain</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px' }}>
+              {hourlyForecast.map((item, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    background: '#1A1A26',
+                    border: '1px solid #2A2A3C',
+                    borderRadius: '10px',
+                    padding: '6px 2px',
+                    textAlign: 'center'
+                  }}
+                >
+                  <div style={{ fontSize: '10px', fontWeight: '800', color: '#CBD5E0' }}>
+                    {item.hourLabel}
+                  </div>
+                  <div style={{ fontSize: '13px', fontWeight: '900', color: '#FFF', margin: '2px 0' }}>
+                    {item.temp}°
+                  </div>
+                  <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0' }}>
+                    {item.pop}%
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </a>
       )}
