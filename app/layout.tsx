@@ -23,3 +23,8 @@ export default function RootLayout({
     </html>
   )
 }
+
+body {
+  background: #09090D url('/hhn-bg.jpg') no-repeat center top / cover !important;
+  background-attachment: scroll !important; /* Mobile friendly fallback */
+}
