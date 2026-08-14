@@ -1,30 +1,28 @@
-import './globals.css'
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-
-const inter = Inter({ subsets: ['latin'] })
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Horror Nights Tracker 😱',
-  description: 'The scariest dashboard on earth.',
-  icons: {
-    icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎃</text></svg>',
-  },
-}
+  title: 'HHN Tracker 😱',
+  description: 'Halloween Horror Nights Orlando',
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <head>
+        <style>{`
+          body {
+            margin: 0;
+            padding: 0;
+            background: #09090D url('/hhn-bg.jpg') no-repeat center top / cover !important;
+            background-attachment: scroll !important;
+          }
+        `}</style>
+      </head>
+      <body>{children}</body>
     </html>
-  )
-}
-
-body {
-  background: #09090D url('/hhn-bg.jpg') no-repeat center top / cover !important;
-  background-attachment: scroll !important; /* Mobile friendly fallback */
+  );
 }
