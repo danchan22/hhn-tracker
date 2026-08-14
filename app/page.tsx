@@ -315,18 +315,19 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
-  // Handle Map Resizing & Recovery When Toggling Tabs/Modes
+  // Force Leaflet map resize recovery whenever switching back to GPS map mode or toggling fullscreen
   useEffect(() => {
     if (mainTab === 'map' && mapMode === 'gps' && leafletMapRef.current) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         leafletMapRef.current.invalidateSize();
-      }, 250);
+      }, 200);
+      return () => clearTimeout(timer);
     }
   }, [mainTab, mapMode, isMapFullscreen]);
 
   // Leaflet Map Initialization & Rendering
   useEffect(() => {
-    if (mainTab !== 'map' || mapMode !== 'gps' || !mapContainerRef.current) return;
+    if (mainTab !== 'map' || !mapContainerRef.current) return;
 
     if (!document.getElementById('leaflet-css')) {
       const link = document.createElement('link');
@@ -341,7 +342,11 @@ export default function HorrorNightsTracker() {
       if (!L) return;
 
       if (!leafletMapRef.current) {
-        const map = L.map(mapContainerRef.current).setView([28.4748, -81.4670], 17);
+        const map = L.map(mapContainerRef.current, {
+          zoomControl: true,
+          fadeAnimation: false
+        }).setView([28.4748, -81.4670], 17);
+        
         leafletMapRef.current = map;
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -419,7 +424,7 @@ export default function HorrorNightsTracker() {
       script.onload = renderMap;
       document.body.appendChild(script);
     }
-  }, [mainTab, mapMode, mapCategoryFilter, liveWaitTimes, userLocation]);
+  }, [mainTab, mapCategoryFilter, liveWaitTimes, userLocation]);
 
   const fetchThemeParkWaitTimes = async () => {
     setWaitsSyncing(true);
@@ -1460,96 +1465,97 @@ export default function HorrorNightsTracker() {
             </button>
           </div>
 
-          {/* VIEW 1: INTERACTIVE GPS MAP */}
-          {mapMode === 'gps' && (
-            <div style={{
-              position: isMapFullscreen ? 'fixed' : 'relative',
-              top: isMapFullscreen ? 0 : 'auto',
-              left: isMapFullscreen ? 0 : 'auto',
-              right: isMapFullscreen ? 0 : 'auto',
-              bottom: isMapFullscreen ? 0 : 'auto',
-              width: isMapFullscreen ? '100vw' : '100%',
-              height: isMapFullscreen ? '100vh' : 'auto',
-              zIndex: isMapFullscreen ? 99999 : 'auto',
-              background: 'rgba(18, 18, 26, 0.95)',
-              borderRadius: isMapFullscreen ? 0 : '24px',
-              padding: isMapFullscreen ? '10px' : '14px',
-              border: isMapFullscreen ? 'none' : '1px solid #2A2A3C',
-              backdropFilter: 'blur(8px)'
-            }}>
-              {/* CATEGORY FILTERS */}
-              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '10px', scrollbarWidth: 'none' }}>
-                <button
-                  onClick={() => setMapCategoryFilter('all')}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'all' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'all' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setMapCategoryFilter('house')}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'house' ? '2px solid #FF5500' : '1px solid #2A2A3C', background: mapCategoryFilter === 'house' ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
-                >
-                  🏚️ Houses
-                </button>
-                <button
-                  onClick={() => setMapCategoryFilter('ride')}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'ride' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'ride' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
-                >
-                  🎢 Rides
-                </button>
-                <button
-                  onClick={() => setMapCategoryFilter('show')}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'show' ? '2px solid #10B981' : '1px solid #2A2A3C', background: mapCategoryFilter === 'show' ? '#10B981' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
-                >
-                  🎭 Shows
-                </button>
-                <button
-                  onClick={() => setMapCategoryFilter('scarezone')}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'scarezone' ? '2px solid #A855F7' : '1px solid #2A2A3C', background: mapCategoryFilter === 'scarezone' ? '#A855F7' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
-                >
-                  🧟 Scare Zones
-                </button>
-              </div>
-
-              {/* LEAFLET MAP CONTAINER */}
-              <div style={{ position: 'relative', width: '100%', height: isMapFullscreen ? 'calc(100vh - 65px)' : '420px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2A2A3C' }}>
-                <div
-                  ref={mapContainerRef}
-                  style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
-                />
-
-                {/* BOTTOM FLOATING FULLSCREEN TOGGLE */}
-                <button
-                  onClick={() => setIsMapFullscreen(!isMapFullscreen)}
-                  style={{
-                    position: 'absolute',
-                    bottom: '12px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    zIndex: 999,
-                    padding: '8px 16px',
-                    borderRadius: '20px',
-                    background: '#FF5500',
-                    color: '#FFF',
-                    border: '2px solid #FFF',
-                    fontSize: '12px',
-                    fontWeight: '900',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  {isMapFullscreen ? '✕ Exit Fullscreen' : '⛶ Fullscreen'}
-                </button>
-              </div>
+          {/* VIEW 1: INTERACTIVE GPS MAP CONTAINER (Always mounted to prevent Leaflet blackouts) */}
+          <div style={{
+            display: mapMode === 'gps' ? 'block' : 'none',
+            position: isMapFullscreen ? 'fixed' : 'relative',
+            top: isMapFullscreen ? 0 : 'auto',
+            left: isMapFullscreen ? 0 : 'auto',
+            right: isMapFullscreen ? 0 : 'auto',
+            bottom: isMapFullscreen ? 0 : 'auto',
+            width: isMapFullscreen ? '100vw' : '100%',
+            height: isMapFullscreen ? '100vh' : 'auto',
+            zIndex: isMapFullscreen ? 99999 : 'auto',
+            background: 'rgba(18, 18, 26, 0.85)',
+            borderRadius: isMapFullscreen ? 0 : '24px',
+            padding: isMapFullscreen ? '10px' : '14px',
+            border: isMapFullscreen ? 'none' : '1px solid #2A2A3C',
+            backdropFilter: 'blur(8px)',
+            boxSizing: 'border-box'
+          }}>
+            {/* CATEGORY FILTERS */}
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '10px', scrollbarWidth: 'none' }}>
+              <button
+                onClick={() => setMapCategoryFilter('all')}
+                style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'all' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'all' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setMapCategoryFilter('house')}
+                style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'house' ? '2px solid #FF5500' : '1px solid #2A2A3C', background: mapCategoryFilter === 'house' ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+              >
+                🏚️ Houses
+              </button>
+              <button
+                onClick={() => setMapCategoryFilter('ride')}
+                style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'ride' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'ride' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+              >
+                🎢 Rides
+              </button>
+              <button
+                onClick={() => setMapCategoryFilter('show')}
+                style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'show' ? '2px solid #10B981' : '1px solid #2A2A3C', background: mapCategoryFilter === 'show' ? '#10B981' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+              >
+                🎭 Shows
+              </button>
+              <button
+                onClick={() => setMapCategoryFilter('scarezone')}
+                style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'scarezone' ? '2px solid #A855F7' : '1px solid #2A2A3C', background: mapCategoryFilter === 'scarezone' ? '#A855F7' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+              >
+                🧟 Scare Zones
+              </button>
             </div>
-          )}
 
-          {/* VIEW 2: CUSTOM GRAPHIC MAP */}
+            {/* LEAFLET MAP CONTAINER */}
+            <div style={{ position: 'relative', width: '100%', height: isMapFullscreen ? 'calc(100vh - 65px)' : '420px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2A2A3C' }}>
+              <div
+                ref={mapContainerRef}
+                style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
+              />
+
+              {/* BOTTOM FLOATING FULLSCREEN TOGGLE (Grey with dark grey text & transparency) */}
+              <button
+                onClick={() => setIsMapFullscreen(!isMapFullscreen)}
+                style={{
+                  position: 'absolute',
+                  bottom: '12px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 999,
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  background: 'rgba(42, 42, 60, 0.75)',
+                  color: '#CBD5E0',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                  backdropFilter: 'blur(6px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                {isMapFullscreen ? '✕ Exit Fullscreen' : '⛶ Fullscreen'}
+              </button>
+            </div>
+          </div>
+
+          {/* VIEW 2: CUSTOM GRAPHIC MAP CONTAINER */}
           {mapMode === 'graphic' && (
-            <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '14px', border: '1px solid #2A2A3C', textAlign: 'center', backdropFilter: 'blur(8px)' }}>
+            <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '14px', border: '1px solid #2A2A3C', textAlign: 'center', backdropFilter: 'blur(8px)', boxSizing: 'border-box' }}>
               <div style={{ overflow: 'auto', maxHeight: '500px', borderRadius: '16px', border: '1px solid #2A2A3C' }}>
                 <img
                   src="/hhn-map.png"
