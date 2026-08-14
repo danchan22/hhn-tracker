@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 // --- SAFE LAZY SUPABASE CLIENT INITIALIZATION ---
@@ -64,6 +64,45 @@ const HHN_RIDES = [
 const HHN_SHOWS = [
   'Nightmare Fuel: Blood Noir',
   'Stranger Things (Lagoon Show)'
+];
+
+// --- MAP POI COORDINATES (UNIVERSAL STUDIOS FLORIDA) ---
+interface MapPOI {
+  id: string;
+  name: string;
+  category: 'house' | 'ride' | 'show' | 'scarezone' | 'food';
+  lat: number;
+  lng: number;
+  apiKey?: string;
+}
+
+const HHN_MAP_LOCATIONS: MapPOI[] = [
+  // HOUSES
+  { id: 'sinners', name: 'Sinners', category: 'house', lat: 28.4746, lng: -81.4682, apiKey: 'Sinners' },
+  { id: 'hellraiser', name: 'Hellraiser', category: 'house', lat: 28.4750, lng: -81.4691, apiKey: 'Hellraiser' },
+  { id: 'ozzy', name: 'Ozzy Osbourne', category: 'house', lat: 28.4739, lng: -81.4658, apiKey: 'Ozzy Osbourne' },
+  { id: 'stranger-things', name: 'Stranger Things 5', category: 'house', lat: 28.4758, lng: -81.4688, apiKey: 'Stranger Things 5' },
+  { id: 'evil-dead', name: 'Evil Dead Burn', category: 'house', lat: 28.4760, lng: -81.4672, apiKey: 'Evil Dead Burn' },
+  { id: 'oddfellow', name: 'Jack & Oddfellow', category: 'house', lat: 28.4764, lng: -81.4661, apiKey: 'Jack & Oddfellow' },
+  { id: 'bloodengutz', name: 'H.R. Bloodengutz', category: 'house', lat: 28.4762, lng: -81.4653, apiKey: 'H.R. Bloodengutz' },
+  { id: 'cybergoria', name: 'Cybergoria', category: 'house', lat: 28.4755, lng: -81.4648, apiKey: 'Cybergoria' },
+  { id: 'madlands', name: 'Madlands: Caged Cannibals', category: 'house', lat: 28.4732, lng: -81.4685, apiKey: 'Madlands: Caged Cannibals' },
+  { id: 'invasion', name: 'INVASION: Alien Abduction', category: 'house', lat: 28.4734, lng: -81.4678, apiKey: 'INVASION: Alien Abduction' },
+
+  // RIDES
+  { id: 'mummy', name: 'Revenge of the Mummy', category: 'ride', lat: 28.4755, lng: -81.4670, apiKey: 'Revenge of the Mummy' },
+  { id: 'gringotts', name: 'Escape from Gringotts', category: 'ride', lat: 28.4745, lng: -81.4651, apiKey: 'Harry Potter and the Escape from Gringotts' },
+  { id: 'mib', name: 'Men in Black: Alien Attack', category: 'ride', lat: 28.4759, lng: -81.4656, apiKey: 'Men in Black: Alien Attack' },
+  { id: 'transformers', name: 'Transformers: The Ride-3D', category: 'ride', lat: 28.4748, lng: -81.4679, apiKey: 'Transformers: The Ride-3D' },
+
+  // SHOWS
+  { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', category: 'show', lat: 28.4735, lng: -81.4660 },
+  { id: 'lagoon-show', name: 'Stranger Things (Lagoon Show)', category: 'show', lat: 28.4742, lng: -81.4668 },
+
+  // SCARE ZONES
+  { id: 'origins', name: 'Origins of Horror', category: 'scarezone', lat: 28.4762, lng: -81.4665 },
+  { id: 'masquerade', name: 'Masquerade', category: 'scarezone', lat: 28.4748, lng: -81.4675 },
+  { id: 'carnival', name: 'Carnival of Screams', category: 'scarezone', lat: 28.4738, lng: -81.4680 }
 ];
 
 // Layout mapping for Live Wait Times Widget
@@ -163,11 +202,19 @@ export default function HorrorNightsTracker() {
   const [trackerSubTab, setTrackerSubTab] = useState<'Visit HHN' | 'Past Visits'>('Visit HHN');
   const [analyticsSubTab, setAnalyticsSubTab] = useState<'Houses' | 'Rides' | 'Attendees'>('Houses');
 
+  // Map Subtab Modes
+  const [mapMode, setMapMode] = useState<'gps' | 'graphic'>('gps');
+  const [mapCategoryFilter, setMapCategoryFilter] = useState<'all' | 'house' | 'ride' | 'show' | 'scarezone'>('all');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const leafletMapRef = useRef<any>(null);
+
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Analytics Attendee Filter State ("All Party" or individual name)
-  const [selectedAttendeeFilter, setSelectedAttendeeFilter] = useState<string>('All Party');
+  // Analytics Attendee Filter State ("Everyone" or single name)
+  const [selectedAttendeeFilter, setSelectedAttendeeFilter] = useState<string>('Everyone');
 
   // Form States
   const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);
@@ -245,6 +292,18 @@ export default function HorrorNightsTracker() {
     fetchCloudVisits();
     fetchLiveWeather();
     fetchThemeParkWaitTimes();
+
+    // Watch User Location
+    if (navigator.geolocation) {
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        (err) => console.warn('GPS position watch error:', err),
+        { enableHighAccuracy: true }
+      );
+      return () => navigator.geolocation.clearWatch(watchId);
+    }
   }, []);
 
   useEffect(() => {
@@ -252,6 +311,95 @@ export default function HorrorNightsTracker() {
       setPostedWaitTime(liveWaitTimes[rideName].toString());
     }
   }, [rideName, liveWaitTimes]);
+
+  // Leaflet Dynamic Injection & Re-render Effect
+  useEffect(() => {
+    if (mainTab === 'map' && mapMode === 'gps' && mapContainerRef.current) {
+      if (!document.getElementById('leaflet-css')) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+
+      const initLeaflet = () => {
+        const L = (window as any).L;
+        if (!L) return;
+
+        if (leafletMapRef.current) {
+          leafletMapRef.current.remove();
+        }
+
+        // Center on Universal Studios Florida
+        const map = L.map(mapContainerRef.current).setView([28.4748, -81.4670], 17);
+        leafletMapRef.current = map;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        // Render User Location
+        if (userLocation) {
+          L.circleMarker([userLocation.lat, userLocation.lng], {
+            radius: 8,
+            fillColor: '#3B82F6',
+            color: '#FFFFFF',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.9
+          }).addTo(map).bindPopup('<b>📍 Your Current Location</b>');
+        }
+
+        // Render POIs
+        const filteredLocations = mapCategoryFilter === 'all'
+          ? HHN_MAP_LOCATIONS
+          : HHN_MAP_LOCATIONS.filter(p => p.category === mapCategoryFilter);
+
+        filteredLocations.forEach(poi => {
+          const waitMins = poi.apiKey ? (liveWaitTimes[poi.apiKey] ?? 30) : null;
+          
+          let badgeColor = '#FF5500';
+          if (poi.category === 'ride') badgeColor = '#3B82F6';
+          if (poi.category === 'show') badgeColor = '#10B981';
+          if (poi.category === 'scarezone') badgeColor = '#A855F7';
+
+          const iconHtml = `
+            <div style="background: ${badgeColor}; color: #FFF; border: 2px solid #FFF; border-radius: 12px; padding: 2px 6px; font-size: 11px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; white-space: nowrap;">
+              ${poi.name.split(' ')[0]} ${waitMins !== null ? `(${waitMins}m)` : ''}
+            </div>
+          `;
+
+          const customIcon = L.divIcon({
+            html: iconHtml,
+            className: 'custom-map-pin',
+            iconSize: [80, 24],
+            iconAnchor: [40, 12]
+          });
+
+          const popupContent = `
+            <div style="color: #000; font-family: sans-serif; padding: 4px;">
+              <strong style="font-size: 13px; color: ${badgeColor};">${poi.name}</strong><br/>
+              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#666' }}>Type: ${poi.category}</span><br/>
+              ${waitMins !== null ? `<b>Current Wait:</b> ${waitMins} mins` : ''}
+            </div>
+          `;
+
+          L.marker([poi.lat, poi.lng], { icon: customIcon }).addTo(map).bindPopup(popupContent);
+        });
+      };
+
+      if ((window as any).L) {
+        initLeaflet();
+      } else {
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = initLeaflet;
+        document.body.appendChild(script);
+      }
+    }
+  }, [mainTab, mapMode, mapCategoryFilter, liveWaitTimes, userLocation]);
 
   const fetchThemeParkWaitTimes = async () => {
     setWaitsSyncing(true);
@@ -485,9 +633,9 @@ export default function HorrorNightsTracker() {
     return visits.flatMap(v => v.activities.map(a => ({ ...a, visitDate: v.visitDate })));
   }, [visits]);
 
-  // Filtered activities based on selected Attendee filter ("All Party" or single name)
+  // Filtered activities based on selected Attendee filter ("Everyone" or single name)
   const filteredCompletedActivities = useMemo(() => {
-    if (selectedAttendeeFilter === 'All Party') {
+    if (selectedAttendeeFilter === 'Everyone') {
       return allCompletedActivities;
     }
     return allCompletedActivities.filter(a => parseAttendees(a.riders).includes(selectedAttendeeFilter));
@@ -591,7 +739,6 @@ export default function HorrorNightsTracker() {
       };
     });
 
-    // Sort Houses by Most Visits
     return stats.sort((a, b) => b.visits - a.visits || b.totalWait - a.totalWait);
   }, [filteredCompletedActivities]);
 
@@ -616,7 +763,6 @@ export default function HorrorNightsTracker() {
       };
     });
 
-    // Sort Rides by Most Visits
     return stats.sort((a, b) => b.visits - a.visits || b.totalWait - a.totalWait);
   }, [filteredCompletedActivities]);
 
@@ -1253,7 +1399,112 @@ export default function HorrorNightsTracker() {
         </a>
       )}
 
-      {/* 3. TRACKER TAB VIEWS */}
+      {/* 3. MAP TAB DUAL-VIEW CONTAINER */}
+      {mainTab === 'map' && (
+        <div>
+          {/* MAP MODE SEGMENTED CONTROL */}
+          <div style={{ display: 'flex', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '14px', border: '1px solid #27273A', padding: '3px', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
+            <button
+              onClick={() => setMapMode('gps')}
+              style={{
+                flex: 1,
+                padding: '9px',
+                border: 'none',
+                borderRadius: '10px',
+                fontWeight: '800',
+                fontSize: '12px',
+                cursor: 'pointer',
+                background: mapMode === 'gps' ? '#3B82F6' : 'transparent',
+                color: mapMode === 'gps' ? '#FFF' : '#9CA3AF',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              📍 Interactive GPS Map
+            </button>
+            <button
+              onClick={() => setMapMode('graphic')}
+              style={{
+                flex: 1,
+                padding: '9px',
+                border: 'none',
+                borderRadius: '10px',
+                fontWeight: '800',
+                fontSize: '12px',
+                cursor: 'pointer',
+                background: mapMode === 'graphic' ? '#3B82F6' : 'transparent',
+                color: mapMode === 'graphic' ? '#FFF' : '#9CA3AF',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              🖼️ Custom Graphic Map
+            </button>
+          </div>
+
+          {/* VIEW 1: INTERACTIVE GPS MAP */}
+          {mapMode === 'gps' && (
+            <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '14px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
+              {/* CATEGORY FILTERS */}
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '10px', scrollbarWidth: 'none' }}>
+                <button
+                  onClick={() => setMapCategoryFilter('all')}
+                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'all' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'all' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setMapCategoryFilter('house')}
+                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'house' ? '2px solid #FF5500' : '1px solid #2A2A3C', background: mapCategoryFilter === 'house' ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  🏚️ Houses
+                </button>
+                <button
+                  onClick={() => setMapCategoryFilter('ride')}
+                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'ride' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'ride' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  🎢 Rides
+                </button>
+                <button
+                  onClick={() => setMapCategoryFilter('show')}
+                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'show' ? '2px solid #10B981' : '1px solid #2A2A3C', background: mapCategoryFilter === 'show' ? '#10B981' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  🎭 Shows
+                </button>
+                <button
+                  onClick={() => setMapCategoryFilter('scarezone')}
+                  style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'scarezone' ? '2px solid #A855F7' : '1px solid #2A2A3C', background: mapCategoryFilter === 'scarezone' ? '#A855F7' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  🧟 Scare Zones
+                </button>
+              </div>
+
+              {/* LEAFLET MAP CONTAINER */}
+              <div
+                ref={mapContainerRef}
+                style={{ width: '100%', height: '420px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2A2A3C', position: 'relative', zIndex: 1 }}
+              />
+            </div>
+          )}
+
+          {/* VIEW 2: CUSTOM GRAPHIC MAP */}
+          {mapMode === 'graphic' && (
+            <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '14px', border: '1px solid #2A2A3C', textAlign: 'center', backdropFilter: 'blur(8px)' }}>
+              <div style={{ overflow: 'auto', maxHeight: '500px', borderRadius: '16px', border: '1px solid #2A2A3C' }}>
+                <img
+                  src="/HHN Map 2025 - lock screen.jpg"
+                  alt="HHN Custom Map"
+                  onError={(e: any) => { e.target.src = '/hhn-bg.jpg'; }}
+                  style={{ width: '100%', minWidth: '350px', height: 'auto', display: 'block' }}
+                />
+              </div>
+              <p style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '10px', marginBottom: 0 }}>
+                💡 Pinch or zoom to pan around your custom lock screen map layout.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 4. TRACKER TAB VIEWS */}
       {mainTab === 'tracker' && trackerSubTab === 'Visit HHN' && (
         <div>
           {activeVisit ? (
@@ -1791,7 +2042,7 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
-      {/* 4. ANALYTICS TAB VIEWS */}
+      {/* 5. ANALYTICS TAB VIEWS */}
       {mainTab === 'analytics' && (
         <div>
           {/* SHARED ATTENDEE FILTER SELECTOR */}
@@ -1801,19 +2052,19 @@ export default function HorrorNightsTracker() {
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
               <button
-                onClick={() => setSelectedAttendeeFilter('All Party')}
+                onClick={() => setSelectedAttendeeFilter('Everyone')}
                 style={{
                   padding: '7px 2px',
                   borderRadius: '10px',
-                  border: selectedAttendeeFilter === 'All Party' ? '2px solid #FF5500' : '1px solid #2A2A3C',
-                  background: selectedAttendeeFilter === 'All Party' ? '#FF5500' : '#1A1A26',
-                  color: selectedAttendeeFilter === 'All Party' ? '#FFF' : '#CBD5E0',
+                  border: selectedAttendeeFilter === 'Everyone' ? '2px solid #FF5500' : '1px solid #2A2A3C',
+                  background: selectedAttendeeFilter === 'Everyone' ? '#FF5500' : '#1A1A26',
+                  color: selectedAttendeeFilter === 'Everyone' ? '#FFF' : '#CBD5E0',
                   fontSize: '11px',
-                  fontWeight: selectedAttendeeFilter === 'All Party' ? '800' : '600',
+                  fontWeight: selectedAttendeeFilter === 'Everyone' ? '800' : '600',
                   cursor: 'pointer'
                 }}
               >
-                All Party
+                Everyone
               </button>
               {FIXED_FAMILY_MEMBERS.map(name => {
                 const isSelected = selectedAttendeeFilter === name;
