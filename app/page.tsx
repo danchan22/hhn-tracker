@@ -573,7 +573,7 @@ export default function HorrorNightsTracker() {
       const avgWait = visitsCount > 0 ? Math.round(totalWait / visitsCount) : 0;
 
       const postedWaits = houseActivities.map(a => parsePostedWait(a.notes)).filter((w): w is number => w !== null);
-      const avgExpected = postedWaits.length > 0 ? Math.round(postedWaits.reduce((s, w) => sum + w, 0) / postedWaits.length) : 0;
+      const avgExpected = postedWaits.length > 0 ? Math.round(postedWaits.reduce((s, w) => s + w, 0) / postedWaits.length) : 0;
       const diff = visitsCount > 0 && avgExpected > 0 ? avgWait - avgExpected : 0;
 
       return {
@@ -595,7 +595,7 @@ export default function HorrorNightsTracker() {
       const avgWait = visitsCount > 0 ? Math.round(totalWait / visitsCount) : 0;
 
       const postedWaits = rideActivities.map(a => parsePostedWait(a.notes)).filter((w): w is number => w !== null);
-      const avgExpected = postedWaits.length > 0 ? Math.round(postedWaits.reduce((s, w) => sum + w, 0) / postedWaits.length) : 0;
+      const avgExpected = postedWaits.length > 0 ? Math.round(postedWaits.reduce((s, w) => s + w, 0) / postedWaits.length) : 0;
       const diff = visitsCount > 0 && avgExpected > 0 ? avgWait - avgExpected : 0;
 
       return {
