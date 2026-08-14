@@ -747,7 +747,7 @@ export default function HorrorNightsTracker() {
   };
 
   return (
-    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', background: '#09090D', minHeight: '100vh' }}>
+    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', background: '#09090D url("/bg-texture.jpg") no-repeat center top fixed', backgroundSize: 'cover', minHeight: '100vh' }}>
       
       {/* GLOBAL CSS FOR HIDING NUMBER INPUT SPINNERS */}
       <style>{`
@@ -762,7 +762,7 @@ export default function HorrorNightsTracker() {
       `}</style>
 
       {/* 🎃 APP HEADER */}
-      <header style={{ textAlign: 'center', marginBottom: '12px', padding: '10px 0 0 0' }}>
+      <header style={{ textAlign: 'center', marginBottom: '8px', padding: '10px 0 0 0' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#FF5500', letterSpacing: '-0.5px', margin: '0', textShadow: '0 0 12px rgba(255, 85, 0, 0.4)' }}>
           Never Go Alone 😱
         </h1>
@@ -915,35 +915,37 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
-      {/* 🌧️ COMBINED CLICKABLE SMART WEATHER BANNER */}
-      <a
-        href="https://forecast.weather.gov/MapClick.php?lat=28.4743&lon=-81.4678"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          display: 'block',
-          textDecoration: 'none',
-          background: rainAlertTime ? '#2B0D0D' : '#12121A',
-          border: rainAlertTime ? '1px solid #DC2626' : '1px solid #2A2A3C',
-          padding: '10px 14px',
-          borderRadius: '14px',
-          color: rainAlertTime ? '#FCA5A5' : '#CBD5E0',
-          fontSize: '13px',
-          fontWeight: '800',
-          marginBottom: '16px',
-          textAlign: 'center',
-          boxShadow: rainAlertTime ? '0 4px 12px rgba(220, 38, 38, 0.2)' : 'none',
-          transition: 'all 0.2s ease'
-        }}
-      >
-        {weatherLoading ? (
-          <span>🌤️ Syncing Weather...</span>
-        ) : rainAlertTime ? (
-          <span>🌧️ Rain expected at {rainAlertTime} <span style={{ opacity: 0.75, fontWeight: '500', fontSize: '11px' }}>(Click for forecast)</span></span>
-        ) : (
-          <span>🌡️ {currentTemp !== null ? `${currentTemp}°F` : '78°F'} &nbsp;•&nbsp; 🌧️ {rainProbability !== null ? `${rainProbability}%` : '0%'} Rain <span style={{ opacity: 0.75, fontWeight: '500', fontSize: '11px' }}>(Click for forecast)</span></span>
-        )}
-      </a>
+      {/* 🌧️ TRACKER TAB ONLY: COMBINED CLICKABLE WEATHER BANNER */}
+      {mainTab === 'tracker' && (
+        <a
+          href="https://www.timeanddate.com/weather/@6942262/hourly"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'block',
+            textDecoration: 'none',
+            background: rainAlertTime ? '#2B0D0D' : '#12121A',
+            border: rainAlertTime ? '1px solid #DC2626' : '1px solid #2A2A3C',
+            padding: '10px 14px',
+            borderRadius: '14px',
+            color: rainAlertTime ? '#FCA5A5' : '#CBD5E0',
+            fontSize: '13px',
+            fontWeight: '800',
+            marginBottom: '16px',
+            textAlign: 'center',
+            boxShadow: rainAlertTime ? '0 4px 12px rgba(220, 38, 38, 0.2)' : 'none',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {weatherLoading ? (
+            <span>🌤️ Syncing Weather...</span>
+          ) : rainAlertTime ? (
+            <span>🌧️ Rain expected at {rainAlertTime}</span>
+          ) : (
+            <span>🌡️ {currentTemp !== null ? `${currentTemp}°F` : '78°F'} &nbsp;•&nbsp; 🌧️ {rainProbability !== null ? `${rainProbability}%` : '0%'} Rain</span>
+          )}
+        </a>
+      )}
 
       {/* 3. TAB VIEWS */}
       {mainTab === 'tracker' && trackerSubTab === 'Visit HHN' && (
