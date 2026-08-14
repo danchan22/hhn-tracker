@@ -66,7 +66,7 @@ const HHN_SHOWS = [
   'Stranger Things (Lagoon Show)'
 ];
 
-// Layout mapping for Live Wait Times Widget
+// Updated Layout mapping for Live Wait Times Widget
 const HOUSE_GRID_LAYOUT = [
   [
     { name: 'Sinners', apiKey: 'Sinners' },
@@ -384,6 +384,7 @@ export default function HorrorNightsTracker() {
 
   const format12Hour = (timeStr?: string) => {
     if (!timeStr) return '';
+    if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
     const [h, m] = timeStr.split(':').map(Number);
     if (isNaN(h) || isNaN(m)) return timeStr;
     const period = h >= 12 ? 'PM' : 'AM';
@@ -393,8 +394,22 @@ export default function HorrorNightsTracker() {
 
   const parseTimeToMinutes = (timeStr?: string) => {
     if (!timeStr) return 0;
+    
+    // Handle 12-hour format strings like "8:30 PM"
+    if (timeStr.includes('AM') || timeStr.includes('PM')) {
+      const isPM = timeStr.toUpperCase().includes('PM');
+      const cleanStr = timeStr.replace(/AM|PM/i, '').trim();
+      let [hrs, mins] = cleanStr.split(':').map(Number);
+      if (isNaN(hrs)) return 0;
+      if (isNaN(mins)) mins = 0;
+      if (isPM && hrs < 12) hrs += 12;
+      if (!isPM && hrs === 12) hrs = 0;
+      return (hrs * 60) + mins;
+    }
+
     const [hrs, mins] = timeStr.split(':').map(Number);
-    return (hrs * 60) + mins;
+    if (isNaN(hrs)) return 0;
+    return (hrs * 60) + (mins || 0);
   };
 
   const calculateVisitDuration = (startTime: string, endTime?: string) => {
@@ -423,6 +438,7 @@ export default function HorrorNightsTracker() {
     return v.endTime || '';
   };
 
+  // Helper for wait time box conditional formatting (Updated 91+ to dark card + red text)
   const getWaitBoxStyle = (minutes: number) => {
     if (minutes <= 30) {
       return {
@@ -776,9 +792,15 @@ export default function HorrorNightsTracker() {
 
   const openEditVisit = (v: Visit) => {
     setEditingVisit(v);
-    setEditVisitStartTime(v.startTime || '');
-    setEditVisitEndTime(v.endTime || '');
-    setEditVisitMemberEndTimes({ ...(v.memberEndTimes || {}) });
+    setEditVisitStartTime(format12Hour(v.startTime || ''));
+    setEditVisitEndTime(format12Hour(v.endTime || ''));
+    
+    const formattedEndTimes: Record<string, string> = {};
+    const rawEndTimes = v.memberEndTimes || {};
+    Object.keys(rawEndTimes).forEach(m => {
+      formattedEndTimes[m] = format12Hour(rawEndTimes[m]);
+    });
+    setEditVisitMemberEndTimes(formattedEndTimes);
   };
 
   const handleSaveVisitEdit = async () => {
@@ -810,7 +832,7 @@ export default function HorrorNightsTracker() {
   const processCheckout = async (checkoutType: 'selected' | 'everyone') => {
     if (!activeVisit) return;
     const now = new Date();
-    const endTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    const endTime = now.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' });
 
     const currentActive = activePartyList;
     const leavingParty = checkoutType === 'everyone' ? currentActive : departingMembers;
@@ -1502,11 +1524,10 @@ export default function HorrorNightsTracker() {
 
               return (
                 <div key={v.id} style={{ border: '1px solid #2A2A3C', borderRadius: '20px', padding: '16px', marginBottom: '12px', background: 'rgba(18, 18, 26, 0.85)', backdropFilter: 'blur(8px)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #2A2A3C', paddingBottom: '8px', marginBottom: '10px' }}>
+                  <div style={{ borderBottom: '1px solid #2A2A3C', paddingBottom: '8px', marginBottom: '10px' }}>
                     <strong style={{ color: '#FF5500', fontSize: '16px', fontWeight: '800' }}>
-                      🎃 Halloween Horror Nights
+                      📅 {formatDisplayDate(v.visitDate)}
                     </strong>
-                    <span style={{ fontSize: '13px', color: '#A0AEC0', fontWeight: '600' }}>📅 {formatDisplayDate(v.visitDate)}</span>
                   </div>
 
                   <div style={{ fontSize: '13px', color: '#CBD5E0', marginBottom: '10px' }}>
@@ -1726,11 +1747,11 @@ export default function HorrorNightsTracker() {
 
             <div style={{ marginBottom: '14px' }}>
               <label style={{ fontSize: '11px', fontWeight: '800', color: '#CBD5E0', display: 'block', marginBottom: '4px' }}>
-                ⏰ ARRIVAL TIME (HH:MM / e.g. 18:30)
+                ⏰ ARRIVAL TIME (e.g. 6:30 PM)
               </label>
               <input
                 type="text"
-                placeholder="e.g. 18:30"
+                placeholder="e.g. 6:30 PM"
                 value={editVisitStartTime}
                 onChange={(e) => setEditVisitStartTime(e.target.value)}
                 style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }}
@@ -1739,11 +1760,11 @@ export default function HorrorNightsTracker() {
 
             <div style={{ marginBottom: '14px' }}>
               <label style={{ fontSize: '11px', fontWeight: '800', color: '#CBD5E0', display: 'block', marginBottom: '4px' }}>
-                🚪 MAIN DEPARTURE TIME (e.g. 02:00)
+                🚪 MAIN DEPARTURE TIME (e.g. 2:00 AM)
               </label>
               <input
                 type="text"
-                placeholder="e.g. 02:00"
+                placeholder="e.g. 2:00 AM"
                 value={editVisitEndTime}
                 onChange={(e) => setEditVisitEndTime(e.target.value)}
                 style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }}
@@ -1760,7 +1781,7 @@ export default function HorrorNightsTracker() {
                     <span style={{ fontSize: '13px', fontWeight: '700', color: '#F3F4F6' }}>👤 {member}</span>
                     <input
                       type="text"
-                      placeholder={editVisitEndTime || "HH:MM"}
+                      placeholder={editVisitEndTime || "e.g. 1:30 AM"}
                       value={editVisitMemberEndTimes[member] || ''}
                       onChange={(e) => {
                         setEditVisitMemberEndTimes({
@@ -1768,7 +1789,7 @@ export default function HorrorNightsTracker() {
                           [member]: e.target.value
                         });
                       }}
-                      style={{ width: '110px', padding: '6px 8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '13px', textAlign: 'center' }}
+                      style={{ width: '120px', padding: '6px 8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '13px', textAlign: 'center' }}
                     />
                   </div>
                 ))}
