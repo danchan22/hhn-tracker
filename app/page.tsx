@@ -875,7 +875,7 @@ export default function HorrorNightsTracker() {
   };
 
   return (
-    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', background: '#09090D url("/bg-texture.jpg") no-repeat center top fixed', backgroundSize: 'cover', minHeight: '100vh' }}>
+    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', background: '#09090D url("/hhn-bg.jpg") no-repeat center top fixed', backgroundSize: 'cover', minHeight: '100vh' }}>
       
       {/* GLOBAL CSS FOR HIDING NUMBER INPUT SPINNERS */}
       <style>{`
