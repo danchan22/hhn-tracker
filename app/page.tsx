@@ -66,6 +66,57 @@ const HHN_SHOWS = [
   'Stranger Things Lagoon Show'
 ];
 
+// Layout mapping for Live Wait Times Widget
+const HOUSE_GRID_LAYOUT = [
+  [
+    { name: 'Sinners', apiKey: 'Sinners' },
+    { name: 'Hellraiser', apiKey: 'Hellraiser' },
+    { name: 'Ozzy', apiKey: 'Ozzy Osbourne' }
+  ],
+  [
+    { name: 'Stranger Things 5', apiKey: 'Stranger Things 5' },
+    { name: 'Evil Dead', apiKey: 'Evil Dead Burn' }
+  ],
+  [
+    { name: 'Oddfellow', apiKey: 'Jack & Oddfellow' },
+    { name: 'Bloodengutz', apiKey: 'H.R. Bloodengutz' },
+    { name: 'Cybergoria', apiKey: 'Cybergoria' }
+  ],
+  [
+    { name: 'Madlands', apiKey: 'Madlands: Caged Cannibals' },
+    { name: 'INVASION', apiKey: 'INVASION: Alien Abduction' }
+  ]
+];
+
+const RIDE_GRID_LAYOUT = [
+  [
+    { name: 'Men in Black', apiKey: 'Men in Black: Alien Attack' },
+    { name: 'Transformers', apiKey: 'Transformers: The Ride-3D' }
+  ],
+  [
+    { name: 'Harry Potter', apiKey: 'Harry Potter and the Escape from Gringotts' },
+    { name: 'Mummy', apiKey: 'Revenge of the Mummy' }
+  ]
+];
+
+// Fallback initial wait times if API is offline
+const INITIAL_MOCK_WAITS: Record<string, number> = {
+  'Sinners': 25,
+  'Hellraiser': 40,
+  'Ozzy Osbourne': 55,
+  'Stranger Things 5': 75,
+  'Evil Dead Burn': 95,
+  'Jack & Oddfellow': 30,
+  'H.R. Bloodengutz': 45,
+  'Cybergoria': 20,
+  'Madlands: Caged Cannibals': 65,
+  'INVASION: Alien Abduction': 35,
+  'Men in Black: Alien Attack': 15,
+  'Transformers: The Ride-3D': 25,
+  'Harry Potter and the Escape from Gringotts': 50,
+  'Revenge of the Mummy': 35
+};
+
 const parseAttendees = (raw: string | string[] | undefined): string[] => {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw.map(s => s.trim()).filter(Boolean);
@@ -125,6 +176,10 @@ export default function HorrorNightsTracker() {
   const [rainAlertTime, setRainAlertTime] = useState<string | null>(null);
   const [weatherLoading, setWeatherLoading] = useState<boolean>(true);
 
+  // Live Wait Times State
+  const [liveWaitTimes, setLiveWaitTimes] = useState<Record<string, number>>(INITIAL_MOCK_WAITS);
+  const [waitsSyncing, setWaitsSyncing] = useState<boolean>(false);
+
   // Edit Activity State
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
@@ -171,12 +226,49 @@ export default function HorrorNightsTracker() {
   useEffect(() => {
     fetchCloudVisits();
     fetchLiveWeather();
+    fetchThemeParkWaitTimes();
   }, []);
+
+  // Update posted wait time field whenever dropdown ride selection changes
+  useEffect(() => {
+    if (rideName && liveWaitTimes[rideName] !== undefined) {
+      setPostedWaitTime(liveWaitTimes[rideName].toString());
+    }
+  }, [rideName, liveWaitTimes]);
+
+  const fetchThemeParkWaitTimes = async () => {
+    setWaitsSyncing(true);
+    try {
+      // ThemeParks.wiki Universal Studios Florida ID: 75ea57e0-5612-4e8f-b703-9f09d176c378
+      const res = await fetch('https://api.themeparks.wiki/v1/entity/75ea57e0-5612-4e8f-b703-9f09d176c378/live');
+      if (res.ok) {
+        const data = await res.json();
+        const liveList = data?.liveData || [];
+        const updated: Record<string, number> = { ...liveWaitTimes };
+
+        liveList.forEach((item: any) => {
+          const name = item.name;
+          const wait = item.queue?.STANDBY?.waitTime ?? item.waitTime ?? 0;
+          if (name) {
+            Object.keys(INITIAL_MOCK_WAITS).forEach(key => {
+              if (name.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(name.toLowerCase())) {
+                updated[key] = wait;
+              }
+            });
+          }
+        });
+        setLiveWaitTimes(updated);
+      }
+    } catch (e) {
+      console.warn("ThemeParks API sync error, keeping current wait times:", e);
+    } finally {
+      setWaitsSyncing(false);
+    }
+  };
 
   const fetchLiveWeather = async () => {
     setWeatherLoading(true);
     try {
-      // Universal Orlando Coordinates: 28.4743, -81.4678
       const pointsRes = await fetch('https://api.weather.gov/points/28.4743,-81.4678', {
         headers: { 'User-Agent': 'HHNTrackerApp/1.0' }
       });
@@ -195,7 +287,6 @@ export default function HorrorNightsTracker() {
         const now = new Date();
 
         if (periods.length > 0) {
-          // Filter out periods in the past
           const upcomingPeriods = periods.filter((p: any) => new Date(p.endTime) > now);
           const currentPeriod = upcomingPeriods[0] || periods[0];
 
@@ -203,7 +294,6 @@ export default function HorrorNightsTracker() {
           const currentPop = currentPeriod.probabilityOfPrecipitation?.value ?? 0;
           setRainProbability(currentPop);
 
-          // Find first future period (strictly starting after now) with rain probability >= 30%
           const rainPeriod = upcomingPeriods.find((p: any) => {
             const periodStart = new Date(p.startTime);
             const pop = p.probabilityOfPrecipitation?.value ?? 0;
@@ -333,6 +423,46 @@ export default function HorrorNightsTracker() {
       return v.memberEndTimes[person];
     }
     return v.endTime || '';
+  };
+
+  // Helper for wait time box conditional formatting
+  const getWaitBoxStyle = (minutes: number) => {
+    if (minutes <= 30) {
+      return {
+        bg: '#15803D',
+        border: '#22C55E',
+        titleColor: '#FFFFFF',
+        numColor: '#FFFFFF'
+      };
+    } else if (minutes <= 45) {
+      return {
+        bg: '#1A1A26',
+        border: '#2A2A3C',
+        titleColor: '#A0AEC0',
+        numColor: '#22C55E'
+      };
+    } else if (minutes <= 60) {
+      return {
+        bg: '#1A1A26',
+        border: '#2A2A3C',
+        titleColor: '#A0AEC0',
+        numColor: '#EAB308'
+      };
+    } else if (minutes <= 90) {
+      return {
+        bg: '#1A1A26',
+        border: '#2A2A3C',
+        titleColor: '#A0AEC0',
+        numColor: '#F97316'
+      };
+    } else {
+      return {
+        bg: '#DC2626',
+        border: '#EF4444',
+        titleColor: '#FFFFFF',
+        numColor: '#FFFFFF'
+      };
+    }
   };
 
   // --- STATS CALCULATIONS ---
@@ -1142,6 +1272,109 @@ export default function HorrorNightsTracker() {
               </button>
             </form>
           )}
+
+          {/* 🎪 LIVE WAIT TIMES & SHOW TIMES WIDGET */}
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '18px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', border: '1px solid #2A2A3C' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: 0, letterSpacing: '0.8px' }}>
+                HOUSE WAIT TIMES
+              </h3>
+              <button
+                onClick={fetchThemeParkWaitTimes}
+                disabled={waitsSyncing}
+                style={{ background: 'none', border: 'none', color: '#FF5500', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', padding: 0 }}
+              >
+                {waitsSyncing ? '🔄 Syncing...' : '🔄 Refresh'}
+              </button>
+            </div>
+
+            {/* HOUSE WAIT TIMES GRID */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
+              {HOUSE_GRID_LAYOUT.map((row, rIdx) => (
+                <div key={rIdx} style={{ display: 'grid', gridTemplateColumns: `repeat(${row.length}, 1fr)`, gap: '8px' }}>
+                  {row.map((item) => {
+                    const waitMins = liveWaitTimes[item.apiKey] ?? 30;
+                    const style = getWaitBoxStyle(waitMins);
+                    return (
+                      <div
+                        key={item.name}
+                        onClick={() => { setRideName(item.apiKey); setPostedWaitTime(waitMins.toString()); }}
+                        style={{
+                          background: style.bg,
+                          border: `1px solid ${style.border}`,
+                          borderRadius: '12px',
+                          padding: '10px 4px',
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ fontSize: '18px', fontWeight: '800', color: style.numColor }}>
+                          {waitMins}<span style={{ fontSize: '11px', fontWeight: '700' }}>m</span>
+                        </div>
+                        <div style={{ fontSize: '10px', fontWeight: '800', color: style.titleColor, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.name}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {/* RIDE WAIT TIMES GRID */}
+            <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: '0 0 12px 0', letterSpacing: '0.8px' }}>
+              RIDE WAIT TIMES
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
+              {RIDE_GRID_LAYOUT.map((row, rIdx) => (
+                <div key={rIdx} style={{ display: 'grid', gridTemplateColumns: `repeat(${row.length}, 1fr)`, gap: '8px' }}>
+                  {row.map((item) => {
+                    const waitMins = liveWaitTimes[item.apiKey] ?? 20;
+                    const style = getWaitBoxStyle(waitMins);
+                    return (
+                      <div
+                        key={item.name}
+                        onClick={() => { setRideName(item.apiKey); setPostedWaitTime(waitMins.toString()); }}
+                        style={{
+                          background: style.bg,
+                          border: `1px solid ${style.border}`,
+                          borderRadius: '12px',
+                          padding: '10px 4px',
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ fontSize: '18px', fontWeight: '800', color: style.numColor }}>
+                          {waitMins}<span style={{ fontSize: '11px', fontWeight: '700' }}>m</span>
+                        </div>
+                        <div style={{ fontSize: '10px', fontWeight: '800', color: style.titleColor, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.name}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {/* SHOW TIMES SECTION */}
+            <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: '0 0 12px 0', letterSpacing: '0.8px' }}>
+              SHOW TIMES
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ background: '#1A1A26', padding: '10px 12px', borderRadius: '12px', border: '1px solid #2A2A3C' }}>
+                <div style={{ fontSize: '12px', fontWeight: '800', color: '#FF5500', marginBottom: '4px' }}>🔥 Nightmare Fuel</div>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#F3F4F6' }}>8:00 • 9:30 • 11:00 • 12:30</div>
+              </div>
+              <div style={{ background: '#1A1A26', padding: '10px 12px', borderRadius: '12px', border: '1px solid #2A2A3C' }}>
+                <div style={{ fontSize: '12px', fontWeight: '800', color: '#3B82F6', marginBottom: '4px' }}>🌊 Stranger Things Lagoon</div>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#F3F4F6' }}>10:00 • 11:00 • 12:00</div>
+              </div>
+            </div>
+
+          </div>
 
           {/* TOTALS & SUMMARY STATS WIDGET */}
           <div style={{ background: '#12121A', borderRadius: '24px', padding: '18px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', border: '1px solid #2A2A3C' }}>
