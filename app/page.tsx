@@ -298,9 +298,8 @@ export default function HorrorNightsTracker() {
   const [isMapFullscreen, setIsMapFullscreen] = useState<boolean>(false);
 
   // Yum Tab Filter States
-  const [yumCategoryFilter, setYumCategoryFilter] = useState<'all' | 'food' | 'drink' | 'dessert' | 'gf' | 'favorites'>('all');
+  const [yumCategoryFilter, setYumCategoryFilter] = useState<'all' | 'food' | 'drink' | 'dessert' | 'gf'>('all');
   const [selectedYumLocation, setSelectedYumLocation] = useState<string>('All Locations');
-  const [favoriteYumItemIds, setFavoriteYumItemIds] = useState<string[]>([]);
   
   // Yum Comments Drawer State
   const [openCommentsItemId, setOpenCommentsDrawerItemId] = useState<string | null>(null);
@@ -397,12 +396,6 @@ export default function HorrorNightsTracker() {
     fetchLiveWeather();
     fetchThemeParkWaitTimes();
     fetchYumComments();
-
-    // Load Local Yum Favorites
-    try {
-      const savedFavs = localStorage.getItem('hhn_yum_favorites');
-      if (savedFavs) setFavoriteYumItemIds(JSON.parse(savedFavs));
-    } catch (e) {}
 
     // GPS Position Tracking
     if (typeof window !== 'undefined' && navigator.geolocation) {
@@ -716,20 +709,7 @@ export default function HorrorNightsTracker() {
     }
   };
 
-  const toggleYumFavorite = (id: string) => {
-    let updated = [...favoriteYumItemIds];
-    if (updated.includes(id)) {
-      updated = updated.filter(favId => favId !== id);
-    } else {
-      updated.push(id);
-    }
-    setFavoriteYumItemIds(updated);
-    try {
-      localStorage.setItem('hhn_yum_favorites', JSON.stringify(updated));
-    } catch (e) {}
-  };
-
-  const toggleYumCategoryFilter = (cat: 'food' | 'drink' | 'dessert' | 'gf' | 'favorites') => {
+  const toggleYumCategoryFilter = (cat: 'food' | 'drink' | 'dessert' | 'gf') => {
     if (yumCategoryFilter === cat) {
       setYumCategoryFilter('all');
     } else {
@@ -745,11 +725,10 @@ export default function HorrorNightsTracker() {
       if (yumCategoryFilter === 'drink') return item.isDrink;
       if (yumCategoryFilter === 'dessert') return item.isDessert;
       if (yumCategoryFilter === 'gf') return item.isGlutenFree;
-      if (yumCategoryFilter === 'favorites') return favoriteYumItemIds.includes(item.id);
 
       return true;
     });
-  }, [yumCategoryFilter, selectedYumLocation, favoriteYumItemIds]);
+  }, [yumCategoryFilter, selectedYumLocation]);
 
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -1492,7 +1471,7 @@ export default function HorrorNightsTracker() {
           <span style={{ fontSize: '11px', fontWeight: mainTab === 'map' ? '800' : '600', color: mainTab === 'map' ? '#3B82F6' : '#9CA3AF', marginTop: '4px' }}>Map</span>
         </button>
 
-        {/* Yum - Food & Drink Icon */}
+        {/* Yum */}
         <button
           onClick={() => setMainTab('yum')}
           style={{
@@ -1627,38 +1606,32 @@ export default function HorrorNightsTracker() {
       {/* 3. YUM TAB VIEW */}
       {mainTab === 'yum' && (
         <div>
-          {/* CATEGORY FILTERS */}
+          {/* CATEGORY FILTERS (Favorites Filter Removed) */}
           <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '12px', borderRadius: '18px', border: '1px solid #2A2A3C', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', marginBottom: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '10px' }}>
               <button
                 onClick={() => toggleYumCategoryFilter('food')}
-                style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'food' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: yumCategoryFilter === 'food' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'food' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: yumCategoryFilter === 'food' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 🍔 Food
               </button>
               <button
                 onClick={() => toggleYumCategoryFilter('drink')}
-                style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'drink' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: yumCategoryFilter === 'drink' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'drink' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: yumCategoryFilter === 'drink' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 🍹 Drink
               </button>
               <button
                 onClick={() => toggleYumCategoryFilter('dessert')}
-                style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'dessert' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: yumCategoryFilter === 'dessert' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'dessert' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: yumCategoryFilter === 'dessert' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 🍰 Dessert
               </button>
               <button
                 onClick={() => toggleYumCategoryFilter('gf')}
-                style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'gf' ? '2px solid #22C55E' : '1px solid #2A2A3C', background: yumCategoryFilter === 'gf' ? '#22C55E' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'gf' ? '2px solid #22C55E' : '1px solid #2A2A3C', background: yumCategoryFilter === 'gf' ? '#22C55E' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 🌾 GF
-              </button>
-              <button
-                onClick={() => toggleYumCategoryFilter('favorites')}
-                style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'favorites' ? '2px solid #EAB308' : '1px solid #2A2A3C', background: yumCategoryFilter === 'favorites' ? '#EAB308' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
-              >
-                ⭐ Favs
               </button>
             </div>
 
@@ -1683,7 +1656,6 @@ export default function HorrorNightsTracker() {
               <p style={{ color: '#A0AEC0', textAlign: 'center', fontSize: '13px', fontStyle: 'italic', margin: '20px 0' }}>No menu items found for this filter.</p>
             ) : (
               filteredYumItems.map(item => {
-                const isFav = favoriteYumItemIds.includes(item.id);
                 const comments = yumCommentsMap[item.id] || [];
                 const isCommentsOpen = openCommentsItemId === item.id;
 
@@ -1697,22 +1669,14 @@ export default function HorrorNightsTracker() {
                         style={{ width: '80px', height: '80px', borderRadius: '14px', objectFit: 'cover', border: '1px solid #2A2A3C', flexShrink: 0 }}
                       />
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#FFF' }}>{item.name}</h3>
-                          <button
-                            onClick={() => toggleYumFavorite(item.id)}
-                            style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', padding: 0 }}
-                          >
-                            {isFav ? '⭐' : '🤍'}
-                          </button>
-                        </div>
+                        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#FFF' }}>{item.name}</h3>
 
-                        {/* Location Badge (Deep Link Filter) */}
+                        {/* Location Badge without Arrow */}
                         <div
                           onClick={() => setSelectedYumLocation(item.location)}
                           style={{ fontSize: '11px', fontWeight: '800', color: '#F59E0B', marginTop: '2px', cursor: 'pointer', display: 'inline-block' }}
                         >
-                          📍 {item.location} ➔
+                          📍 {item.location}
                         </div>
 
                         <div style={{ fontSize: '14px', fontWeight: '900', color: '#22C55E', marginTop: '4px' }}>
@@ -1820,7 +1784,7 @@ export default function HorrorNightsTracker() {
             backdropFilter: 'blur(8px)',
             boxSizing: 'border-box'
           }}>
-            {/* CATEGORY FILTERS GRID (No "All" button) */}
+            {/* CATEGORY FILTERS GRID */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', marginBottom: '10px' }}>
               <button
                 onClick={() => toggleMapFilter('house')}
@@ -1969,13 +1933,15 @@ export default function HorrorNightsTracker() {
                     </div>
                   )}
 
-                  {/* COMPACT POSTED WAIT TIME INPUT */}
+                  {/* COMPACT POSTED WAIT TIME INPUT WITH NUMERIC KEYPAD */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#1A1A26', border: '1px solid #2A2A3C', padding: '8px 12px', borderRadius: '10px' }}>
                     <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', flex: 1 }}>
                       POSTED WAIT TIME (MINS)
                     </label>
                     <input
                       type="number"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       placeholder="e.g. 45"
                       value={postedWaitTime}
                       onChange={(e) => setPostedWaitTime(e.target.value)}
@@ -2017,7 +1983,15 @@ export default function HorrorNightsTracker() {
                       </div>
 
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <input type="number" placeholder="Actual wait time (mins)" value={waitTime} onChange={(e) => setWaitTime(e.target.value)} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }} />
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="Actual wait time (mins)"
+                          value={waitTime}
+                          onChange={(e) => setWaitTime(e.target.value)}
+                          style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }}
+                        />
                         <button type="button" onClick={handleAddRideLive} style={{ padding: '11px 22px', background: '#2A2A3C', color: '#FFF', border: '1px solid #3F3F56', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
                           Log
                         </button>
@@ -2045,14 +2019,15 @@ export default function HorrorNightsTracker() {
                 )}
               </div>
 
+              {/* Leave the Park Button (Icon Removed) */}
               <button onClick={() => { setDepartingMembers(activePartyList); setShowCheckoutModal(true); }} style={{ width: '100%', padding: '14px', background: 'linear-gradient(to right, #DC2626, #991B1B)', color: '#FFF', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)' }}>
-                👋 Leave the Park & Save Day
+                Leave the Park & Save Day
               </button>
             </div>
           ) : (
-            /* START YOUR NIGHT FORM (Formatted 4 Across x 2 High Grid) */
-            <form onSubmit={handleCheckIn} style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '22px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-              <h2 style={{ marginTop: 0, fontSize: '20px', fontWeight: '900', color: '#FF5500', marginBottom: '16px', textAlign: 'center' }}>Start Your Night</h2>
+            /* START YOUR NIGHT FORM (Red Title, Red Outline, Red Gradient Button, No Pumpkin) */
+            <form onSubmit={handleCheckIn} style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '22px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)', border: '2px solid #DC2626', backdropFilter: 'blur(8px)' }}>
+              <h2 style={{ marginTop: 0, fontSize: '20px', fontWeight: '900', color: '#DC2626', marginBottom: '16px', textAlign: 'center' }}>Start Your Night</h2>
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>WHO'S ATTENDING?</label>
@@ -2068,22 +2043,23 @@ export default function HorrorNightsTracker() {
                 </div>
               </div>
 
+              {/* Enter the Fog Button (Red Gradient, No Pumpkin) */}
               <button
                 type="submit"
                 style={{
                   width: '100%',
                   padding: '14px',
-                  background: '#FF5500',
+                  background: 'linear-gradient(to right, #DC2626, #991B1B)',
                   color: '#FFF',
                   border: 'none',
                   borderRadius: '12px',
                   fontSize: '16px',
                   fontWeight: 'bold',
                   cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(255, 85, 0, 0.35)'
+                  boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)'
                 }}
               >
-                Enter the fog... 🎃
+                Enter the fog...
               </button>
             </form>
           )}
@@ -2387,7 +2363,15 @@ export default function HorrorNightsTracker() {
                               </div>
                               
                               <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
-                                <input type="number" value={editWaitTime} onChange={(e) => setEditWaitTime(e.target.value)} placeholder="Wait (mins)" style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }} />
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  value={editWaitTime}
+                                  onChange={(e) => setEditWaitTime(e.target.value)}
+                                  placeholder="Wait (mins)"
+                                  style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }}
+                                />
                                 <input type="text" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Notes (optional)" style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }} />
                               </div>
 
@@ -2433,7 +2417,7 @@ export default function HorrorNightsTracker() {
       {/* 5. ANALYTICS TAB VIEWS */}
       {mainTab === 'analytics' && (
         <div>
-          {/* SHARED ATTENDEE FILTER SELECTOR (Formatted 4 Across x 2 High Grid) */}
+          {/* SHARED ATTENDEE FILTER SELECTOR */}
           <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '12px 14px', borderRadius: '18px', border: '1px solid #2A2A3C', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0' }}>
@@ -2477,7 +2461,7 @@ export default function HorrorNightsTracker() {
           {/* HOUSES ANALYTICS SUBTAB */}
           {analyticsSubTab === 'Houses' && (
             <div>
-              {/* HOUSE STATS GRID (Sorted by Most Visits) */}
+              {/* HOUSE STATS GRID */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                 {houseAnalyticsStats.map(stat => (
                   <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
@@ -2588,7 +2572,7 @@ export default function HorrorNightsTracker() {
           {/* RIDES ANALYTICS SUBTAB */}
           {analyticsSubTab === 'Rides' && (
             <div>
-              {/* RIDE STATS GRID (Sorted by Most Visits) */}
+              {/* RIDE STATS GRID */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                 {rideAnalyticsStats.map(stat => (
                   <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
@@ -2769,7 +2753,7 @@ export default function HorrorNightsTracker() {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
           <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '400px', width: '100%', border: '1px solid #2A2A3C', boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
             <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>
-              👋 Leaving Park
+              Leaving Park
             </h3>
             <p style={{ fontSize: '13px', color: '#A0AEC0', margin: '0 0 16px 0' }}>
               Who is departing the park right now?
