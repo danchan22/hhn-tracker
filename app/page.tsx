@@ -202,8 +202,7 @@ export default function HorrorNightsTracker() {
   const [trackerSubTab, setTrackerSubTab] = useState<'Visit HHN' | 'Past Visits'>('Visit HHN');
   const [analyticsSubTab, setAnalyticsSubTab] = useState<'Houses' | 'Rides' | 'Attendees'>('Houses');
 
-  // Map Subtab Modes
-  const [mapMode, setMapMode] = useState<'gps' | 'graphic'>('gps');
+  // Map Filter State
   const [mapCategoryFilter, setMapCategoryFilter] = useState<'all' | 'house' | 'ride' | 'show' | 'scarezone'>('all');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isMapFullscreen, setIsMapFullscreen] = useState<boolean>(false);
@@ -315,17 +314,7 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
-  // Force Leaflet map resize recovery whenever switching back to GPS map mode or toggling fullscreen
-  useEffect(() => {
-    if (mainTab === 'map' && mapMode === 'gps' && leafletMapRef.current) {
-      const timer = setTimeout(() => {
-        leafletMapRef.current.invalidateSize();
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [mainTab, mapMode, isMapFullscreen]);
-
-  // Leaflet Map Initialization & Rendering
+  // Leaflet Map Re-Initialization & Visibility Handler (Fixes Map Going Blank)
   useEffect(() => {
     if (mainTab !== 'map' || !mapContainerRef.current) return;
 
@@ -356,7 +345,11 @@ export default function HorrorNightsTracker() {
       }
 
       const map = leafletMapRef.current;
-      map.invalidateSize();
+      
+      // Delay invalidateSize slightly to ensure container dimensions are set
+      setTimeout(() => {
+        if (map) map.invalidateSize();
+      }, 100);
 
       // Update User GPS Marker cleanly
       if (userLocation) {
@@ -424,7 +417,7 @@ export default function HorrorNightsTracker() {
       script.onload = renderMap;
       document.body.appendChild(script);
     }
-  }, [mainTab, mapCategoryFilter, liveWaitTimes, userLocation]);
+  }, [mainTab, mapCategoryFilter, liveWaitTimes, userLocation, isMapFullscreen]);
 
   const fetchThemeParkWaitTimes = async () => {
     setWaitsSyncing(true);
@@ -889,6 +882,14 @@ export default function HorrorNightsTracker() {
     }
   };
 
+  const toggleAttendeeFilter = (name: string) => {
+    if (selectedAttendeeFilter === name) {
+      setSelectedAttendeeFilter('Everyone');
+    } else {
+      setSelectedAttendeeFilter(name);
+    }
+  };
+
   const handleCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
     const now = new Date();
@@ -1297,7 +1298,7 @@ export default function HorrorNightsTracker() {
           <span style={{ fontSize: '11px', fontWeight: mainTab === 'map' ? '800' : '600', color: mainTab === 'map' ? '#3B82F6' : '#9CA3AF', marginTop: '4px' }}>Map</span>
         </button>
 
-        {/* Yum */}
+        {/* Yum - Meal / Food & Drink Icon */}
         <button
           onClick={() => setMainTab('yum')}
           style={{
@@ -1314,8 +1315,10 @@ export default function HorrorNightsTracker() {
           }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={mainTab === 'yum' ? '#F59E0B' : '#6B7280'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
+            <path d="M15 2v16"></path>
+            <path d="M8 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V2"></path>
+            <path d="M5 10v10"></path>
           </svg>
           <span style={{ fontSize: '11px', fontWeight: mainTab === 'yum' ? '800' : '600', color: mainTab === 'yum' ? '#F59E0B' : '#9CA3AF', marginTop: '4px' }}>Yum</span>
         </button>
@@ -1424,50 +1427,10 @@ export default function HorrorNightsTracker() {
         </a>
       )}
 
-      {/* 3. MAP TAB DUAL-VIEW CONTAINER */}
+      {/* 3. MAP TAB CONTAINER */}
       {mainTab === 'map' && (
         <div>
-          {/* MAP MODE SEGMENTED CONTROL */}
-          <div style={{ display: 'flex', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '14px', border: '1px solid #27273A', padding: '3px', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
-            <button
-              onClick={() => setMapMode('gps')}
-              style={{
-                flex: 1,
-                padding: '9px',
-                border: 'none',
-                borderRadius: '10px',
-                fontWeight: '800',
-                fontSize: '12px',
-                cursor: 'pointer',
-                background: mapMode === 'gps' ? '#3B82F6' : 'transparent',
-                color: mapMode === 'gps' ? '#FFF' : '#9CA3AF',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              📍 Interactive GPS Map
-            </button>
-            <button
-              onClick={() => setMapMode('graphic')}
-              style={{
-                flex: 1,
-                padding: '9px',
-                border: 'none',
-                borderRadius: '10px',
-                fontWeight: '800',
-                fontSize: '12px',
-                cursor: 'pointer',
-                background: mapMode === 'graphic' ? '#3B82F6' : 'transparent',
-                color: mapMode === 'graphic' ? '#FFF' : '#9CA3AF',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Graphic Map
-            </button>
-          </div>
-
-          {/* VIEW 1: INTERACTIVE GPS MAP CONTAINER (Always mounted to prevent Leaflet blackouts) */}
           <div style={{
-            display: mapMode === 'gps' ? 'block' : 'none',
             position: isMapFullscreen ? 'fixed' : 'relative',
             top: isMapFullscreen ? 0 : 'auto',
             left: isMapFullscreen ? 0 : 'auto',
@@ -1524,7 +1487,7 @@ export default function HorrorNightsTracker() {
                 style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
               />
 
-              {/* BOTTOM FLOATING FULLSCREEN TOGGLE (Grey with dark grey text & transparency) */}
+              {/* BOTTOM FLOATING FULLSCREEN TOGGLE */}
               <button
                 onClick={() => setIsMapFullscreen(!isMapFullscreen)}
                 style={{
@@ -1552,23 +1515,6 @@ export default function HorrorNightsTracker() {
               </button>
             </div>
           </div>
-
-          {/* VIEW 2: CUSTOM GRAPHIC MAP CONTAINER */}
-          {mapMode === 'graphic' && (
-            <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '14px', border: '1px solid #2A2A3C', textAlign: 'center', backdropFilter: 'blur(8px)', boxSizing: 'border-box' }}>
-              <div style={{ overflow: 'auto', maxHeight: '500px', borderRadius: '16px', border: '1px solid #2A2A3C' }}>
-                <img
-                  src="/hhn-map.png"
-                  alt="HHN Custom Map"
-                  onError={(e: any) => { e.target.src = '/hhn-bg.jpg'; }}
-                  style={{ width: '100%', minWidth: '350px', height: 'auto', display: 'block' }}
-                />
-              </div>
-              <p style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '10px', marginBottom: 0 }}>
-                💡 Pinch or zoom to pan around your custom map layout.
-              </p>
-            </div>
-          )}
         </div>
       )}
 
@@ -1730,17 +1676,17 @@ export default function HorrorNightsTracker() {
               </button>
             </div>
           ) : (
-            /* START YOUR NIGHT FORM */
+            /* START YOUR NIGHT FORM (Formatted 4 Across x 2 High Grid) */
             <form onSubmit={handleCheckIn} style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '22px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
               <h2 style={{ marginTop: 0, fontSize: '20px', fontWeight: '900', color: '#FF5500', marginBottom: '16px', textAlign: 'center' }}>Start Your Night</h2>
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>WHO'S ATTENDING?</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
                   {FIXED_FAMILY_MEMBERS.map((name) => {
                     const isSelected = selectedAttendees.includes(name);
                     return (
-                      <button key={name} type="button" onClick={() => toggleCheckInAttendee(name)} style={{ padding: '10px 4px', borderRadius: '10px', border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C', background: isSelected ? '#FF5500' : '#1A1A26', color: isSelected ? '#FFF' : '#CBD5E0', fontSize: '13px', fontWeight: isSelected ? '800' : '500', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+                      <button key={name} type="button" onClick={() => toggleCheckInAttendee(name)} style={{ padding: '10px 2px', borderRadius: '10px', border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C', background: isSelected ? '#FF5500' : '#1A1A26', color: isSelected ? '#FFF' : '#CBD5E0', fontSize: '12px', fontWeight: isSelected ? '800' : '600', cursor: 'pointer', transition: 'all 0.15s ease' }}>
                         {isSelected ? `✓ ${name}` : name}
                       </button>
                     );
@@ -2113,42 +2059,38 @@ export default function HorrorNightsTracker() {
       {/* 5. ANALYTICS TAB VIEWS */}
       {mainTab === 'analytics' && (
         <div>
-          {/* SHARED ATTENDEE FILTER SELECTOR */}
+          {/* SHARED ATTENDEE FILTER SELECTOR (Formatted 4 Across x 2 High Grid) */}
           <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '12px 14px', borderRadius: '18px', border: '1px solid #2A2A3C', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
-            <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>
-              FILTER BY ATTENDEE:
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-              <button
-                onClick={() => setSelectedAttendeeFilter('Everyone')}
-                style={{
-                  padding: '7px 2px',
-                  borderRadius: '10px',
-                  border: selectedAttendeeFilter === 'Everyone' ? '2px solid #FF5500' : '1px solid #2A2A3C',
-                  background: selectedAttendeeFilter === 'Everyone' ? '#FF5500' : '#1A1A26',
-                  color: selectedAttendeeFilter === 'Everyone' ? '#FFF' : '#CBD5E0',
-                  fontSize: '11px',
-                  fontWeight: selectedAttendeeFilter === 'Everyone' ? '800' : '600',
-                  cursor: 'pointer'
-                }}
-              >
-                Everyone
-              </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0' }}>
+                FILTER BY ATTENDEE:
+              </label>
+              {selectedAttendeeFilter !== 'Everyone' && (
+                <button
+                  onClick={() => setSelectedAttendeeFilter('Everyone')}
+                  style={{ background: 'none', border: 'none', color: '#FF5500', fontSize: '11px', fontWeight: '800', cursor: 'pointer', padding: 0 }}
+                >
+                  Reset to Everyone ✕
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
               {FIXED_FAMILY_MEMBERS.map(name => {
                 const isSelected = selectedAttendeeFilter === name;
                 return (
                   <button
                     key={name}
-                    onClick={() => setSelectedAttendeeFilter(name)}
+                    onClick={() => toggleAttendeeFilter(name)}
                     style={{
-                      padding: '7px 2px',
+                      padding: '8px 2px',
                       borderRadius: '10px',
                       border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C',
                       background: isSelected ? '#FF5500' : '#1A1A26',
                       color: isSelected ? '#FFF' : '#CBD5E0',
                       fontSize: '11px',
                       fontWeight: isSelected ? '800' : '600',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     {name}
