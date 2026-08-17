@@ -70,7 +70,8 @@ const HHN_SHOWS = [
 interface MapPOI {
   id: string;
   name: string;
-  category: 'house' | 'ride' | 'show' | 'scarezone';
+  shortName: string;
+  category: 'house' | 'ride' | 'show' | 'scarezone' | 'food' | 'water' | 'restroom';
   lat: number;
   lng: number;
   apiKey?: string;
@@ -78,31 +79,40 @@ interface MapPOI {
 
 const HHN_MAP_LOCATIONS: MapPOI[] = [
   // HOUSES
-  { id: 'sinners', name: 'Sinners', category: 'house', lat: 28.4746, lng: -81.4682, apiKey: 'Sinners' },
-  { id: 'hellraiser', name: 'Hellraiser', category: 'house', lat: 28.4750, lng: -81.4691, apiKey: 'Hellraiser' },
-  { id: 'ozzy', name: 'Ozzy Osbourne', category: 'house', lat: 28.4739, lng: -81.4658, apiKey: 'Ozzy Osbourne' },
-  { id: 'stranger-things', name: 'Stranger Things 5', category: 'house', lat: 28.4758, lng: -81.4688, apiKey: 'Stranger Things 5' },
-  { id: 'evil-dead', name: 'Evil Dead Burn', category: 'house', lat: 28.4760, lng: -81.4672, apiKey: 'Evil Dead Burn' },
-  { id: 'oddfellow', name: 'Jack & Oddfellow', category: 'house', lat: 28.4764, lng: -81.4661, apiKey: 'Jack & Oddfellow' },
-  { id: 'bloodengutz', name: 'H.R. Bloodengutz', category: 'house', lat: 28.4762, lng: -81.4653, apiKey: 'H.R. Bloodengutz' },
-  { id: 'cybergoria', name: 'Cybergoria', category: 'house', lat: 28.4755, lng: -81.4648, apiKey: 'Cybergoria' },
-  { id: 'madlands', name: 'Madlands: Caged Cannibals', category: 'house', lat: 28.4732, lng: -81.4685, apiKey: 'Madlands: Caged Cannibals' },
-  { id: 'invasion', name: 'INVASION: Alien Abduction', category: 'house', lat: 28.4734, lng: -81.4678, apiKey: 'INVASION: Alien Abduction' },
+  { id: 'sinners', name: 'Sinners', shortName: 'Sinners', category: 'house', lat: 28.4746, lng: -81.4682, apiKey: 'Sinners' },
+  { id: 'hellraiser', name: 'Hellraiser', shortName: 'Hellraiser', category: 'house', lat: 28.4750, lng: -81.4691, apiKey: 'Hellraiser' },
+  { id: 'ozzy', name: 'Ozzy Osbourne', shortName: 'Ozzy', category: 'house', lat: 28.4739, lng: -81.4658, apiKey: 'Ozzy Osbourne' },
+  { id: 'stranger-things', name: 'Stranger Things 5', shortName: 'ST5', category: 'house', lat: 28.4758, lng: -81.4688, apiKey: 'Stranger Things 5' },
+  { id: 'evil-dead', name: 'Evil Dead Burn', shortName: 'Evil Dead', category: 'house', lat: 28.4760, lng: -81.4672, apiKey: 'Evil Dead Burn' },
+  { id: 'oddfellow', name: 'Jack & Oddfellow', shortName: 'Oddfellow', category: 'house', lat: 28.4764, lng: -81.4661, apiKey: 'Jack & Oddfellow' },
+  { id: 'bloodengutz', name: 'H.R. Bloodengutz', shortName: 'Bloodengutz', category: 'house', lat: 28.4762, lng: -81.4653, apiKey: 'H.R. Bloodengutz' },
+  { id: 'cybergoria', name: 'Cybergoria', shortName: 'Cyber', category: 'house', lat: 28.4755, lng: -81.4648, apiKey: 'Cybergoria' },
+  { id: 'madlands', name: 'Madlands: Caged Cannibals', shortName: 'Cannibals', category: 'house', lat: 28.4732, lng: -81.4685, apiKey: 'Madlands: Caged Cannibals' },
+  { id: 'invasion', name: 'INVASION: Alien Abduction', shortName: 'Invasion', category: 'house', lat: 28.4734, lng: -81.4678, apiKey: 'INVASION: Alien Abduction' },
 
-  // RIDES
-  { id: 'mummy', name: 'Revenge of the Mummy', category: 'ride', lat: 28.4755, lng: -81.4670, apiKey: 'Revenge of the Mummy' },
-  { id: 'gringotts', name: 'Escape from Gringotts', category: 'ride', lat: 28.4745, lng: -81.4651, apiKey: 'Harry Potter and the Escape from Gringotts' },
-  { id: 'mib', name: 'Men in Black: Alien Attack', category: 'ride', lat: 28.4759, lng: -81.4656, apiKey: 'Men in Black: Alien Attack' },
-  { id: 'transformers', name: 'Transformers: The Ride-3D', category: 'ride', lat: 28.4748, lng: -81.4679, apiKey: 'Transformers: The Ride-3D' },
+  // RIDES (EXACT COORDINATES & SHORT NAMES)
+  { id: 'mib', name: 'Men in Black: Alien Attack', shortName: 'MIB', category: 'ride', lat: 28.480987918842903, lng: -81.46751974578974, apiKey: 'Men in Black: Alien Attack' },
+  { id: 'mummy', name: 'Revenge of the Mummy', shortName: 'Mummy', category: 'ride', lat: 28.476908226875782, lng: -81.4697184770946, apiKey: 'Revenge of the Mummy' },
+  { id: 'transformers', name: 'Transformers: The Ride-3D', shortName: 'Transformers', category: 'ride', lat: 28.47663140608696, lng: -81.46863197342127, apiKey: 'Transformers: The Ride-3D' },
+  { id: 'gringotts', name: 'Escape from Gringotts', shortName: 'Gringotts', category: 'ride', lat: 28.479822824433633, lng: -81.46998923849405, apiKey: 'Harry Potter and the Escape from Gringotts' },
 
   // SHOWS
-  { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', category: 'show', lat: 28.4735, lng: -81.4660 },
-  { id: 'lagoon-show', name: 'Stranger Things (Lagoon Show)', category: 'show', lat: 28.4742, lng: -81.4668 },
+  { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', shortName: 'Nightmare Fuel', category: 'show', lat: 28.4735, lng: -81.4660 },
+  { id: 'lagoon-show', name: 'Stranger Things (Lagoon Show)', shortName: 'Lagoon Show', category: 'show', lat: 28.4742, lng: -81.4668 },
 
   // SCARE ZONES
-  { id: 'origins', name: 'Origins of Horror', category: 'scarezone', lat: 28.4762, lng: -81.4665 },
-  { id: 'masquerade', name: 'Masquerade', category: 'scarezone', lat: 28.4748, lng: -81.4675 },
-  { id: 'carnival', name: 'Carnival of Screams', category: 'scarezone', lat: 28.4738, lng: -81.4680 }
+  { id: 'origins', name: 'Origins of Horror', shortName: 'Origins', category: 'scarezone', lat: 28.4762, lng: -81.4665 },
+  { id: 'masquerade', name: 'Masquerade', shortName: 'Masquerade', category: 'scarezone', lat: 28.4748, lng: -81.4675 },
+  { id: 'carnival', name: 'Carnival of Screams', shortName: 'Carnival', category: 'scarezone', lat: 28.4738, lng: -81.4680 },
+
+  // WATER STATIONS (EXACT COORDINATES)
+  { id: 'water-1', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.475740212815403, lng: -81.46897601025046 },
+  { id: 'water-2', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.476597319582403, lng: -81.46771582061385 },
+  { id: 'water-3', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.478125802458248, lng: -81.46904887351499 },
+  { id: 'water-4', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47744793913227, lng: -81.46932729621692 },
+  { id: 'water-5', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47731687542911, lng: -81.46781681362134 },
+  { id: 'water-6', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.479983895989903, lng: -81.46766287065016 },
+  { id: 'water-7', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.480178017295195, lng: -81.46787166662219 }
 ];
 
 // Layout mapping for Live Wait Times Widget
@@ -116,24 +126,24 @@ const HOUSE_GRID_LAYOUT = [
     { name: 'Evil Dead', apiKey: 'Evil Dead Burn' }
   ],
   [
-    { name: 'Stranger Things', apiKey: 'Stranger Things 5' },
-    { name: 'INVASION', apiKey: 'INVASION: Alien Abduction' },
-    { name: 'Cybergoria', apiKey: 'Cybergoria' }
+    { name: 'ST5', apiKey: 'Stranger Things 5' },
+    { name: 'Invasion', apiKey: 'INVASION: Alien Abduction' },
+    { name: 'Cyber', apiKey: 'Cybergoria' }
   ],
   [
     { name: 'Oddfellow', apiKey: 'Jack & Oddfellow' },
     { name: 'Bloodengutz', apiKey: 'H.R. Bloodengutz' },
-    { name: 'Madlands', apiKey: 'Madlands: Caged Cannibals' }
+    { name: 'Cannibals', apiKey: 'Madlands: Caged Cannibals' }
   ]
 ];
 
 const RIDE_GRID_LAYOUT = [
   [
-    { name: 'Men in Black', apiKey: 'Men in Black: Alien Attack' },
+    { name: 'MIB', apiKey: 'Men in Black: Alien Attack' },
     { name: 'Transformers', apiKey: 'Transformers: The Ride-3D' }
   ],
   [
-    { name: 'Harry Potter', apiKey: 'Harry Potter and the Escape from Gringotts' },
+    { name: 'Gringotts', apiKey: 'Harry Potter and the Escape from Gringotts' },
     { name: 'Mummy', apiKey: 'Revenge of the Mummy' }
   ]
 ];
@@ -203,12 +213,13 @@ export default function HorrorNightsTracker() {
   const [analyticsSubTab, setAnalyticsSubTab] = useState<'Houses' | 'Rides' | 'Attendees'>('Houses');
 
   // Map Filter State
-  const [mapCategoryFilter, setMapCategoryFilter] = useState<'all' | 'house' | 'ride' | 'show' | 'scarezone'>('all');
+  const [mapCategoryFilter, setMapCategoryFilter] = useState<'all' | 'house' | 'ride' | 'show' | 'scarezone' | 'food' | 'water' | 'restroom'>('all');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isMapFullscreen, setIsMapFullscreen] = useState<boolean>(false);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<any>(null);
+  const mapInitializedRef = useRef<boolean>(false);
   const userMarkerRef = useRef<any>(null);
   const poiMarkersRef = useRef<any[]>([]);
 
@@ -314,12 +325,13 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
-  // Reliable Map Clean Mounting & Unmounting Effect (Fixes Map Disappearing Bug)
+  // Leaflet Map Setup (Fixed position reset & unmount bugs)
   useEffect(() => {
     if (mainTab !== 'map' || !mapContainerRef.current) {
       if (leafletMapRef.current) {
         leafletMapRef.current.remove();
         leafletMapRef.current = null;
+        mapInitializedRef.current = false;
         userMarkerRef.current = null;
         poiMarkersRef.current = [];
       }
@@ -342,9 +354,10 @@ export default function HorrorNightsTracker() {
         const map = L.map(mapContainerRef.current, {
           zoomControl: true,
           fadeAnimation: false
-        }).setView([28.4748, -81.4670], 17);
+        }).setView([28.4770, -81.4680], 17);
         
         leafletMapRef.current = map;
+        mapInitializedRef.current = true;
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
@@ -353,9 +366,9 @@ export default function HorrorNightsTracker() {
       }
 
       const map = leafletMapRef.current;
-      setTimeout(() => { if (map) map.invalidateSize(); }, 150);
+      setTimeout(() => { if (map) map.invalidateSize(); }, 100);
 
-      // Update User GPS Marker cleanly
+      // Update User GPS Marker without re-centering map view
       if (userLocation) {
         if (userMarkerRef.current) {
           userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
@@ -387,18 +400,19 @@ export default function HorrorNightsTracker() {
         if (poi.category === 'ride') badgeColor = '#3B82F6';
         if (poi.category === 'show') badgeColor = '#10B981';
         if (poi.category === 'scarezone') badgeColor = '#A855F7';
+        if (poi.category === 'water') badgeColor = '#06B6D4';
 
         const iconHtml = `
           <div style="background: ${badgeColor}; color: #FFF; border: 2px solid #FFF; border-radius: 12px; padding: 2px 8px; font-size: 11px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; white-space: nowrap;">
-            ${poi.name.split(' ')[0]}
+            ${poi.shortName}
           </div>
         `;
 
         const customIcon = L.divIcon({
           html: iconHtml,
           className: 'custom-map-pin',
-          iconSize: [80, 24],
-          iconAnchor: [40, 12]
+          iconSize: [60, 24],
+          iconAnchor: [30, 12]
         });
 
         const popupContent = `
@@ -426,6 +440,7 @@ export default function HorrorNightsTracker() {
       if (leafletMapRef.current) {
         leafletMapRef.current.remove();
         leafletMapRef.current = null;
+        mapInitializedRef.current = false;
         userMarkerRef.current = null;
         poiMarkersRef.current = [];
       }
@@ -664,7 +679,6 @@ export default function HorrorNightsTracker() {
     return visits.flatMap(v => v.activities.map(a => ({ ...a, visitDate: v.visitDate })));
   }, [visits]);
 
-  // Filtered activities based on selected Attendee filter ("Everyone" or single name)
   const filteredCompletedActivities = useMemo(() => {
     if (selectedAttendeeFilter === 'Everyone') {
       return allCompletedActivities;
@@ -748,7 +762,7 @@ export default function HorrorNightsTracker() {
   const avgDurationPerVisit = totalEventVisits > 0 ? Math.round(totalTimeInParkMins / totalEventVisits) : 0;
   const avgWaitPerActivity = allCompletedActivities.length > 0 ? Math.round(totalTimeInLinesMins / allCompletedActivities.length) : 0;
 
-  // --- ANALYTICS DETAILED STATS (HOUSES & RIDES) ---
+  // --- ANALYTICS DETAILED STATS ---
   const houseAnalyticsStats = useMemo(() => {
     const stats = HHN_HOUSES.map(houseName => {
       const houseActivities = filteredCompletedActivities.filter(a => a.rideName === houseName);
@@ -797,7 +811,6 @@ export default function HorrorNightsTracker() {
     return stats.sort((a, b) => b.visits - a.visits || b.totalWait - a.totalWait);
   }, [filteredCompletedActivities]);
 
-  // Longest Individual Waits (Houses)
   const longestHouseWaits = useMemo(() => {
     return [...filteredCompletedActivities]
       .filter(a => HHN_HOUSES.includes(a.rideName))
@@ -805,7 +818,6 @@ export default function HorrorNightsTracker() {
       .slice(0, 10);
   }, [filteredCompletedActivities]);
 
-  // Shortest Individual Waits (Houses)
   const shortestHouseWaits = useMemo(() => {
     return [...filteredCompletedActivities]
       .filter(a => HHN_HOUSES.includes(a.rideName))
@@ -813,7 +825,6 @@ export default function HorrorNightsTracker() {
       .slice(0, 10);
   }, [filteredCompletedActivities]);
 
-  // Longest Individual Waits (Rides)
   const longestRideWaits = useMemo(() => {
     return [...filteredCompletedActivities]
       .filter(a => HHN_RIDES.includes(a.rideName))
@@ -821,7 +832,6 @@ export default function HorrorNightsTracker() {
       .slice(0, 10);
   }, [filteredCompletedActivities]);
 
-  // Shortest Individual Waits (Rides)
   const shortestRideWaits = useMemo(() => {
     return [...filteredCompletedActivities]
       .filter(a => HHN_RIDES.includes(a.rideName))
@@ -829,7 +839,6 @@ export default function HorrorNightsTracker() {
       .slice(0, 10);
   }, [filteredCompletedActivities]);
 
-  // --- ATTENDEE CHECKLIST STATS ---
   const attendeeChecklistData = useMemo(() => {
     const personActivities = filteredCompletedActivities;
 
@@ -900,6 +909,14 @@ export default function HorrorNightsTracker() {
       setSelectedAttendeeFilter('Everyone');
     } else {
       setSelectedAttendeeFilter(name);
+    }
+  };
+
+  const toggleMapFilter = (cat: 'all' | 'house' | 'ride' | 'show' | 'scarezone' | 'water') => {
+    if (mapCategoryFilter === cat) {
+      setMapCategoryFilter('all');
+    } else {
+      setMapCategoryFilter(cat);
     }
   };
 
@@ -1207,24 +1224,6 @@ export default function HorrorNightsTracker() {
   return (
     <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', minHeight: '100vh', position: 'relative' }}>
       
-      {/* GLOBAL BACKGROUND INJECTION */}
-      <style>{`
-        body {
-          margin: 0;
-          padding: 0;
-          background: #09090D url('/hhn-bg.jpg') no-repeat center top / cover !important;
-          background-attachment: scroll !important;
-        }
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-        input[type=number] {
-          -moz-appearance: textfield;
-        }
-      `}</style>
-
       {/* 🎃 APP HEADER */}
       <header style={{ textAlign: 'center', marginBottom: '8px', padding: '10px 0 0 0' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#FF5500', letterSpacing: '-0.5px', margin: '0', textShadow: '0 0 12px rgba(255, 85, 0, 0.4)' }}>
@@ -1317,7 +1316,7 @@ export default function HorrorNightsTracker() {
           <span style={{ fontSize: '11px', fontWeight: mainTab === 'map' ? '800' : '600', color: mainTab === 'map' ? '#3B82F6' : '#9CA3AF', marginTop: '4px' }}>Map</span>
         </button>
 
-        {/* Yum - Burger & Drink Icon */}
+        {/* Yum - Food & Drink Icon */}
         <button
           onClick={() => setMainTab('yum')}
           style={{
@@ -1468,42 +1467,48 @@ export default function HorrorNightsTracker() {
             backdropFilter: 'blur(8px)',
             boxSizing: 'border-box'
           }}>
-            {/* CATEGORY FILTERS */}
-            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '10px', scrollbarWidth: 'none' }}>
+            {/* CATEGORY FILTERS GRID (4 Across x 2 High) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '10px' }}>
               <button
-                onClick={() => setMapCategoryFilter('all')}
-                style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'all' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'all' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                onClick={() => toggleMapFilter('all')}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'all' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'all' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 All
               </button>
               <button
-                onClick={() => setMapCategoryFilter('house')}
-                style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'house' ? '2px solid #FF5500' : '1px solid #2A2A3C', background: mapCategoryFilter === 'house' ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                onClick={() => toggleMapFilter('house')}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'house' ? '2px solid #FF5500' : '1px solid #2A2A3C', background: mapCategoryFilter === 'house' ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 🏚️ Houses
               </button>
               <button
-                onClick={() => setMapCategoryFilter('ride')}
-                style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'ride' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'ride' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                onClick={() => toggleMapFilter('ride')}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'ride' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'ride' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 🎢 Rides
               </button>
               <button
-                onClick={() => setMapCategoryFilter('show')}
-                style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'show' ? '2px solid #10B981' : '1px solid #2A2A3C', background: mapCategoryFilter === 'show' ? '#10B981' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                onClick={() => toggleMapFilter('show')}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'show' ? '2px solid #10B981' : '1px solid #2A2A3C', background: mapCategoryFilter === 'show' ? '#10B981' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 🎭 Shows
               </button>
               <button
-                onClick={() => setMapCategoryFilter('scarezone')}
-                style={{ padding: '6px 12px', borderRadius: '8px', border: mapCategoryFilter === 'scarezone' ? '2px solid #A855F7' : '1px solid #2A2A3C', background: mapCategoryFilter === 'scarezone' ? '#A855F7' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                onClick={() => toggleMapFilter('scarezone')}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'scarezone' ? '2px solid #A855F7' : '1px solid #2A2A3C', background: mapCategoryFilter === 'scarezone' ? '#A855F7' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
-                🧟 Scare Zones
+                🧟 Zones
+              </button>
+              <button
+                onClick={() => toggleMapFilter('water')}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'water' ? '2px solid #06B6D4' : '1px solid #2A2A3C', background: mapCategoryFilter === 'water' ? '#06B6D4' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+              >
+                💧 Water
               </button>
             </div>
 
             {/* LEAFLET MAP CONTAINER */}
-            <div style={{ position: 'relative', width: '100%', height: isMapFullscreen ? 'calc(100vh - 65px)' : '420px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2A2A3C' }}>
+            <div style={{ position: 'relative', width: '100%', height: isMapFullscreen ? 'calc(100vh - 80px)' : '420px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2A2A3C' }}>
               <div
                 ref={mapContainerRef}
                 style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
@@ -1520,7 +1525,7 @@ export default function HorrorNightsTracker() {
                   zIndex: 999,
                   padding: '8px 16px',
                   borderRadius: '20px',
-                  background: 'rgba(42, 42, 60, 0.75)',
+                  background: 'rgba(42, 42, 60, 0.85)',
                   color: '#CBD5E0',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   fontSize: '12px',
