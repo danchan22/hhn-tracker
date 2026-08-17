@@ -96,7 +96,7 @@ const HHN_MAP_LOCATIONS: MapPOI[] = [
   { id: 'transformers', name: 'Transformers: The Ride-3D', shortName: 'Transformers', category: 'ride', lat: 28.47663140608696, lng: -81.46863197342127, apiKey: 'Transformers: The Ride-3D' },
   { id: 'gringotts', name: 'Escape from Gringotts', shortName: 'Gringotts', category: 'ride', lat: 28.479822824433633, lng: -81.46998923849405, apiKey: 'Harry Potter and the Escape from Gringotts' },
 
-  // SHOWS (EXACT COORDINATES & SHORTENED NAMES)
+  // SHOWS
   { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', shortName: 'Nightmare', category: 'show', lat: 28.48034245429014, lng: -81.46882577178755 },
   { id: 'lagoon-show', name: 'Stranger Things (Lagoon Show)', shortName: 'Lagoon Show', category: 'show', lat: 28.478983316117194, lng: -81.46855428793143 },
 
@@ -213,7 +213,7 @@ export default function HorrorNightsTracker() {
   const [analyticsSubTab, setAnalyticsSubTab] = useState<'Houses' | 'Rides' | 'Attendees'>('Houses');
 
   // Map Filter State
-  const [mapCategoryFilter, setMapCategoryFilter] = useState<'all' | 'house' | 'ride' | 'show' | 'scarezone' | 'food' | 'water' | 'restroom'>('all');
+  const [mapCategoryFilter, setMapCategoryFilter] = useState<'all' | 'house' | 'ride' | 'show' | 'scarezone' | 'water'>('all');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isMapFullscreen, setIsMapFullscreen] = useState<boolean>(false);
 
@@ -324,7 +324,7 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
-  // Leaflet Map Initialization & Rendering (Fixed Glitchy Refresh Cycles)
+  // Leaflet Map Initialization & Dark Tiles Layer (Fixes Gray Map Tile Bug)
   useEffect(() => {
     if (mainTab !== 'map' || !mapContainerRef.current) {
       if (leafletMapRef.current) {
@@ -355,12 +355,19 @@ export default function HorrorNightsTracker() {
         }).setView([28.4770, -81.4680], 17);
         
         leafletMapRef.current = map;
+
+        // Reliable Dark-Matter CartoDB Basemap Layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19,
+          subdomains: 'abcd',
+          attribution: '&copy; CartoDB'
+        }).addTo(map);
       }
 
       const map = leafletMapRef.current;
-      setTimeout(() => { if (map) map.invalidateSize(); }, 100);
+      setTimeout(() => { if (map) map.invalidateSize(); }, 150);
 
-      // Update GPS marker position without re-centering view
+      // GPS Position Update without re-centering
       if (userLocation) {
         if (userMarkerRef.current) {
           userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
@@ -391,15 +398,14 @@ export default function HorrorNightsTracker() {
         let iconHtml = '';
 
         if (poi.category === 'water') {
-          // Clean Water Droplet Icon without pillbox border/background
-          iconHtml = `<div style="font-size: 20px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); text-align: center;">💧</div>`;
+          // Pure Water Droplet Icon without bounding box
+          iconHtml = `<div style="font-size: 22px; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8)); text-align: center;">💧</div>`;
         } else {
           let badgeColor = '#FF5500';
           if (poi.category === 'ride') badgeColor = '#3B82F6';
           if (poi.category === 'show') badgeColor = '#10B981';
           if (poi.category === 'scarezone') badgeColor = '#A855F7';
 
-          // Dynamic Pill Sizing based on text length
           iconHtml = `
             <div style="background: ${badgeColor}; color: #FFF; border: 2px solid #FFF; border-radius: 12px; padding: 2px 8px; font-size: 11px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; white-space: nowrap; width: max-content;">
               ${poi.shortName}
@@ -1314,7 +1320,7 @@ export default function HorrorNightsTracker() {
           <span style={{ fontSize: '11px', fontWeight: mainTab === 'map' ? '800' : '600', color: mainTab === 'map' ? '#3B82F6' : '#9CA3AF', marginTop: '4px' }}>Map</span>
         </button>
 
-        {/* Yum - Food & Drink Icon */}
+        {/* Yum - Burger & Drink Icon */}
         <button
           onClick={() => setMainTab('yum')}
           style={{
@@ -1465,41 +1471,35 @@ export default function HorrorNightsTracker() {
             backdropFilter: 'blur(8px)',
             boxSizing: 'border-box'
           }}>
-            {/* CATEGORY FILTERS GRID (4 Across x 2 High) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '10px' }}>
-              <button
-                onClick={() => toggleMapFilter('all')}
-                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'all' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'all' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
-              >
-                All
-              </button>
+            {/* CATEGORY FILTERS GRID (No "All" button) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', marginBottom: '10px' }}>
               <button
                 onClick={() => toggleMapFilter('house')}
-                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'house' ? '2px solid #FF5500' : '1px solid #2A2A3C', background: mapCategoryFilter === 'house' ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'house' ? '2px solid #FF5500' : '1px solid #2A2A3C', background: mapCategoryFilter === 'house' ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 🏚️ Houses
               </button>
               <button
                 onClick={() => toggleMapFilter('ride')}
-                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'ride' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'ride' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'ride' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'ride' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 🎢 Rides
               </button>
               <button
                 onClick={() => toggleMapFilter('show')}
-                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'show' ? '2px solid #10B981' : '1px solid #2A2A3C', background: mapCategoryFilter === 'show' ? '#10B981' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'show' ? '2px solid #10B981' : '1px solid #2A2A3C', background: mapCategoryFilter === 'show' ? '#10B981' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 🎭 Shows
               </button>
               <button
                 onClick={() => toggleMapFilter('scarezone')}
-                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'scarezone' ? '2px solid #A855F7' : '1px solid #2A2A3C', background: mapCategoryFilter === 'scarezone' ? '#A855F7' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'scarezone' ? '2px solid #A855F7' : '1px solid #2A2A3C', background: mapCategoryFilter === 'scarezone' ? '#A855F7' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 🧟 Zones
               </button>
               <button
                 onClick={() => toggleMapFilter('water')}
-                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'water' ? '2px solid #06B6D4' : '1px solid #2A2A3C', background: mapCategoryFilter === 'water' ? '#06B6D4' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'water' ? '2px solid #06B6D4' : '1px solid #2A2A3C', background: mapCategoryFilter === 'water' ? '#06B6D4' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
               >
                 💧 Water
               </button>
