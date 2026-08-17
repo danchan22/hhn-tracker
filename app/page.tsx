@@ -90,22 +90,22 @@ const HHN_MAP_LOCATIONS: MapPOI[] = [
   { id: 'madlands', name: 'Madlands: Caged Cannibals', shortName: 'Cannibals', category: 'house', lat: 28.4732, lng: -81.4685, apiKey: 'Madlands: Caged Cannibals' },
   { id: 'invasion', name: 'INVASION: Alien Abduction', shortName: 'Invasion', category: 'house', lat: 28.4734, lng: -81.4678, apiKey: 'INVASION: Alien Abduction' },
 
-  // RIDES (EXACT COORDINATES & SHORT NAMES)
+  // RIDES
   { id: 'mib', name: 'Men in Black: Alien Attack', shortName: 'MIB', category: 'ride', lat: 28.480987918842903, lng: -81.46751974578974, apiKey: 'Men in Black: Alien Attack' },
   { id: 'mummy', name: 'Revenge of the Mummy', shortName: 'Mummy', category: 'ride', lat: 28.476908226875782, lng: -81.4697184770946, apiKey: 'Revenge of the Mummy' },
   { id: 'transformers', name: 'Transformers: The Ride-3D', shortName: 'Transformers', category: 'ride', lat: 28.47663140608696, lng: -81.46863197342127, apiKey: 'Transformers: The Ride-3D' },
   { id: 'gringotts', name: 'Escape from Gringotts', shortName: 'Gringotts', category: 'ride', lat: 28.479822824433633, lng: -81.46998923849405, apiKey: 'Harry Potter and the Escape from Gringotts' },
 
-  // SHOWS
-  { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', shortName: 'Nightmare Fuel', category: 'show', lat: 28.4735, lng: -81.4660 },
-  { id: 'lagoon-show', name: 'Stranger Things (Lagoon Show)', shortName: 'Lagoon Show', category: 'show', lat: 28.4742, lng: -81.4668 },
+  // SHOWS (EXACT COORDINATES & SHORTENED NAMES)
+  { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', shortName: 'Nightmare', category: 'show', lat: 28.48034245429014, lng: -81.46882577178755 },
+  { id: 'lagoon-show', name: 'Stranger Things (Lagoon Show)', shortName: 'Lagoon Show', category: 'show', lat: 28.478983316117194, lng: -81.46855428793143 },
 
   // SCARE ZONES
   { id: 'origins', name: 'Origins of Horror', shortName: 'Origins', category: 'scarezone', lat: 28.4762, lng: -81.4665 },
   { id: 'masquerade', name: 'Masquerade', shortName: 'Masquerade', category: 'scarezone', lat: 28.4748, lng: -81.4675 },
   { id: 'carnival', name: 'Carnival of Screams', shortName: 'Carnival', category: 'scarezone', lat: 28.4738, lng: -81.4680 },
 
-  // WATER STATIONS (EXACT COORDINATES)
+  // WATER STATIONS
   { id: 'water-1', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.475740212815403, lng: -81.46897601025046 },
   { id: 'water-2', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.476597319582403, lng: -81.46771582061385 },
   { id: 'water-3', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.478125802458248, lng: -81.46904887351499 },
@@ -219,7 +219,6 @@ export default function HorrorNightsTracker() {
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<any>(null);
-  const mapInitializedRef = useRef<boolean>(false);
   const userMarkerRef = useRef<any>(null);
   const poiMarkersRef = useRef<any[]>([]);
 
@@ -325,13 +324,12 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
-  // Leaflet Map Setup (Fixed position reset & unmount bugs)
+  // Leaflet Map Initialization & Rendering (Fixed Glitchy Refresh Cycles)
   useEffect(() => {
     if (mainTab !== 'map' || !mapContainerRef.current) {
       if (leafletMapRef.current) {
         leafletMapRef.current.remove();
         leafletMapRef.current = null;
-        mapInitializedRef.current = false;
         userMarkerRef.current = null;
         poiMarkersRef.current = [];
       }
@@ -357,18 +355,12 @@ export default function HorrorNightsTracker() {
         }).setView([28.4770, -81.4680], 17);
         
         leafletMapRef.current = map;
-        mapInitializedRef.current = true;
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '&copy; OpenStreetMap'
-        }).addTo(map);
       }
 
       const map = leafletMapRef.current;
       setTimeout(() => { if (map) map.invalidateSize(); }, 100);
 
-      // Update User GPS Marker without re-centering map view
+      // Update GPS marker position without re-centering view
       if (userLocation) {
         if (userMarkerRef.current) {
           userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
@@ -384,7 +376,7 @@ export default function HorrorNightsTracker() {
         }
       }
 
-      // Clear previous POI markers
+      // Clear previous POIs
       poiMarkersRef.current.forEach(m => map.removeLayer(m));
       poiMarkersRef.current = [];
 
@@ -396,28 +388,35 @@ export default function HorrorNightsTracker() {
       filtered.forEach(poi => {
         const waitMins = poi.apiKey ? (liveWaitTimes[poi.apiKey] ?? null) : null;
         
-        let badgeColor = '#FF5500';
-        if (poi.category === 'ride') badgeColor = '#3B82F6';
-        if (poi.category === 'show') badgeColor = '#10B981';
-        if (poi.category === 'scarezone') badgeColor = '#A855F7';
-        if (poi.category === 'water') badgeColor = '#06B6D4';
+        let iconHtml = '';
 
-        const iconHtml = `
-          <div style="background: ${badgeColor}; color: #FFF; border: 2px solid #FFF; border-radius: 12px; padding: 2px 8px; font-size: 11px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; white-space: nowrap;">
-            ${poi.shortName}
-          </div>
-        `;
+        if (poi.category === 'water') {
+          // Clean Water Droplet Icon without pillbox border/background
+          iconHtml = `<div style="font-size: 20px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); text-align: center;">💧</div>`;
+        } else {
+          let badgeColor = '#FF5500';
+          if (poi.category === 'ride') badgeColor = '#3B82F6';
+          if (poi.category === 'show') badgeColor = '#10B981';
+          if (poi.category === 'scarezone') badgeColor = '#A855F7';
+
+          // Dynamic Pill Sizing based on text length
+          iconHtml = `
+            <div style="background: ${badgeColor}; color: #FFF; border: 2px solid #FFF; border-radius: 12px; padding: 2px 8px; font-size: 11px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; white-space: nowrap; width: max-content;">
+              ${poi.shortName}
+            </div>
+          `;
+        }
 
         const customIcon = L.divIcon({
           html: iconHtml,
           className: 'custom-map-pin',
-          iconSize: [60, 24],
-          iconAnchor: [30, 12]
+          iconSize: null,
+          iconAnchor: [20, 12]
         });
 
         const popupContent = `
           <div style="color: #000; font-family: sans-serif; padding: 4px; text-align: center;">
-            <strong style="font-size: 14px; color: ${badgeColor}; display: block; margin-bottom: 4px;">${poi.name}</strong>
+            <strong style="font-size: 14px; color: #FF5500; display: block; margin-bottom: 4px;">${poi.name}</strong>
             ${waitMins !== null ? `<div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">⏱️ Current Wait: <span style="color: #FF5500;">${waitMins} mins</span></div>` : ''}
           </div>
         `;
@@ -440,7 +439,6 @@ export default function HorrorNightsTracker() {
       if (leafletMapRef.current) {
         leafletMapRef.current.remove();
         leafletMapRef.current = null;
-        mapInitializedRef.current = false;
         userMarkerRef.current = null;
         poiMarkersRef.current = [];
       }
