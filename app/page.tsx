@@ -314,9 +314,17 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
-  // Leaflet Map Re-Initialization & Visibility Handler (Fixes Map Going Blank)
+  // Reliable Map Clean Mounting & Unmounting Effect (Fixes Map Disappearing Bug)
   useEffect(() => {
-    if (mainTab !== 'map' || !mapContainerRef.current) return;
+    if (mainTab !== 'map' || !mapContainerRef.current) {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+        userMarkerRef.current = null;
+        poiMarkersRef.current = [];
+      }
+      return;
+    }
 
     if (!document.getElementById('leaflet-css')) {
       const link = document.createElement('link');
@@ -328,7 +336,7 @@ export default function HorrorNightsTracker() {
 
     const renderMap = () => {
       const L = (window as any).L;
-      if (!L) return;
+      if (!L || !mapContainerRef.current) return;
 
       if (!leafletMapRef.current) {
         const map = L.map(mapContainerRef.current, {
@@ -345,11 +353,7 @@ export default function HorrorNightsTracker() {
       }
 
       const map = leafletMapRef.current;
-      
-      // Delay invalidateSize slightly to ensure container dimensions are set
-      setTimeout(() => {
-        if (map) map.invalidateSize();
-      }, 100);
+      setTimeout(() => { if (map) map.invalidateSize(); }, 150);
 
       // Update User GPS Marker cleanly
       if (userLocation) {
@@ -417,6 +421,15 @@ export default function HorrorNightsTracker() {
       script.onload = renderMap;
       document.body.appendChild(script);
     }
+
+    return () => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+        userMarkerRef.current = null;
+        poiMarkersRef.current = [];
+      }
+    };
   }, [mainTab, mapCategoryFilter, liveWaitTimes, userLocation, isMapFullscreen]);
 
   const fetchThemeParkWaitTimes = async () => {
@@ -1192,10 +1205,16 @@ export default function HorrorNightsTracker() {
   };
 
   return (
-    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', background: 'radial-gradient(circle at top, rgba(18, 18, 26, 0.75) 0%, rgba(9, 9, 13, 0.95) 100%), url("/hhn-bg.jpg") no-repeat center top', backgroundSize: 'cover', minHeight: '100vh' }}>
+    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', minHeight: '100vh', position: 'relative' }}>
       
-      {/* GLOBAL CSS FOR HIDING NUMBER INPUT SPINNERS */}
+      {/* GLOBAL BACKGROUND INJECTION */}
       <style>{`
+        body {
+          margin: 0;
+          padding: 0;
+          background: #09090D url('/hhn-bg.jpg') no-repeat center top / cover !important;
+          background-attachment: scroll !important;
+        }
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button {
           -webkit-appearance: none;
@@ -1298,7 +1317,7 @@ export default function HorrorNightsTracker() {
           <span style={{ fontSize: '11px', fontWeight: mainTab === 'map' ? '800' : '600', color: mainTab === 'map' ? '#3B82F6' : '#9CA3AF', marginTop: '4px' }}>Map</span>
         </button>
 
-        {/* Yum - Meal / Food & Drink Icon */}
+        {/* Yum - Burger & Drink Icon */}
         <button
           onClick={() => setMainTab('yum')}
           style={{
@@ -1315,10 +1334,13 @@ export default function HorrorNightsTracker() {
           }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={mainTab === 'yum' ? '#F59E0B' : '#6B7280'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
-            <path d="M15 2v16"></path>
-            <path d="M8 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V2"></path>
-            <path d="M5 10v10"></path>
+            <path d="M11 11V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v8"></path>
+            <path d="M19 6h2l-1.5-4h-2.5"></path>
+            <path d="M11 11a4 4 0 0 0 8 0V7H11v4z"></path>
+            <path d="M15 15v7"></path>
+            <path d="M12 22h6"></path>
+            <path d="M2 13a4 4 0 0 1 8 0v1H2v-1z"></path>
+            <path d="M2 17h8v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1z"></path>
           </svg>
           <span style={{ fontSize: '11px', fontWeight: mainTab === 'yum' ? '800' : '600', color: mainTab === 'yum' ? '#F59E0B' : '#9CA3AF', marginTop: '4px' }}>Yum</span>
         </button>
