@@ -3271,14 +3271,50 @@ if (availableDifficulties.length === 0 && diffs.length > 0) setAvailableDifficul
                 </p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
-                  {[
-                    currentQuestion.option_a,
-                    currentQuestion.option_b,
-                    currentQuestion.option_c,
-                    currentQuestion.option_d
-                  ].filter(Boolean).map((opt) => {
-                    const isSelected = selectedOption === opt;
-                    const isCorrect = opt === currentQuestion.correct_answer;
+                // ✅ NEW FIXED BLOCK
+{[
+  { letter: 'A', text: currentQuestion.option_a },
+  { letter: 'B', text: currentQuestion.option_b },
+  { letter: 'C', text: currentQuestion.option_c },
+  { letter: 'D', text: currentQuestion.option_d }
+].filter(item => Boolean(item.text)).map((item) => {
+  const isSelected = selectedOption === item.text || selectedOption === item.letter;
+  const correctVal = currentQuestion.correct_answer?.trim()?.toUpperCase();
+  const isCorrect = correctVal === item.letter || correctVal === item.text?.trim()?.toUpperCase();
+
+  let btnBg = '#1A1A26';
+  let btnBorder = '#2A2A3C';
+
+  if (selectedOption) {
+    if (isCorrect) {
+      btnBg = '#0B231A';
+      btnBorder = '#22C55E';
+    } else if (isSelected) {
+      btnBg = '#2C0B0E';
+      btnBorder = '#DC2626';
+    }
+  }
+
+  return (
+    <button
+      key={item.letter}
+      onClick={() => setSelectedOption(item.letter)}
+      style={{
+        padding: '10px 12px',
+        borderRadius: '10px',
+        border: `1px solid ${btnBorder}`,
+        background: btnBg,
+        color: '#FFF',
+        fontSize: '13px',
+        fontWeight: '700',
+        textAlign: 'left',
+        cursor: 'pointer'
+      }}
+    >
+      <span style={{ color: '#FF5500', marginRight: '6px' }}>{item.letter}.</span> {item.text}
+    </button>
+  );
+})}
                     let btnBg = '#1A1A26';
                     let btnBorder = '#2A2A3C';
 
@@ -3315,13 +3351,29 @@ if (availableDifficulties.length === 0 && diffs.length > 0) setAvailableDifficul
                 </div>
 
                 {/* CORRECTION FEEDBACK BANNER (NO FUN FACT) */}
-                {selectedOption && (
-                  <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', padding: '10px 12px', borderRadius: '10px', fontSize: '12px', color: '#CBD5E0', marginBottom: '14px' }}>
-                    <strong style={{ color: selectedOption === currentQuestion.correct_answer ? '#22C55E' : '#EF4444' }}>
-                      {selectedOption === currentQuestion.correct_answer ? '🎉 Correct!' : `❌ Incorrect! The correct answer is: ${currentQuestion.correct_answer}`}
-                    </strong>
-                  </div>
-                )}
+{selectedOption && (() => {
+  const correctVal = currentQuestion.correct_answer?.trim()?.toUpperCase();
+  const isUserCorrect = selectedOption.toUpperCase() === correctVal || 
+    (correctVal === 'A' && selectedOption === currentQuestion.option_a) ||
+    (correctVal === 'B' && selectedOption === currentQuestion.option_b) ||
+    (correctVal === 'C' && selectedOption === currentQuestion.option_c) ||
+    (correctVal === 'D' && selectedOption === currentQuestion.option_d);
+
+  // Get full text of the correct answer to display cleanly
+  let correctText = currentQuestion.correct_answer;
+  if (correctVal === 'A') correctText = `A. ${currentQuestion.option_a}`;
+  if (correctVal === 'B') correctText = `B. ${currentQuestion.option_b}`;
+  if (correctVal === 'C') correctText = `C. ${currentQuestion.option_c}`;
+  if (correctVal === 'D') correctText = `D. ${currentQuestion.option_d}`;
+
+  return (
+    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', padding: '10px 12px', borderRadius: '10px', fontSize: '12px', color: '#CBD5E0', marginBottom: '14px' }}>
+      <strong style={{ color: isUserCorrect ? '#22C55E' : '#EF4444' }}>
+        {isUserCorrect ? '🎉 Correct!' : `❌ Incorrect! The correct answer is: ${correctText}`}
+      </strong>
+    </div>
+  );
+})()}
               </div>
             ) : null}
 
