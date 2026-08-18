@@ -827,12 +827,11 @@ export default function HorrorNightsTracker() {
       setCurrentTriviaIndex(0);
 
       // Extract unique categories and difficulties for dynamic dropdown filters
-      const cats = Array.from(new Set(data.map((q: TriviaQuestion) => q.category))).filter(Boolean);
-      const diffs = Array.from(new Set(data.map((q: TriviaQuestion) => q.difficulty))).filter(Boolean);
+  const cats: string[] = Array.from(new Set<string>(data.map((q: TriviaQuestion) => q.category))).filter(Boolean);
+const diffs: string[] = Array.from(new Set<string>(data.map((q: TriviaQuestion) => q.difficulty))).filter(Boolean);
 
-      if (availableCategories.length === 0 && cats.length > 0) setAvailableCategories(cats);
-      if (availableDifficulties.length === 0 && diffs.length > 0) setAvailableDifficulties(diffs);
-
+if (availableCategories.length === 0 && cats.length > 0) setAvailableCategories(cats);
+if (availableDifficulties.length === 0 && diffs.length > 0) setAvailableDifficulties(diffs);
     } catch (e: any) {
       setTriviaError(e.message || 'Error loading trivia from Supabase.');
     } finally {
