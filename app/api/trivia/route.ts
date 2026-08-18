@@ -11,7 +11,7 @@ export async function POST(req: Request) {
 
     const prompt = `Generate a single ${difficulty || 'Medium'} difficulty horror movie trivia question about ${category || 'Horror Movie History'}. Make sure all quotation marks within text are properly formatted or escaped.`;
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
