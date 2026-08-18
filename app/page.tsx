@@ -70,10 +70,15 @@ interface GameItem {
 }
 
 interface TriviaQuestion {
+  id: string | number;
+  category: string;
+  difficulty: string;
   question: string;
-  options: string[];
-  correctAnswer: string;
-  funFact: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_answer: string;
 }
 
 const FIXED_FAMILY_MEMBERS = [
@@ -368,16 +373,19 @@ export default function HorrorNightsTracker() {
   const [commentTextInput, setCommentTextInput] = useState<string>('');
   const [submittingComment, setSubmittingComment] = useState<boolean>(false);
 
-  // Games Tab Filter & AI Trivia Modal States
+  // Games Tab Filter & Supabase Trivia Modal States
   const [gamesAppFilter, setGamesAppFilter] = useState<'all' | 'app' | 'no-app'>('all');
   const [activeLearnMoreGame, setActiveLearnMoreGame] = useState<GameItem | null>(null);
   
-  // AI Trivia Live Batch Queue State
+  // Supabase Trivia Live State
   const [showAiTriviaModal, setShowAiTriviaModal] = useState<boolean>(false);
-  const [triviaCategory, setTriviaCategory] = useState<string>('80s Slashers');
-  const [triviaDifficulty, setTriviaDifficulty] = useState<string>('Medium');
-  const [currentQuestion, setCurrentQuestion] = useState<TriviaQuestion | null>(null);
-  const [triviaQueue, setTriviaQueue] = useState<TriviaQuestion[]>([]);
+  const [triviaCategory, setTriviaCategory] = useState<string>('All');
+  const [triviaDifficulty, setTriviaDifficulty] = useState<string>('All');
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [availableDifficulties, setAvailableDifficulties] = useState<string[]>([]);
+  
+  const [triviaDeck, setTriviaDeck] = useState<TriviaQuestion[]>([]);
+  const [currentTriviaIndex, setCurrentTriviaIndex] = useState<number>(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [triviaLoading, setTriviaLoading] = useState<boolean>(false);
   const [triviaError, setTriviaError] = useState<string | null>(null);
@@ -784,74 +792,83 @@ export default function HorrorNightsTracker() {
     }
   };
 
-  // INSTANT BATCH PREFETCH AI TRIVIA
-  const fetchNextTriviaQuestion = async () => {
-    setSelectedOption(null);
+  // --- SUPABASE DIRECT TRIVIA FETCHING ---
+  const loadTriviaFromSupabase = async (cat = triviaCategory, diff = triviaDifficulty) => {
+    setTriviaLoading(true);
     setTriviaError(null);
-
-    // Pull next question instantly if queue has items (0s delay)
-    if (triviaQueue.length > 0) {
-      const nextQ = triviaQueue[0];
-      const remaining = triviaQueue.slice(1);
-      setCurrentQuestion(nextQ);
-      setTriviaQueue(remaining);
-
-      // Refill in background when queue gets low
-      if (remaining.length < 2 && !triviaLoading) {
-        prefetchTriviaBatch(false, triviaCategory, triviaDifficulty);
-      }
-      return;
-    }
-
-    // Otherwise load initial batch with spinner
-    await prefetchTriviaBatch(true, triviaCategory, triviaDifficulty);
-  };
-
-  const prefetchTriviaBatch = async (isInitialLoad: boolean, cat: string, diff: string) => {
-    if (isInitialLoad) setTriviaLoading(true);
+    setSelectedOption(null);
 
     try {
-      const res = await fetch('/api/trivia', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category: cat, difficulty: diff })
-      });
+      const supabase = getSupabase();
+      let query = supabase.from('trivia_questions').select('*');
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to fetch trivia.');
+      if (cat !== 'All') query = query.eq('category', cat);
+      if (diff !== 'All') query = query.eq('difficulty', diff);
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        setTriviaDeck([]);
+        setCurrentTriviaIndex(0);
+        setTriviaError('No trivia questions found for this filter.');
+        return;
       }
 
-      const questions: TriviaQuestion[] = await res.json();
-
-      if (questions && questions.length > 0) {
-        if (isInitialLoad || !currentQuestion) {
-          setCurrentQuestion(questions[0]);
-          setTriviaQueue(questions.slice(1));
-        } else {
-          setTriviaQueue(prev => [...prev, ...questions]);
-        }
+      // Shuffle the fetched questions (Fisher-Yates)
+      const shuffled = [...data];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
+
+      setTriviaDeck(shuffled);
+      setCurrentTriviaIndex(0);
+
+      // Extract unique categories and difficulties for dynamic dropdown filters
+      const cats = Array.from(new Set(data.map((q: TriviaQuestion) => q.category))).filter(Boolean);
+      const diffs = Array.from(new Set(data.map((q: TriviaQuestion) => q.difficulty))).filter(Boolean);
+
+      if (availableCategories.length === 0 && cats.length > 0) setAvailableCategories(cats);
+      if (availableDifficulties.length === 0 && diffs.length > 0) setAvailableDifficulties(diffs);
+
     } catch (e: any) {
-      if (isInitialLoad) {
-        setTriviaError(e.message || 'Could not load questions.');
-      }
+      setTriviaError(e.message || 'Error loading trivia from Supabase.');
     } finally {
-      if (isInitialLoad) setTriviaLoading(false);
+      setTriviaLoading(false);
     }
   };
 
-  const handleCategoryOrDiffChange = (newCat?: string, newDiff?: string) => {
-    const updatedCat = newCat || triviaCategory;
-    const updatedDiff = newDiff || triviaDifficulty;
+  const handleNextTriviaQuestion = () => {
+    setSelectedOption(null);
+    if (triviaDeck.length === 0) return;
 
-    if (newCat) setTriviaCategory(newCat);
-    if (newDiff) setTriviaDifficulty(newDiff);
-
-    setCurrentQuestion(null);
-    setTriviaQueue([]);
-    prefetchTriviaBatch(true, updatedCat, updatedDiff);
+    if (currentTriviaIndex + 1 < triviaDeck.length) {
+      setCurrentTriviaIndex(prev => prev + 1);
+    } else {
+      // Reshuffle deck when reaching the end
+      const reshuffled = [...triviaDeck];
+      for (let i = reshuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [reshuffled[i], reshuffled[j]] = [reshuffled[j], reshuffled[i]];
+      }
+      setTriviaDeck(reshuffled);
+      setCurrentTriviaIndex(0);
+    }
   };
+
+  const handleTriviaFilterChange = (newCat?: string, newDiff?: string) => {
+    const updatedCat = newCat !== undefined ? newCat : triviaCategory;
+    const updatedDiff = newDiff !== undefined ? newDiff : triviaDifficulty;
+
+    if (newCat !== undefined) setTriviaCategory(newCat);
+    if (newDiff !== undefined) setTriviaDifficulty(newDiff);
+
+    loadTriviaFromSupabase(updatedCat, updatedDiff);
+  };
+
+  const currentQuestion = triviaDeck[currentTriviaIndex] || null;
 
   const toggleYumCategoryFilter = (cat: 'food' | 'drink' | 'dessert' | 'gf') => {
     if (yumCategoryFilter === cat) {
@@ -2066,7 +2083,7 @@ export default function HorrorNightsTracker() {
                       onClick={() => {
                         if (game.isAiTrivia) {
                           setShowAiTriviaModal(true);
-                          if (!currentQuestion) fetchNextTriviaQuestion();
+                          if (triviaDeck.length === 0) loadTriviaFromSupabase('All', 'All');
                         } else {
                           setActiveLearnMoreGame(game);
                         }
@@ -3200,7 +3217,7 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
-      {/* AI TRIVIA LIVE INTERACTIVE MODAL */}
+      {/* SUPABASE TRIVIA LIVE INTERACTIVE MODAL */}
       {showAiTriviaModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
           <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '460px', width: '100%', border: '2px solid #FF5500', boxShadow: '0 10px 30px rgba(255, 85, 0, 0.3)' }}>
@@ -3215,24 +3232,24 @@ export default function HorrorNightsTracker() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
               <select
                 value={triviaCategory}
-                onChange={(e) => handleCategoryOrDiffChange(e.target.value, undefined)}
+                onChange={(e) => handleTriviaFilterChange(e.target.value, undefined)}
                 style={{ padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold' }}
               >
-                <option value="80s Slashers">80s Slashers</option>
-                <option value="Universal Monsters">Universal Monsters</option>
-                <option value="Modern Horror Movies">Modern Horror</option>
-                <option value="Sci-Fi Horror">Sci-Fi Horror</option>
-                <option value="Halloween Horror Nights History">HHN Lore & History</option>
+                <option value="All">All Categories</option>
+                {availableCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
               </select>
 
               <select
                 value={triviaDifficulty}
-                onChange={(e) => handleCategoryOrDiffChange(undefined, e.target.value)}
+                onChange={(e) => handleTriviaFilterChange(undefined, e.target.value)}
                 style={{ padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold' }}
               >
-                <option value="Easy">Easy</option>
-                <option value="Medium">Medium</option>
-                <option value="Fiendishly Hard">Fiendish</option>
+                <option value="All">All Difficulties</option>
+                {availableDifficulties.map(diff => (
+                  <option key={diff} value={diff}>{diff}</option>
+                ))}
               </select>
             </div>
 
@@ -3246,7 +3263,7 @@ export default function HorrorNightsTracker() {
             {/* QUESTION DISPLAY */}
             {triviaLoading ? (
               <div style={{ textTransform: 'uppercase', textAlign: 'center', padding: '30px 0', color: '#FF9A56', fontSize: '13px', fontWeight: 'bold' }}>
-                🔮 Generating Horror Question...
+                ⚡ Loading Trivia Deck...
               </div>
             ) : currentQuestion ? (
               <div>
@@ -3255,9 +3272,14 @@ export default function HorrorNightsTracker() {
                 </p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
-                  {currentQuestion.options.map((opt) => {
+                  {[
+                    currentQuestion.option_a,
+                    currentQuestion.option_b,
+                    currentQuestion.option_c,
+                    currentQuestion.option_d
+                  ].filter(Boolean).map((opt) => {
                     const isSelected = selectedOption === opt;
-                    const isCorrect = opt === currentQuestion.correctAnswer;
+                    const isCorrect = opt === currentQuestion.correct_answer;
                     let btnBg = '#1A1A26';
                     let btnBorder = '#2A2A3C';
 
@@ -3293,21 +3315,20 @@ export default function HorrorNightsTracker() {
                   })}
                 </div>
 
-                {/* FUN FACT DISCLOSURE */}
+                {/* CORRECTION FEEDBACK BANNER (NO FUN FACT) */}
                 {selectedOption && (
-                  <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', padding: '12px', borderRadius: '12px', fontSize: '12px', color: '#CBD5E0', marginBottom: '14px' }}>
-                    <strong style={{ color: selectedOption === currentQuestion.correctAnswer ? '#22C55E' : '#EF4444' }}>
-                      {selectedOption === currentQuestion.correctAnswer ? '🎉 Correct!' : '❌ Incorrect!'}
+                  <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', padding: '10px 12px', borderRadius: '10px', fontSize: '12px', color: '#CBD5E0', marginBottom: '14px' }}>
+                    <strong style={{ color: selectedOption === currentQuestion.correct_answer ? '#22C55E' : '#EF4444' }}>
+                      {selectedOption === currentQuestion.correct_answer ? '🎉 Correct!' : `❌ Incorrect! The correct answer is: ${currentQuestion.correct_answer}`}
                     </strong>
-                    <div style={{ marginTop: '4px' }}>💡 <em>{currentQuestion.funFact}</em></div>
                   </div>
                 )}
               </div>
             ) : null}
 
             <button
-              onClick={fetchNextTriviaQuestion}
-              disabled={triviaLoading}
+              onClick={handleNextTriviaQuestion}
+              disabled={triviaLoading || triviaDeck.length === 0}
               style={{ width: '100%', padding: '12px', background: '#FF5500', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}
             >
               Next Question ➡️
