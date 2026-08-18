@@ -144,7 +144,6 @@ const RANDOM_ACCENT_COLORS = [
   '#FF5500', '#3B82F6', '#10B981', '#A855F7', '#F59E0B', '#EC4899', '#06B6D4'
 ];
 
-// SAMPLE YUM ITEMS
 const MOCK_YUM_ITEMS: YumItem[] = [
   {
     id: 'jack-funnel-cake',
@@ -200,7 +199,6 @@ const MOCK_YUM_ITEMS: YumItem[] = [
   }
 ];
 
-// SAMPLE GAMES ITEMS
 const MOCK_GAMES: GameItem[] = [
   {
     id: 'ai-horror-trivia',
@@ -221,7 +219,6 @@ const MOCK_GAMES: GameItem[] = [
   }
 ];
 
-// --- MAP POI COORDINATES ---
 interface MapPOI {
   id: string;
   name: string;
@@ -826,12 +823,13 @@ export default function HorrorNightsTracker() {
       setTriviaDeck(shuffled);
       setCurrentTriviaIndex(0);
 
-      // Extract unique categories and difficulties for dynamic dropdown filters
-  const cats: string[] = Array.from(new Set<string>(data.map((q: TriviaQuestion) => q.category))).filter(Boolean);
-const diffs: string[] = Array.from(new Set<string>(data.map((q: TriviaQuestion) => q.difficulty))).filter(Boolean);
+      // Extract unique categories and difficulties with explicit string array casting
+      const cats: string[] = Array.from(new Set<string>(data.map((q: TriviaQuestion) => q.category))).filter(Boolean);
+      const diffs: string[] = Array.from(new Set<string>(data.map((q: TriviaQuestion) => q.difficulty))).filter(Boolean);
 
-if (availableCategories.length === 0 && cats.length > 0) setAvailableCategories(cats);
-if (availableDifficulties.length === 0 && diffs.length > 0) setAvailableDifficulties(diffs);
+      if (availableCategories.length === 0 && cats.length > 0) setAvailableCategories(cats);
+      if (availableDifficulties.length === 0 && diffs.length > 0) setAvailableDifficulties(diffs);
+
     } catch (e: any) {
       setTriviaError(e.message || 'Error loading trivia from Supabase.');
     } finally {
@@ -846,7 +844,6 @@ if (availableDifficulties.length === 0 && diffs.length > 0) setAvailableDifficul
     if (currentTriviaIndex + 1 < triviaDeck.length) {
       setCurrentTriviaIndex(prev => prev + 1);
     } else {
-      // Reshuffle deck when reaching the end
       const reshuffled = [...triviaDeck];
       for (let i = reshuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -1055,7 +1052,6 @@ if (availableDifficulties.length === 0 && diffs.length > 0) setAvailableDifficul
     }
   };
 
-  // --- STATS CALCULATIONS ---
   const allCompletedActivities = useMemo(() => {
     return visits.flatMap(v => v.activities.map(a => ({ ...a, visitDate: v.visitDate })));
   }, [visits]);
@@ -3271,50 +3267,16 @@ if (availableDifficulties.length === 0 && diffs.length > 0) setAvailableDifficul
                 </p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
-                // ✅ NEW FIXED BLOCK
-{[
-  { letter: 'A', text: currentQuestion.option_a },
-  { letter: 'B', text: currentQuestion.option_b },
-  { letter: 'C', text: currentQuestion.option_c },
-  { letter: 'D', text: currentQuestion.option_d }
-].filter(item => Boolean(item.text)).map((item) => {
-  const isSelected = selectedOption === item.text || selectedOption === item.letter;
-  const correctVal = currentQuestion.correct_answer?.trim()?.toUpperCase();
-  const isCorrect = correctVal === item.letter || correctVal === item.text?.trim()?.toUpperCase();
+                  {[
+                    { letter: 'A', text: currentQuestion.option_a },
+                    { letter: 'B', text: currentQuestion.option_b },
+                    { letter: 'C', text: currentQuestion.option_c },
+                    { letter: 'D', text: currentQuestion.option_d }
+                  ].filter(item => Boolean(item.text)).map((item) => {
+                    const isSelected = selectedOption === item.text || selectedOption === item.letter;
+                    const correctVal = currentQuestion.correct_answer?.trim()?.toUpperCase();
+                    const isCorrect = correctVal === item.letter || correctVal === item.text?.trim()?.toUpperCase();
 
-  let btnBg = '#1A1A26';
-  let btnBorder = '#2A2A3C';
-
-  if (selectedOption) {
-    if (isCorrect) {
-      btnBg = '#0B231A';
-      btnBorder = '#22C55E';
-    } else if (isSelected) {
-      btnBg = '#2C0B0E';
-      btnBorder = '#DC2626';
-    }
-  }
-
-  return (
-    <button
-      key={item.letter}
-      onClick={() => setSelectedOption(item.letter)}
-      style={{
-        padding: '10px 12px',
-        borderRadius: '10px',
-        border: `1px solid ${btnBorder}`,
-        background: btnBg,
-        color: '#FFF',
-        fontSize: '13px',
-        fontWeight: '700',
-        textAlign: 'left',
-        cursor: 'pointer'
-      }}
-    >
-      <span style={{ color: '#FF5500', marginRight: '6px' }}>{item.letter}.</span> {item.text}
-    </button>
-  );
-})}
                     let btnBg = '#1A1A26';
                     let btnBorder = '#2A2A3C';
 
@@ -3330,8 +3292,8 @@ if (availableDifficulties.length === 0 && diffs.length > 0) setAvailableDifficul
 
                     return (
                       <button
-                        key={opt}
-                        onClick={() => setSelectedOption(opt)}
+                        key={item.letter}
+                        onClick={() => setSelectedOption(item.letter)}
                         style={{
                           padding: '10px 12px',
                           borderRadius: '10px',
@@ -3344,36 +3306,35 @@ if (availableDifficulties.length === 0 && diffs.length > 0) setAvailableDifficul
                           cursor: 'pointer'
                         }}
                       >
-                        {opt}
+                        <span style={{ color: '#FF5500', marginRight: '6px' }}>{item.letter}.</span> {item.text}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* CORRECTION FEEDBACK BANNER (NO FUN FACT) */}
-{selectedOption && (() => {
-  const correctVal = currentQuestion.correct_answer?.trim()?.toUpperCase();
-  const isUserCorrect = selectedOption.toUpperCase() === correctVal || 
-    (correctVal === 'A' && selectedOption === currentQuestion.option_a) ||
-    (correctVal === 'B' && selectedOption === currentQuestion.option_b) ||
-    (correctVal === 'C' && selectedOption === currentQuestion.option_c) ||
-    (correctVal === 'D' && selectedOption === currentQuestion.option_d);
+                {/* CORRECTION FEEDBACK BANNER */}
+                {selectedOption && (() => {
+                  const correctVal = currentQuestion.correct_answer?.trim()?.toUpperCase();
+                  const isUserCorrect = selectedOption.toUpperCase() === correctVal || 
+                    (correctVal === 'A' && selectedOption === currentQuestion.option_a) ||
+                    (correctVal === 'B' && selectedOption === currentQuestion.option_b) ||
+                    (correctVal === 'C' && selectedOption === currentQuestion.option_c) ||
+                    (correctVal === 'D' && selectedOption === currentQuestion.option_d);
 
-  // Get full text of the correct answer to display cleanly
-  let correctText = currentQuestion.correct_answer;
-  if (correctVal === 'A') correctText = `A. ${currentQuestion.option_a}`;
-  if (correctVal === 'B') correctText = `B. ${currentQuestion.option_b}`;
-  if (correctVal === 'C') correctText = `C. ${currentQuestion.option_c}`;
-  if (correctVal === 'D') correctText = `D. ${currentQuestion.option_d}`;
+                  let correctText = currentQuestion.correct_answer;
+                  if (correctVal === 'A') correctText = `A. ${currentQuestion.option_a}`;
+                  if (correctVal === 'B') correctText = `B. ${currentQuestion.option_b}`;
+                  if (correctVal === 'C') correctText = `C. ${currentQuestion.option_c}`;
+                  if (correctVal === 'D') correctText = `D. ${currentQuestion.option_d}`;
 
-  return (
-    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', padding: '10px 12px', borderRadius: '10px', fontSize: '12px', color: '#CBD5E0', marginBottom: '14px' }}>
-      <strong style={{ color: isUserCorrect ? '#22C55E' : '#EF4444' }}>
-        {isUserCorrect ? '🎉 Correct!' : `❌ Incorrect! The correct answer is: ${correctText}`}
-      </strong>
-    </div>
-  );
-})()}
+                  return (
+                    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', padding: '10px 12px', borderRadius: '10px', fontSize: '12px', color: '#CBD5E0', marginBottom: '14px' }}>
+                      <strong style={{ color: isUserCorrect ? '#22C55E' : '#EF4444' }}>
+                        {isUserCorrect ? '🎉 Correct!' : `❌ Incorrect! The correct answer is: ${correctText}`}
+                      </strong>
+                    </div>
+                  );
+                })()}
               </div>
             ) : null}
 
