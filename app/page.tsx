@@ -199,12 +199,12 @@ const MOCK_YUM_ITEMS: YumItem[] = [
 const MOCK_GAMES: GameItem[] = [
   {
     id: 'ai-horror-trivia',
-    name: 'AI Horror Movie Trivia',
+    name: 'Horror Movie Trivia',
     players: '1+',
     appRequired: false,
     isAiTrivia: true,
-    overview: 'Endless AI-generated horror trivia. Pick your favorite sub-genre and difficulty to test your knowledge in line!',
-    description: 'Endless AI-generated horror trivia. Pick your favorite sub-genre and difficulty to test your knowledge in line!'
+    overview: 'Endless horror trivia. Pick your favorite sub-genre and difficulty to test your knowledge in line!',
+    description: 'Endless horror trivia. Pick your favorite sub-genre and difficulty to test your knowledge in line!'
   },
   {
     id: 'hide-the-peanut',
@@ -2019,19 +2019,19 @@ export default function HorrorNightsTracker() {
                       {game.overview}
                     </p>
 
-                    <button
-                      onClick={() => {
-                        if (game.isAiTrivia) {
-                          setShowAiTriviaModal(true);
-                          if (!currentQuestion) fetchNextTriviaQuestion();
-                        } else {
-                          setActiveLearnMoreGame(game);
-                        }
-                      }}
-                      style={{ background: '#1A1A26', border: '1px solid #2A2A3C', color: borderAccent, width: '100%', padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
-                    >
-                      {game.isAiTrivia ? '🎮 Play Live AI Trivia' : 'Learn More'}
-                    </button>
+<button
+  onClick={() => {
+    if (game.isAiTrivia) {
+      setShowAiTriviaModal(true);
+      if (!currentQuestion) fetchNextTriviaQuestion();
+    } else {
+      setActiveLearnMoreGame(game);
+    }
+  }}
+  style={{ background: '#1A1A26', border: '1px solid #2A2A3C', color: borderAccent, width: '100%', padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+>
+  {game.isAiTrivia ? 'Play Now' : 'Learn More'}
+</button>
                   </div>
                 );
               })
