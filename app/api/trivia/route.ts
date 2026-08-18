@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing GEMINI_API_KEY environment variable.' }, { status: 500 });
     }
 
-    const prompt = `Generate a single ${difficulty \vert{}\vert{} 'Medium'} difficulty horror movie trivia question about${category || 'Horror Movie History'}. Make sure all quotation marks within text are properly formatted or escaped.`;
+    const prompt = `Generate a single ${difficulty || 'Medium'} difficulty horror movie trivia question about ${category || 'Horror Movie History'}. Make sure all quotation marks within text are properly formatted or escaped.`;
 
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
@@ -52,7 +52,6 @@ export async function POST(req: Request) {
       throw new Error('Received empty response from Gemini.');
     }
 
-    // Clean up potential markdown wrapper codeblocks if model included them
     rawText = rawText.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
 
     const parsedTrivia = JSON.parse(rawText);
