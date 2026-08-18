@@ -9,13 +9,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing GEMINI_API_KEY environment variable.' }, { status: 500 });
     }
 
-    const prompt = `JSON ONLY: single ${difficulty || 'Medium'} horror movie trivia Q&A about ${category || 'Horror'}.
-    Structure:
+    const prompt = `Generate a single ${difficulty || 'Medium'} difficulty horror movie trivia question about ${category || 'Horror Movie History'}.
+    Return ONLY a valid JSON object without any Markdown formatting or extra text.
+    The JSON structure must be:
     {
-      "question": "string",
-      "options": ["A", "B", "C", "D"],
-      "correctAnswer": "exact string match",
-      "funFact": "brief string"
+      "question": "The trivia question",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": "The exact string matching one of the options",
+      "funFact": "A brief interesting fun fact about the answer"
     }`;
 
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
@@ -25,8 +26,8 @@ export async function POST(req: Request) {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           responseMimeType: 'application/json',
-          maxOutputTokens: 250, // Limits payload size for faster completion
-          temperature: 0.3      // Reduces sampling latency
+          maxOutputTokens: 450, // Prevents truncation errors
+          temperature: 0.3
         }
       })
     });
