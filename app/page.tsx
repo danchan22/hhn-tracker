@@ -1886,7 +1886,7 @@ export default function HorrorNightsTracker() {
                   <div style={{ fontSize: '13px', fontWeight: '900', color: '#FFF', margin: '2px 0' }}>
                     {item.temp}°
                   </div>
-                  <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0' }}>
+                  <div style={{ fontSize: '10px', fontWeight: '800', color: item.pop > 50 ? '#3B82F6' : '#A0AEC0' }}>
                     {item.pop}%
                   </div>
                 </div>
@@ -2163,39 +2163,39 @@ export default function HorrorNightsTracker() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px', marginBottom: '10px' }}>
               <button
                 onClick={() => toggleMapFilter('house')}
-                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'house' ? '2px solid #FF5500' : '1px solid #2A2A3C', background: mapCategoryFilter === 'house' ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'house' ? '2px solid #FF5500' : '1px solid #2A2A3C', background: mapCategoryFilter === 'house' ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center', lineHeight: '1.2' }}
               >
-                🏚️ Houses
+                🏚️<br />Houses
               </button>
               <button
                 onClick={() => toggleMapFilter('ride')}
-                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'ride' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'ride' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'ride' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'ride' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center', lineHeight: '1.2' }}
               >
-                🎢 Rides
+                🎢<br />Rides
               </button>
               <button
                 onClick={() => toggleMapFilter('show')}
-                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'show' ? '2px solid #10B981' : '1px solid #2A2A3C', background: mapCategoryFilter === 'show' ? '#10B981' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'show' ? '2px solid #10B981' : '1px solid #2A2A3C', background: mapCategoryFilter === 'show' ? '#10B981' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center', lineHeight: '1.2' }}
               >
-                🎭 Shows
+                🎭<br />Shows
               </button>
               <button
                 onClick={() => toggleMapFilter('scarezone')}
-                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'scarezone' ? '2px solid #A855F7' : '1px solid #2A2A3C', background: mapCategoryFilter === 'scarezone' ? '#A855F7' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'scarezone' ? '2px solid #A855F7' : '1px solid #2A2A3C', background: mapCategoryFilter === 'scarezone' ? '#A855F7' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center', lineHeight: '1.2' }}
               >
-                🧟 Zones
+                🧟<br />Zones
               </button>
               <button
                 onClick={() => toggleMapFilter('water')}
-                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'water' ? '2px solid #06B6D4' : '1px solid #2A2A3C', background: mapCategoryFilter === 'water' ? '#06B6D4' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'water' ? '2px solid #06B6D4' : '1px solid #2A2A3C', background: mapCategoryFilter === 'water' ? '#06B6D4' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center', lineHeight: '1.2' }}
               >
-                💧 Water
+                💧<br />Water
               </button>
               <button
                 onClick={() => toggleMapFilter('food')}
-                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'food' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: mapCategoryFilter === 'food' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+                style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'food' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: mapCategoryFilter === 'food' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center', lineHeight: '1.2' }}
               >
-                🍔 Food
+                🍔<br />Food
               </button>
             </div>
 
@@ -2297,8 +2297,8 @@ export default function HorrorNightsTracker() {
                               style={{
                                 padding: '6px 12px',
                                 borderRadius: '8px',
-                                border: isRiding ? '2px solid #FF5500' : '1px solid #2A2A3C',
-                                background: isRiding ? '#FF5500' : '#12121A',
+                                border: isRiding ? '2px solid #DC2626' : '1px solid #2A2A3C',
+                                background: isRiding ? '#DC2626' : '#12121A',
                                 color: isRiding ? '#FFF' : '#A0AEC0',
                                 fontSize: '12px',
                                 fontWeight: '700',
@@ -2352,7 +2352,7 @@ export default function HorrorNightsTracker() {
                     </div>
                   ) : (
                     <div style={{ borderTop: '1px solid #2A2A3C', paddingTop: '10px', marginTop: '5px' }}>
-                      <button type="button" onClick={handleStartQueueTimer} style={{ width: '100%', padding: '12px', background: '#FF5500', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(255, 85, 0, 0.3)' }}>
+                      <button type="button" onClick={handleStartQueueTimer} style={{ width: '100%', padding: '12px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)' }}>
                         ⏱️ Start Line Timer
                       </button>
 
@@ -2406,7 +2406,7 @@ export default function HorrorNightsTracker() {
               </div>
 
               {/* Leave the Park Button */}
-              <button onClick={() => { setDepartingMembers(activePartyList); setShowCheckoutModal(true); }} style={{ width: '100%', padding: '14px', background: 'linear-gradient(to right, #DC2626, #991B1B)', color: '#FFF', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)' }}>
+              <button onClick={() => { setDepartingMembers(activePartyList); setShowCheckoutModal(true); }} style={{ width: '100%', padding: '14px', background: '#000000', color: '#FFF', border: '2px solid #DC2626', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)' }}>
                 Leave the Park & Save Day
               </button>
             </div>
@@ -2421,7 +2421,7 @@ export default function HorrorNightsTracker() {
                   {FIXED_FAMILY_MEMBERS.map((name) => {
                     const isSelected = selectedAttendees.includes(name);
                     return (
-                      <button key={name} type="button" onClick={() => toggleCheckInAttendee(name)} style={{ padding: '10px 2px', borderRadius: '10px', border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C', background: isSelected ? '#FF5500' : '#1A1A26', color: isSelected ? '#FFF' : '#CBD5E0', fontSize: '12px', fontWeight: isSelected ? '800' : '600', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+                      <button key={name} type="button" onClick={() => toggleCheckInAttendee(name)} style={{ padding: '10px 2px', borderRadius: '10px', border: isSelected ? '2px solid #DC2626' : '1px solid #2A2A3C', background: isSelected ? '#DC2626' : '#1A1A26', color: isSelected ? '#FFF' : '#CBD5E0', fontSize: '12px', fontWeight: isSelected ? '800' : '600', cursor: 'pointer', transition: 'all 0.15s ease' }}>
                         {name}
                       </button>
                     );
@@ -2600,7 +2600,7 @@ export default function HorrorNightsTracker() {
               </div>
               {topHouseData && (
                 <div style={{ color: '#CBD5E0', marginTop: '3px', fontSize: '12px' }}>
-                  Logged <strong>{topHouseData.count}x</strong> | Total Wait: <strong style={{ color: '#FF5500' }}>{formatMinutes(topHouseData.totalWait)}</strong> | Avg Wait: <strong>{topHouseData.avgWait}m</strong>
+                  Logged <strong>{topHouseData.count}x</strong> | Avg Wait: <strong>{topHouseData.avgWait}m</strong> | Total Wait: <strong style={{ color: '#FF5500' }}>{formatMinutes(topHouseData.totalWait)}</strong>
                 </div>
               )}
             </div>
@@ -2612,7 +2612,7 @@ export default function HorrorNightsTracker() {
               </div>
               {topRideData && (
                 <div style={{ color: '#CBD5E0', marginTop: '3px', fontSize: '12px' }}>
-                  Logged <strong>{topRideData.count}x</strong> | Total Wait: <strong style={{ color: '#3B82F6' }}>{formatMinutes(topRideData.totalWait)}</strong> | Avg Wait: <strong>{topRideData.avgWait}m</strong>
+                  Logged <strong>{topRideData.count}x</strong> | Avg Wait: <strong>{topRideData.avgWait}m</strong> | Total Wait: <strong style={{ color: '#3B82F6' }}>{formatMinutes(topRideData.totalWait)}</strong>
                 </div>
               )}
             </div>
@@ -2789,15 +2789,15 @@ export default function HorrorNightsTracker() {
 
                   {v.activities.length > 0 && (
                     <div style={{ background: '#1A1A26', padding: '12px', borderRadius: '12px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {v.activities.map((a) => {
                           const isEditingThis = editingActivityId === a.id && editingVisitId === v.id;
                           const actRidersList = parseAttendees(a.riders);
 
                           return isEditingThis ? (
-                            <div key={a.id} style={{ background: '#12121A', border: '1px solid #2A2A3C', padding: '10px', borderRadius: '10px' }}>
+                            <div key={a.id} style={{ background: '#12121A', border: '1px solid #2A2A3C', padding: '10px', borderRadius: '10px', boxSizing: 'border-box', width: '100%' }}>
                               <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#FF5500', marginBottom: '6px' }}>EDIT ENTRY</div>
-                              <select value={editRideName} onChange={(e) => setEditRideName(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px', marginBottom: '6px' }}>
+                              <select value={editRideName} onChange={(e) => setEditRideName(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px', marginBottom: '6px', boxSizing: 'border-box' }}>
                                 <optgroup label="Houses">
                                   {HHN_HOUSES.map((house) => (
                                     <option key={house} value={house}>{house}</option>
@@ -2829,7 +2829,7 @@ export default function HorrorNightsTracker() {
                                 </div>
                               </div>
                               
-                              <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+                              <div style={{ display: 'flex', gap: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
                                 <input
                                   type="number"
                                   inputMode="numeric"
@@ -2837,9 +2837,9 @@ export default function HorrorNightsTracker() {
                                   value={editWaitTime}
                                   onChange={(e) => setEditWaitTime(e.target.value)}
                                   placeholder="Wait (mins)"
-                                  style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }}
+                                  style={{ flex: 1, minWidth: '90px', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px', boxSizing: 'border-box' }}
                                 />
-                                <input type="text" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Notes (optional)" style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }} />
+                                <input type="text" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Notes (optional)" style={{ flex: 1, minWidth: '110px', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px', boxSizing: 'border-box' }} />
                               </div>
 
                               <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
@@ -2849,14 +2849,19 @@ export default function HorrorNightsTracker() {
                               </div>
                             </div>
                           ) : (
-                            <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                               <div style={{ minWidth: 0, flex: 1, paddingRight: '8px' }}>
                                 <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#F3F4F6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {ITEM_EMOJIS[a.rideName] || '🎟️'} {a.rideName}
                                 </div>
                                 <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                                  ⏱️ {a.waitTimeMinutes} mins wait {actRidersList.length > 0 ? `• 👥 ${actRidersList.join(', ')}` : ''} {a.notes ? `• ${a.notes}` : ''}
+                                  ⏱️ {a.waitTimeMinutes} mins wait {a.notes ? `(${a.notes})` : ''}
                                 </div>
+                                {actRidersList.length > 0 && (
+                                  <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                                    👥 {actRidersList.join(', ')}
+                                  </div>
+                                )}
                               </div>
                               <button onClick={() => startEditing(a, v.id)} style={{ background: 'none', border: 'none', color: '#FF5500', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', padding: '2px 6px', flexShrink: 0 }}>
                                 Edit
@@ -2933,13 +2938,13 @@ export default function HorrorNightsTracker() {
               <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', marginBottom: '6px', letterSpacing: '0.5px' }}>
                 SORT BY:
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
                 {[
                   { key: 'visits', label: 'Visits' },
                   { key: 'avgWait', label: 'Avg Wait' },
                   { key: 'totalWait', label: 'Total Wait' },
-                  { key: 'avgExpected', label: 'Avg Posted' },
-                  { key: 'diff', label: '+/- Posted' }
+                  { key: 'avgExpected', label: 'Posted' },
+                  { key: 'diff', label: '+/-' }
                 ].map(item => {
                   const isActive = analyticsSortKey === item.key;
                   const arrow = isActive ? (analyticsSortOrder === 'desc' ? ' ▼' : ' ▲') : '';
@@ -2948,14 +2953,18 @@ export default function HorrorNightsTracker() {
                       key={item.key}
                       onClick={() => handleAnalyticsSortClick(item.key as AnalyticsSortKey)}
                       style={{
-                        padding: '6px 10px',
+                        padding: '6px 2px',
                         borderRadius: '8px',
                         border: isActive ? '1px solid #DC2626' : '1px solid #2A2A3C',
                         background: isActive ? '#DC2626' : '#1A1A26',
                         color: isActive ? '#FFF' : '#A0AEC0',
                         fontSize: '10px',
                         fontWeight: '800',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
                       }}
                     >
                       {item.label}{arrow}
@@ -2980,25 +2989,25 @@ export default function HorrorNightsTracker() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: '#FFF' }}>{stat.visits}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>VISITS</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>TOTAL<br />VISITS</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG WAIT</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>AVG<br />WAIT</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL WAIT</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>TOTAL<br />WAIT</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG POSTED</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>AVG<br />POSTED</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
                           {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
                         </div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/- POSTED</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>+/-<br />POSTED</div>
                       </div>
                     </div>
                   </div>
@@ -3091,25 +3100,25 @@ export default function HorrorNightsTracker() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: '#FFF' }}>{stat.visits}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>VISITS</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>TOTAL<br />VISITS</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG WAIT</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>AVG<br />WAIT</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL WAIT</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>TOTAL<br />WAIT</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG POSTED</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>AVG<br />POSTED</div>
                       </div>
                       <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
                           {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
                         </div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/- POSTED</div>
+                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>+/-<br />POSTED</div>
                       </div>
                     </div>
                   </div>
@@ -3393,7 +3402,7 @@ export default function HorrorNightsTracker() {
       {/* SUPABASE TRIVIA LIVE INTERACTIVE MODAL */}
       {showAiTriviaModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '460px', width: '100%', border: '2px solid #FF5500', boxShadow: '0 10px 30px rgba(255, 85, 0, 0.3)' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '92vw', width: '460px', border: '2px solid #FF5500', boxShadow: '0 10px 30px rgba(255, 85, 0, 0.3)', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>
                 😱 Horror Trivia
@@ -3421,7 +3430,7 @@ export default function HorrorNightsTracker() {
               >
                 <option value="All">All Difficulties</option>
                 {availableDifficulties.map(diff => (
-                  <option key={diff} value={diff}>{diff}</option>
+                  <option key={diff} value={diff}>{diff === 'Hard' || diff === 'Fiendishly Hard' ? 'Horror' : diff}</option>
                 ))}
               </select>
             </div>
@@ -3598,7 +3607,7 @@ export default function HorrorNightsTracker() {
                     }}
                   >
                     <span>👤 {member}</span>
-                    <span>{isSelected ? '🚪 Leaving' : '🏰 Staying'}</span>
+                    <span>{isSelected ? '🚪 Leaving' : '🎃 Staying'}</span>
                   </button>
                 );
               })}
