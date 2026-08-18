@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing GEMINI_API_KEY environment variable.' }, { status: 500 });
     }
 
-    const prompt = `Generate a single ${difficulty || 'Medium'} difficulty horror movie trivia question about ${category || 'Horror Movie History'}. Make sure all quotation marks within text are properly formatted or escaped.`;
+    const prompt = `Generate 5 unique ${difficulty || 'Medium'} horror movie trivia questions about ${category || 'Horror Movie History'}.`;
 
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
@@ -17,24 +17,27 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         systemInstruction: {
-          parts: [{ text: "You are a trivia generator. You MUST respond with raw valid JSON matching the requested schema. Never output Markdown blocks, code backticks, or unescaped quotes inside strings." }]
+          parts: [{ text: "You are a trivia generator. Respond ONLY with a JSON array containing 5 trivia objects. Do not use Markdown blocks." }]
         },
         generationConfig: {
           responseMimeType: 'application/json',
           responseSchema: {
-            type: 'OBJECT',
-            properties: {
-              question: { type: 'STRING' },
-              options: {
-                type: 'ARRAY',
-                items: { type: 'STRING' }
+            type: 'ARRAY',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                question: { type: 'STRING' },
+                options: {
+                  type: 'ARRAY',
+                  items: { type: 'STRING' }
+                },
+                correctAnswer: { type: 'STRING' },
+                funFact: { type: 'STRING' }
               },
-              correctAnswer: { type: 'STRING' },
-              funFact: { type: 'STRING' }
-            },
-            required: ['question', 'options', 'correctAnswer', 'funFact']
+              required: ['question', 'options', 'correctAnswer', 'funFact']
+            }
           },
-          maxOutputTokens: 1000,
+          maxOutputTokens: 1500,
           temperature: 0.3
         }
       })
@@ -54,8 +57,8 @@ export async function POST(req: Request) {
 
     rawText = rawText.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
 
-    const parsedTrivia = JSON.parse(rawText);
-    return NextResponse.json(parsedTrivia);
+    const parsedTriviaArray = JSON.parse(rawText);
+    return NextResponse.json(parsedTriviaArray);
 
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Failed to generate trivia.' }, { status: 500 });
