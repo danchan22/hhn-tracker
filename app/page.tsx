@@ -43,6 +43,7 @@ interface YumItem {
   description: string;
   location: string;
   price: string;
+  rawPrice: number;
   image: string;
   isFood: boolean;
   isDrink: boolean;
@@ -56,6 +57,15 @@ interface YumComment {
   author_name: string;
   comment_text: string;
   created_at?: string;
+}
+
+interface GameItem {
+  id: string;
+  name: string;
+  players: string;
+  appRequired: boolean;
+  overview: string;
+  description: string;
 }
 
 const FIXED_FAMILY_MEMBERS = [
@@ -97,6 +107,10 @@ const YUM_LOCATIONS = [
   'Animal Actors'
 ];
 
+const RANDOM_ACCENT_COLORS = [
+  '#FF5500', '#3B82F6', '#10B981', '#A855F7', '#F59E0B', '#EC4899', '#06B6D4'
+];
+
 // SAMPLE YUM ITEMS
 const MOCK_YUM_ITEMS: YumItem[] = [
   {
@@ -105,6 +119,7 @@ const MOCK_YUM_ITEMS: YumItem[] = [
     description: 'Crispy funnel cake topped with black sugar, crushed Oreo cookies, and red strawberry drizzle.',
     location: 'Jack’s Circus Surplus',
     price: '$9.99',
+    rawPrice: 9.99,
     image: '/hhn-bg.jpg',
     isFood: true,
     isDrink: false,
@@ -117,6 +132,7 @@ const MOCK_YUM_ITEMS: YumItem[] = [
     description: 'Vodka mixed with spiced tomato juice, lime, and served with a salted bacon rim.',
     location: 'Meetz Meats',
     price: '$14.50',
+    rawPrice: 14.50,
     image: '/hhn-bg.jpg',
     isFood: false,
     isDrink: true,
@@ -129,6 +145,7 @@ const MOCK_YUM_ITEMS: YumItem[] = [
     description: 'Spiced pulled pork served in gluten-free corn tortillas with habanero slaw.',
     location: 'Hellraiser Food Truck',
     price: '$11.49',
+    rawPrice: 11.49,
     image: '/hhn-bg.jpg',
     isFood: true,
     isDrink: false,
@@ -141,11 +158,24 @@ const MOCK_YUM_ITEMS: YumItem[] = [
     description: 'Rich dark chocolate lava cake infused with cayenne pepper and raspberry core.',
     location: 'Devil Food Booth',
     price: '$8.49',
+    rawPrice: 8.49,
     image: '/hhn-bg.jpg',
     isFood: true,
     isDrink: false,
     isDessert: true,
     isGlutenFree: false
+  }
+];
+
+// SAMPLE GAMES ITEMS
+const MOCK_GAMES: GameItem[] = [
+  {
+    id: 'hide-the-peanut',
+    name: 'Hide the Peanut',
+    players: '2+',
+    appRequired: false,
+    overview: 'One player hides an imaginary peanut anywhere in the world. Everyone else asks Yes or No questions to discover where it’s hidden.',
+    description: `One player hides an imaginary peanut anywhere in the world. Everyone else asks Yes or No questions to discover where it’s hidden.\n\nFor the Peanut hider: Think of anywhere in the world, real or imaginary. Be as generic (the peanut is in Florida) or specific (the peanut is behind Mickey Mouse’s left ear) as you’d like.\n\nFor the guessers: Ask questions that can only be answered with Yes or No. Keep asking questions until you find the peanut.`
   }
 ];
 
@@ -198,19 +228,20 @@ const HHN_MAP_LOCATIONS: MapPOI[] = [
   { id: 'water-7', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.480178017295195, lng: -81.46787166662219 }
 ];
 
+// Layout mapping for Live Wait Times Widget (Home Screen Display Names)
 const HOUSE_GRID_LAYOUT = [
   [
     { name: 'Sinners', apiKey: 'Sinners' },
     { name: 'Hellraiser', apiKey: 'Hellraiser' }
   ],
   [
-    { name: 'Ozzy', apiKey: 'Ozzy Osbourne' },
+    { name: 'Ozzy Osbourne', apiKey: 'Ozzy Osbourne' },
     { name: 'Evil Dead', apiKey: 'Evil Dead Burn' }
   ],
   [
     { name: 'ST5', apiKey: 'Stranger Things 5' },
-    { name: 'Invasion', apiKey: 'INVASION: Alien Abduction' },
-    { name: 'Cyber', apiKey: 'Cybergoria' }
+    { name: 'INVASION', apiKey: 'INVASION: Alien Abduction' },
+    { name: 'Cybergoria', apiKey: 'Cybergoria' }
   ],
   [
     { name: 'Oddfellow', apiKey: 'Jack & Oddfellow' },
@@ -221,11 +252,11 @@ const HOUSE_GRID_LAYOUT = [
 
 const RIDE_GRID_LAYOUT = [
   [
-    { name: 'MIB', apiKey: 'Men in Black: Alien Attack' },
+    { name: 'Men in Black', apiKey: 'Men in Black: Alien Attack' },
     { name: 'Transformers', apiKey: 'Transformers: The Ride-3D' }
   ],
   [
-    { name: 'Gringotts', apiKey: 'Harry Potter and the Escape from Gringotts' },
+    { name: 'Harry Potter', apiKey: 'Harry Potter and the Escape from Gringotts' },
     { name: 'Mummy', apiKey: 'Revenge of the Mummy' }
   ]
 ];
@@ -297,16 +328,22 @@ export default function HorrorNightsTracker() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isMapFullscreen, setIsMapFullscreen] = useState<boolean>(false);
 
-  // Yum Tab Filter States
+  // Yum Tab Filter & Sorting States
   const [yumCategoryFilter, setYumCategoryFilter] = useState<'all' | 'food' | 'drink' | 'dessert' | 'gf'>('all');
   const [selectedYumLocation, setSelectedYumLocation] = useState<string>('All Locations');
-  
+  const [yumSortBy, setYumSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'name-asc' | 'location-asc'>('default');
+  const [previewYumImage, setPreviewYumImage] = useState<string | null>(null);
+
   // Yum Comments Drawer State
   const [openCommentsItemId, setOpenCommentsDrawerItemId] = useState<string | null>(null);
   const [yumCommentsMap, setYumCommentsMap] = useState<Record<string, YumComment[]>>({});
   const [commentAuthor, setCommentAuthor] = useState<string>('Dan');
   const [commentTextInput, setCommentTextInput] = useState<string>('');
   const [submittingComment, setSubmittingComment] = useState<boolean>(false);
+
+  // Games Tab Filter & Modal States
+  const [gamesAppFilter, setGamesAppFilter] = useState<'all' | 'app' | 'no-app'>('all');
+  const [activeLearnMoreGame, setActiveLearnMoreGame] = useState<GameItem | null>(null);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<any>(null);
@@ -328,6 +365,13 @@ export default function HorrorNightsTracker() {
   const [waitTime, setWaitTime] = useState('');
   const [selectedRiders, setSelectedRiders] = useState<string[]>([]);
 
+  // Live Activity Editing Modal State
+  const [editingLiveActivity, setEditingLiveActivity] = useState<Activity | null>(null);
+  const [editLiveRideName, setEditLiveRideName] = useState<string>('');
+  const [editLiveRiders, setEditLiveRiders] = useState<string[]>([]);
+  const [editLivePostedWait, setEditLivePostedWait] = useState<string>('');
+  const [editLiveActualWait, setEditLiveActualWait] = useState<string>('');
+
   // Timer State
   const [queueStartTimestamp, setQueueStartTimestamp] = useState<number | null>(null);
   const [queueStartTimeStr, setQueueStartTimeStr] = useState<string | null>(null);
@@ -348,7 +392,7 @@ export default function HorrorNightsTracker() {
   const [liveWaitTimes, setLiveWaitTimes] = useState<Record<string, number>>(INITIAL_MOCK_WAITS);
   const [waitsSyncing, setWaitsSyncing] = useState<boolean>(false);
 
-  // Edit Activity State
+  // Edit Activity State (Past Visits)
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
   const [editRideName, setEditRideName] = useState('');
@@ -416,7 +460,7 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
-  // Leaflet Map Initialization with Regular Light OpenStreetMap Theme
+  // Leaflet Map Initialization with Standard OpenStreetMap Theme
   useEffect(() => {
     if (mainTab !== 'map' || !mapContainerRef.current) {
       if (leafletMapRef.current) {
@@ -448,7 +492,6 @@ export default function HorrorNightsTracker() {
         
         leafletMapRef.current = map;
 
-        // Standard Regular Light OpenStreetMap Tile Layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '&copy; OpenStreetMap'
@@ -458,7 +501,6 @@ export default function HorrorNightsTracker() {
       const map = leafletMapRef.current;
       setTimeout(() => { if (map) map.invalidateSize(); }, 150);
 
-      // GPS Position Update
       if (userLocation) {
         if (userMarkerRef.current) {
           userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
@@ -474,11 +516,9 @@ export default function HorrorNightsTracker() {
         }
       }
 
-      // Clear POIs
       poiMarkersRef.current.forEach(m => map.removeLayer(m));
       poiMarkersRef.current = [];
 
-      // Filter & Add POIs
       const filtered = mapCategoryFilter === 'all'
         ? HHN_MAP_LOCATIONS
         : HHN_MAP_LOCATIONS.filter(p => p.category === mapCategoryFilter);
@@ -718,7 +758,7 @@ export default function HorrorNightsTracker() {
   };
 
   const filteredYumItems = useMemo(() => {
-    return MOCK_YUM_ITEMS.filter(item => {
+    let items = MOCK_YUM_ITEMS.filter(item => {
       if (selectedYumLocation !== 'All Locations' && item.location !== selectedYumLocation) return false;
 
       if (yumCategoryFilter === 'food') return item.isFood;
@@ -728,7 +768,69 @@ export default function HorrorNightsTracker() {
 
       return true;
     });
-  }, [yumCategoryFilter, selectedYumLocation]);
+
+    if (yumSortBy === 'price-asc') items.sort((a, b) => a.rawPrice - b.rawPrice);
+    if (yumSortBy === 'price-desc') items.sort((a, b) => b.rawPrice - a.rawPrice);
+    if (yumSortBy === 'name-asc') items.sort((a, b) => a.name.localeCompare(b.name));
+    if (yumSortBy === 'location-asc') items.sort((a, b) => a.location.localeCompare(b.location));
+
+    return items;
+  }, [yumCategoryFilter, selectedYumLocation, yumSortBy]);
+
+  const filteredGames = useMemo(() => {
+    return MOCK_GAMES.filter(g => {
+      if (gamesAppFilter === 'app') return g.appRequired;
+      if (gamesAppFilter === 'no-app') return !g.appRequired;
+      return true;
+    });
+  }, [gamesAppFilter]);
+
+  const openLiveActivityEdit = (act: Activity) => {
+    setEditingLiveActivity(act);
+    setEditLiveRideName(act.rideName);
+    setEditLiveRiders(parseAttendees(act.riders));
+    setEditLivePostedWait(parsePostedWait(act.notes)?.toString() || '');
+    setEditLiveActualWait(act.waitTimeMinutes.toString());
+  };
+
+  const handleSaveLiveActivityEdit = async () => {
+    if (!editingLiveActivity || !activeVisit) return;
+    const actualMins = parseInt(editLiveActualWait) || 0;
+    const notesVal = editLivePostedWait.trim() ? `Posted: ${editLivePostedWait.trim()}m` : undefined;
+    const ridersStr = editLiveRiders.join(', ');
+
+    const supabase = getSupabase();
+    const { error } = await supabase
+      .from('activities')
+      .update({
+        ridename: editLiveRideName,
+        waittimeminutes: actualMins,
+        notes: notesVal,
+        riders: ridersStr
+      })
+      .eq('id', editingLiveActivity.id);
+
+    if (error) {
+      alert("Error updating activity: " + error.message);
+      return;
+    }
+
+    const updatedActivities = activeVisit.activities.map(act => {
+      if (act.id === editingLiveActivity.id) {
+        return {
+          ...act,
+          rideName: editLiveRideName,
+          waitTimeMinutes: actualMins,
+          notes: notesVal,
+          riders: editLiveRiders
+        };
+      }
+      return act;
+    });
+
+    setActiveVisit({ ...activeVisit, activities: updatedActivities });
+    setEditingLiveActivity(null);
+  };
 
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -1006,11 +1108,13 @@ export default function HorrorNightsTracker() {
     }).sort((a, b) => b.visits - a.visits || b.totalWait - a.totalWait);
 
     const rideList = HHN_RIDES.map(r => {
-      const items = personActivities.filter(a => a.rideName === r);
+      // Renamed Escaped from Gringotts to Harry Potter for Analytics Matrix
+      const targetName = r === 'Harry Potter and the Escape from Gringotts' ? 'Harry Potter' : r;
+      const items = personActivities.filter(a => a.rideName === r || a.rideName === 'Harry Potter');
       const visits = items.length;
       const totalWait = items.reduce((sum, a) => sum + (a.waitTimeMinutes || 0), 0);
       const avgWait = visits > 0 ? Math.round(totalWait / visits) : 0;
-      return { name: r, visits, totalWait, avgWait };
+      return { name: targetName, visits, totalWait, avgWait };
     }).sort((a, b) => b.visits - a.visits || b.totalWait - a.totalWait);
 
     const showList = HHN_SHOWS.map(s => {
@@ -1047,6 +1151,15 @@ export default function HorrorNightsTracker() {
       setEditRiders(editRiders.filter(r => r !== name));
     } else {
       setEditRiders([...editRiders, name]);
+    }
+  };
+
+  const toggleLiveEditRiderSelection = (name: string) => {
+    if (editLiveRiders.includes(name)) {
+      if (editLiveRiders.length === 1) return;
+      setEditLiveRiders(editLiveRiders.filter(r => r !== name));
+    } else {
+      setEditLiveRiders([...editLiveRiders, name]);
     }
   };
 
@@ -1606,9 +1719,9 @@ export default function HorrorNightsTracker() {
       {/* 3. YUM TAB VIEW */}
       {mainTab === 'yum' && (
         <div>
-          {/* CATEGORY FILTERS (Favorites Filter Removed) */}
+          {/* CATEGORY & LOCATION FILTERS & SORT */}
           <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '12px', borderRadius: '18px', border: '1px solid #2A2A3C', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', marginBottom: '10px' }}>
               <button
                 onClick={() => toggleYumCategoryFilter('food')}
                 style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'food' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: yumCategoryFilter === 'food' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
@@ -1635,17 +1748,29 @@ export default function HorrorNightsTracker() {
               </button>
             </div>
 
-            {/* LOCATION FILTER DROPDOWN */}
-            <div>
+            {/* LOCATION FILTER & SORT DROPDOWNS */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <select
                 value={selectedYumLocation}
                 onChange={(e) => setSelectedYumLocation(e.target.value)}
-                style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px', fontWeight: '700' }}
+                style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: '700' }}
               >
-                <option value="All Locations">📍 All Locations</option>
+                <option value="All Locations">All Locations</option>
                 {YUM_LOCATIONS.map(loc => (
                   <option key={loc} value={loc}>{loc}</option>
                 ))}
+              </select>
+
+              <select
+                value={yumSortBy}
+                onChange={(e: any) => setYumSortBy(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: '700' }}
+              >
+                <option value="default">Sort: Default</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="name-asc">Item Name (A-Z)</option>
+                <option value="location-asc">Location (A-Z)</option>
               </select>
             </div>
           </div>
@@ -1658,25 +1783,36 @@ export default function HorrorNightsTracker() {
               filteredYumItems.map(item => {
                 const comments = yumCommentsMap[item.id] || [];
                 const isCommentsOpen = openCommentsItemId === item.id;
+                const hasComments = comments.length > 0;
 
                 return (
-                  <div key={item.id} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '20px', padding: '16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
+                  <div
+                    key={item.id}
+                    style={{
+                      background: 'rgba(18, 18, 26, 0.85)',
+                      borderRadius: '20px',
+                      padding: '16px',
+                      border: item.isGlutenFree ? '2px solid #22C55E' : '1px solid #2A2A3C',
+                      backdropFilter: 'blur(8px)'
+                    }}
+                  >
                     <div style={{ display: 'flex', gap: '12px', marginBottom: '10px' }}>
                       <img
                         src={item.image}
                         alt={item.name}
+                        onClick={() => setPreviewYumImage(item.image)}
                         onError={(e: any) => { e.target.src = '/hhn-bg.jpg'; }}
-                        style={{ width: '80px', height: '80px', borderRadius: '14px', objectFit: 'cover', border: '1px solid #2A2A3C', flexShrink: 0 }}
+                        style={{ width: '80px', height: '80px', borderRadius: '14px', objectFit: 'cover', border: '1px solid #2A2A3C', flexShrink: 0, cursor: 'pointer' }}
                       />
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#FFF' }}>{item.name}</h3>
 
-                        {/* Location Badge without Arrow */}
+                        {/* Location Badge without Pin Icon */}
                         <div
                           onClick={() => setSelectedYumLocation(item.location)}
                           style={{ fontSize: '11px', fontWeight: '800', color: '#F59E0B', marginTop: '2px', cursor: 'pointer', display: 'inline-block' }}
                         >
-                          📍 {item.location}
+                          {item.location}
                         </div>
 
                         <div style={{ fontSize: '14px', fontWeight: '900', color: '#22C55E', marginTop: '4px' }}>
@@ -1702,7 +1838,7 @@ export default function HorrorNightsTracker() {
                         onClick={() => setOpenCommentsDrawerItemId(isCommentsOpen ? null : item.id)}
                         style={{ background: '#1A1A26', border: '1px solid #2A2A3C', color: '#CBD5E0', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}
                       >
-                        💬 Comments ({comments.length})
+                        Comments <span style={{ color: hasComments ? '#F59E0B' : '#A0AEC0', fontWeight: '900' }}>({comments.length})</span>
                       </button>
                     </div>
 
@@ -1710,7 +1846,7 @@ export default function HorrorNightsTracker() {
                     {isCommentsOpen && (
                       <div style={{ marginTop: '12px', background: '#12121A', padding: '12px', borderRadius: '14px', border: '1px solid #2A2A3C' }}>
                         <div style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', marginBottom: '8px' }}>
-                          REVIEWS & COMMENTS ({comments.length}):
+                          COMMENTS ({comments.length}):
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px', maxHeight: '150px', overflowY: 'auto' }}>
@@ -1740,7 +1876,7 @@ export default function HorrorNightsTracker() {
                           <div style={{ display: 'flex', gap: '6px' }}>
                             <input
                               type="text"
-                              placeholder="Add your review..."
+                              placeholder="Leave a comment"
                               value={commentTextInput}
                               onChange={(e) => setCommentTextInput(e.target.value)}
                               style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px' }}
@@ -1765,7 +1901,80 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
-      {/* 4. MAP TAB CONTAINER */}
+      {/* 4. GAMES TAB VIEW */}
+      {mainTab === 'games' && (
+        <div>
+          {/* GAMES APP FILTER BAR */}
+          <div style={{ display: 'flex', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '12px', border: '1px solid #27273A', padding: '3px', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
+            <button
+              onClick={() => setGamesAppFilter('all')}
+              style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: gamesAppFilter === 'all' ? '#10B981' : 'transparent', color: gamesAppFilter === 'all' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setGamesAppFilter('app')}
+              style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: gamesAppFilter === 'app' ? '#10B981' : 'transparent', color: gamesAppFilter === 'app' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}
+            >
+              📱 App Required
+            </button>
+            <button
+              onClick={() => setGamesAppFilter('no-app')}
+              style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: gamesAppFilter === 'no-app' ? '#10B981' : 'transparent', color: gamesAppFilter === 'no-app' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}
+            >
+              🎮 No App Required
+            </button>
+          </div>
+
+          {/* GAMES LIST */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {filteredGames.length === 0 ? (
+              <p style={{ color: '#A0AEC0', textAlign: 'center', fontSize: '13px', fontStyle: 'italic', margin: '20px 0' }}>No games found for this filter.</p>
+            ) : (
+              filteredGames.map((game, idx) => {
+                const borderAccent = RANDOM_ACCENT_COLORS[idx % RANDOM_ACCENT_COLORS.length];
+
+                return (
+                  <div
+                    key={game.id}
+                    style={{
+                      background: 'rgba(18, 18, 26, 0.85)',
+                      borderRadius: '20px',
+                      padding: '16px',
+                      border: `2px solid ${borderAccent}`,
+                      backdropFilter: 'blur(8px)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: '#FFF' }}>{game.name}</h3>
+                      <span style={{ fontSize: '10px', fontWeight: '900', background: game.appRequired ? '#3B82F6' : '#10B981', color: '#FFF', padding: '3px 8px', borderRadius: '6px' }}>
+                        {game.appRequired ? '📱 App Required' : '🎮 No App Required'}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '12px', fontWeight: '800', color: '#A0AEC0', marginBottom: '8px' }}>
+                      👤 {game.players} Players
+                    </div>
+
+                    <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#CBD5E0', lineHeight: '1.4' }}>
+                      {game.overview}
+                    </p>
+
+                    <button
+                      onClick={() => setActiveLearnMoreGame(game)}
+                      style={{ background: '#1A1A26', border: '1px solid #2A2A3C', color: borderAccent, width: '100%', padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+                    >
+                      Learn More
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 5. MAP TAB CONTAINER */}
       {mainTab === 'map' && (
         <div>
           <div style={{
@@ -1856,895 +2065,166 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
-      {/* 5. TRACKER TAB VIEWS */}
-      {mainTab === 'tracker' && trackerSubTab === 'Visit HHN' && (
-        <div>
-          {activeVisit ? (
-            /* ACTIVE VISIT LIVE WIDGET */
-            <div style={{ background: 'linear-gradient(135deg, rgba(31, 8, 8, 0.9) 0%, rgba(13, 5, 16, 0.95) 100%)', color: '#FFF', padding: '20px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)', border: '2px solid #DC2626', backdropFilter: 'blur(8px)' }}>
-              
-              <div style={{ marginBottom: '12px' }}>
-                <span style={{ background: '#DC2626', color: '#FFF', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '900', display: 'inline-block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  🔥 LIVE AT HORROR NIGHTS
-                </span>
-              </div>
+      {/* 6. TRACKER TAB LIVE ATTRACTION EDIT MODAL */}
+      {editingLiveActivity && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '420px', width: '100%', border: '1px solid #2A2A3C', boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>
+              ✏️ Edit Logged Attraction
+            </h3>
 
-              <div style={{ fontSize: '13px', color: '#CBD5E0', marginBottom: '8px', fontWeight: '600' }}>
-                📅 {formatDisplayDate(activeVisit.visitDate)} &nbsp;•&nbsp; ⏰ Arrived: <strong>{format12Hour(activeVisit.startTime)}</strong>
-              </div>
-
-              <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#E2E8F0' }}>
-                👥 <strong>Active Party:</strong> {activePartyList.join(', ')}
-              </p>
-
-              {/* TRACK ATTRACTION CARD */}
-              <div style={{ background: 'rgba(18, 18, 26, 0.9)', padding: '16px', borderRadius: '18px', marginBottom: '15px', color: '#F3F4F6', border: '1px solid #2A2A3C' }}>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '800', color: '#FF5500' }}>Track an Attraction:</h3>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <select value={rideName} onChange={(e) => setRideName(e.target.value)} disabled={!!queueStartTimestamp} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #2A2A3C', background: queueStartTimestamp ? '#1A1A24' : '#1A1A26', fontSize: '14px', color: queueStartTimestamp ? '#718096' : '#F3F4F6' }}>
-                    <optgroup label="Houses">
-                      {HHN_HOUSES.map((house) => (
-                        <option key={house} value={house}>{house}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Rides">
-                      {HHN_RIDES.map((ride) => (
-                        <option key={ride} value={ride}>{ride}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Shows">
-                      {HHN_SHOWS.map((show) => (
-                        <option key={show} value={show}>{show}</option>
-                      ))}
-                    </optgroup>
-                  </select>
-
-                  {activePartyList.length > 1 && (
-                    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', padding: '10px', borderRadius: '10px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>
-                        👥 WHO IS PARTICIPATING?
-                      </label>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {activePartyList.map((member) => {
-                          const isRiding = selectedRiders.includes(member);
-                          return (
-                            <button
-                              key={member}
-                              type="button"
-                              onClick={() => toggleRiderSelection(member)}
-                              disabled={!!queueStartTimestamp}
-                              style={{
-                                padding: '6px 12px',
-                                borderRadius: '8px',
-                                border: isRiding ? '2px solid #FF5500' : '1px solid #2A2A3C',
-                                background: isRiding ? '#FF5500' : '#12121A',
-                                color: isRiding ? '#FFF' : '#A0AEC0',
-                                fontSize: '12px',
-                                fontWeight: '700',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              {isRiding ? `✓ ${member}` : member}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* COMPACT POSTED WAIT TIME INPUT WITH NUMERIC KEYPAD */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#1A1A26', border: '1px solid #2A2A3C', padding: '8px 12px', borderRadius: '10px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', flex: 1 }}>
-                      POSTED WAIT TIME (MINS)
-                    </label>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      placeholder="e.g. 45"
-                      value={postedWaitTime}
-                      onChange={(e) => setPostedWaitTime(e.target.value)}
-                      disabled={!!queueStartTimestamp}
-                      style={{ width: '80px', padding: '6px 8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '13px', textAlign: 'center', fontWeight: 'bold' }}
-                    />
-                  </div>
-
-                  {queueStartTimestamp ? (
-                    <div style={{ background: '#2B1408', border: '1px solid #C05621', padding: '14px', borderRadius: '14px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '11px', fontWeight: '900', color: '#FF9A56', letterSpacing: '0.5px' }}>⏱️ LIVE QUEUE TIMER RUNNING</div>
-                      
-                      <div style={{ fontSize: '14px', fontWeight: '700', color: '#E2E8F0', marginTop: '6px' }}>
-                        Entered line at: <strong style={{ color: '#FF5500' }}>{queueStartTimeStr}</strong>
-                      </div>
-                      
-                      <div style={{ fontSize: '20px', fontWeight: '900', color: '#FF9A56', margin: '8px 0' }}>
-                        Time in line: {getElapsedQueueTimeString()}
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                        <button type="button" onClick={() => { setQueueStartTimestamp(null); setQueueStartTimeStr(null); }} style={{ flex: 1, padding: '10px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
-                          Cancel
-                        </button>
-                        <button type="button" onClick={handleEndQueueTimer} style={{ flex: 2, padding: '10px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
-                          ✅ Entering Attraction
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ borderTop: '1px solid #2A2A3C', paddingTop: '10px', marginTop: '5px' }}>
-                      <button type="button" onClick={handleStartQueueTimer} style={{ width: '100%', padding: '12px', background: '#FF5500', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(255, 85, 0, 0.3)' }}>
-                        ⏱️ Start Line Timer
-                      </button>
-
-                      <div style={{ textAlign: 'center', fontSize: '11px', color: '#718096', fontWeight: 'bold', marginBottom: '12px', position: 'relative' }}>
-                        <span style={{ background: '#12121A', padding: '0 10px', position: 'relative', zIndex: 2 }}>OR LOG MANUALLY</span>
-                        <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: '#2A2A3C', zIndex: 1 }}></div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          placeholder="Actual wait time (mins)"
-                          value={waitTime}
-                          onChange={(e) => setWaitTime(e.target.value)}
-                          style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }}
-                        />
-                        <button type="button" onClick={handleAddRideLive} style={{ padding: '11px 22px', background: '#2A2A3C', color: '#FFF', border: '1px solid #3F3F56', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
-                          Log
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {activeVisit.activities.length > 0 && (
-                  <div style={{ marginTop: '15px', borderTop: '2px dashed #2A2A3C', paddingTop: '12px' }}>
-                    <strong style={{ fontSize: '11px', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>TONIGHT'S LOG ({activeVisit.activities.length}):</strong>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {activeVisit.activities.map((act) => (
-                        <div key={act.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1A1A26', padding: '8px 10px', borderRadius: '8px', border: '1px solid #2A2A3C' }}>
-                          <div style={{ minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                            <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#F3F4F6' }}>{act.rideName}</div>
-                            <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                              ⏱️ {act.waitTimeMinutes} mins wait {act.notes ? `(${act.notes})` : ''} • 👥 {parseAttendees(act.riders).join(', ')}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Leave the Park Button (Icon Removed) */}
-              <button onClick={() => { setDepartingMembers(activePartyList); setShowCheckoutModal(true); }} style={{ width: '100%', padding: '14px', background: 'linear-gradient(to right, #DC2626, #991B1B)', color: '#FFF', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)' }}>
-                Leave the Park & Save Day
-              </button>
-            </div>
-          ) : (
-            /* START YOUR NIGHT FORM (Red Title, Red Outline, Red Gradient Button, No Pumpkin) */
-            <form onSubmit={handleCheckIn} style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '22px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)', border: '2px solid #DC2626', backdropFilter: 'blur(8px)' }}>
-              <h2 style={{ marginTop: 0, fontSize: '20px', fontWeight: '900', color: '#DC2626', marginBottom: '16px', textAlign: 'center' }}>Start Your Night</h2>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>WHO'S ATTENDING?</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-                  {FIXED_FAMILY_MEMBERS.map((name) => {
-                    const isSelected = selectedAttendees.includes(name);
-                    return (
-                      <button key={name} type="button" onClick={() => toggleCheckInAttendee(name)} style={{ padding: '10px 2px', borderRadius: '10px', border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C', background: isSelected ? '#FF5500' : '#1A1A26', color: isSelected ? '#FFF' : '#CBD5E0', fontSize: '12px', fontWeight: isSelected ? '800' : '600', cursor: 'pointer', transition: 'all 0.15s ease' }}>
-                        {isSelected ? `✓ ${name}` : name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Enter the Fog Button (Red Gradient, No Pumpkin) */}
-              <button
-                type="submit"
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  background: 'linear-gradient(to right, #DC2626, #991B1B)',
-                  color: '#FFF',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)'
-                }}
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>ATTRACTION</label>
+              <select
+                value={editLiveRideName}
+                onChange={(e) => setEditLiveRideName(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }}
               >
-                Enter the fog...
-              </button>
-            </form>
-          )}
+                <optgroup label="Houses">
+                  {HHN_HOUSES.map((house) => (
+                    <option key={house} value={house}>{house}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Rides">
+                  {HHN_RIDES.map((ride) => (
+                    <option key={ride} value={ride}>{ride}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Shows">
+                  {HHN_SHOWS.map((show) => (
+                    <option key={show} value={show}>{show}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
 
-          {/* 🎪 LIVE WAIT TIMES & SHOW TIMES WIDGET */}
-          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: 0, letterSpacing: '0.8px' }}>
-                HOUSE WAIT TIMES
-              </h3>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>WHO PARTICIPATED?</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {activePartyList.map((member) => {
+                  const isChecked = editLiveRiders.includes(member);
+                  return (
+                    <button
+                      key={member}
+                      type="button"
+                      onClick={() => toggleLiveEditRiderSelection(member)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: isChecked ? '2px solid #FF5500' : '1px solid #2A2A3C',
+                        background: isChecked ? '#FF5500' : '#1A1A26',
+                        color: isChecked ? '#FFF' : '#A0AEC0',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {member}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>POSTED WAIT (MINS)</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="e.g. 45"
+                  value={editLivePostedWait}
+                  onChange={(e) => setEditLivePostedWait(e.target.value)}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>ACTUAL WAIT (MINS)</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="e.g. 30"
+                  value={editLiveActualWait}
+                  onChange={(e) => setEditLiveActualWait(e.target.value)}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
               <button
-                onClick={fetchThemeParkWaitTimes}
-                disabled={waitsSyncing}
-                style={{ background: 'none', border: 'none', color: '#FF5500', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', padding: 0 }}
+                type="button"
+                onClick={() => setEditingLiveActivity(null)}
+                style={{ flex: 1, padding: '10px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
               >
-                {waitsSyncing ? '🔄 Syncing...' : '🔄 Refresh'}
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveLiveActivityEdit}
+                style={{ flex: 2, padding: '10px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Save Changes
               </button>
             </div>
-
-            {/* HOUSE WAIT TIMES GRID */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
-              {HOUSE_GRID_LAYOUT.map((row, rIdx) => (
-                <div key={rIdx} style={{ display: 'grid', gridTemplateColumns: `repeat(${row.length}, 1fr)`, gap: '8px' }}>
-                  {row.map((item) => {
-                    const waitMins = liveWaitTimes[item.apiKey] ?? 30;
-                    const style = getWaitBoxStyle(waitMins);
-                    return (
-                      <div
-                        key={item.name}
-                        onClick={() => { setRideName(item.apiKey); setPostedWaitTime(waitMins.toString()); }}
-                        style={{
-                          background: style.bg,
-                          border: `1px solid ${style.border}`,
-                          borderRadius: '12px',
-                          padding: '10px 4px',
-                          textAlign: 'center',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <div style={{ fontSize: '18px', fontWeight: '800', color: style.numColor }}>
-                          {waitMins}<span style={{ fontSize: '11px', fontWeight: '700' }}>m</span>
-                        </div>
-                        <div style={{ fontSize: '10px', fontWeight: '800', color: style.titleColor, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {item.name}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-
-            {/* RIDE WAIT TIMES GRID */}
-            <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: '0 0 12px 0', letterSpacing: '0.8px' }}>
-              RIDE WAIT TIMES
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
-              {RIDE_GRID_LAYOUT.map((row, rIdx) => (
-                <div key={rIdx} style={{ display: 'grid', gridTemplateColumns: `repeat(${row.length}, 1fr)`, gap: '8px' }}>
-                  {row.map((item) => {
-                    const waitMins = liveWaitTimes[item.apiKey] ?? 20;
-                    const style = getWaitBoxStyle(waitMins);
-                    return (
-                      <div
-                        key={item.name}
-                        onClick={() => { setRideName(item.apiKey); setPostedWaitTime(waitMins.toString()); }}
-                        style={{
-                          background: style.bg,
-                          border: `1px solid ${style.border}`,
-                          borderRadius: '12px',
-                          padding: '10px 4px',
-                          textAlign: 'center',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <div style={{ fontSize: '18px', fontWeight: '800', color: style.numColor }}>
-                          {waitMins}<span style={{ fontSize: '11px', fontWeight: '700' }}>m</span>
-                        </div>
-                        <div style={{ fontSize: '10px', fontWeight: '800', color: style.titleColor, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {item.name}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-
-            {/* SHOW TIMES SECTION */}
-            <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: '0 0 12px 0', letterSpacing: '0.8px' }}>
-              SHOW TIMES
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ background: '#1A1A26', padding: '10px 12px', borderRadius: '12px', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: '#FF5500', marginBottom: '4px' }}>🔥 Nightmare Fuel: Blood Noir</div>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: '#F3F4F6' }}>8:00 • 9:30 • 11:00 • 12:30</div>
-              </div>
-              <div style={{ background: '#1A1A26', padding: '10px 12px', borderRadius: '12px', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: '#3B82F6', marginBottom: '4px' }}>🌊 Stranger Things (Lagoon Show)</div>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: '#F3F4F6' }}>10:00 • 11:00 • 12:00</div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* TOTALS & SUMMARY STATS WIDGET */}
-          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-            <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: '0 0 12px 0', letterSpacing: '0.8px' }}>
-              TOTALS
-            </h3>
-            
-            {/* ROW 1: 4 COUNTS */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '10px' }}>
-              <div style={{ background: '#1A1A26', padding: '10px 4px', borderRadius: '12px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '20px', fontWeight: '800', color: '#FF5500' }}>{totalEventVisits}</div>
-                <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>PARK VISITS</div>
-              </div>
-              <div style={{ background: '#1A1A26', padding: '10px 4px', borderRadius: '12px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '20px', fontWeight: '800', color: '#DC2626' }}>{totalHousesCount}</div>
-                <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>HOUSES</div>
-              </div>
-              <div style={{ background: '#1A1A26', padding: '10px 4px', borderRadius: '12px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '20px', fontWeight: '800', color: '#3B82F6' }}>{totalRidesCount}</div>
-                <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>RIDES</div>
-              </div>
-              <div style={{ background: '#1A1A26', padding: '10px 4px', borderRadius: '12px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '20px', fontWeight: '800', color: '#10B981' }}>{totalShowsCount}</div>
-                <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>SHOWS</div>
-              </div>
-            </div>
-
-            {/* ROW 2: TIME METRICS + LINE % */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '15px' }}>
-              <div style={{ background: '#1A1A26', padding: '10px 4px', borderRadius: '12px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '18px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(totalTimeInParkMins)}</div>
-                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TIME IN PARKS</div>
-              </div>
-              <div style={{ background: '#1A1A26', padding: '10px 4px', borderRadius: '12px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '18px', fontWeight: '800', color: '#F97316' }}>{formatMinutes(totalTimeInLinesMins)}</div>
-                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TIME IN LINES</div>
-              </div>
-              <div style={{ background: '#1A1A26', padding: '10px 4px', borderRadius: '12px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '18px', fontWeight: '800', color: '#EF4444' }}>{lineTimePercentage}%</div>
-                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>WAITING IN LINE</div>
-              </div>
-            </div>
-
-            {/* TOP HOUSE CARD */}
-            <div style={{ background: '#1C130D', padding: '12px 15px', borderRadius: '14px', border: '1px solid #C05621', borderLeft: '5px solid #FF5500', marginBottom: '10px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#FF9A56', marginBottom: '3px', letterSpacing: '0.5px' }}>⭐ TOP HOUSE</div>
-              <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '15px' }}>
-                {topHouseData ? topHouseData.name : 'None Logged Yet'}
-              </div>
-              {topHouseData && (
-                <div style={{ color: '#CBD5E0', marginTop: '3px', fontSize: '12px' }}>
-                  Logged <strong>{topHouseData.count}x</strong> | Total Wait: <strong style={{ color: '#FF5500' }}>{formatMinutes(topHouseData.totalWait)}</strong> | Avg Wait: <strong>{topHouseData.avgWait}m</strong>
-                </div>
-              )}
-            </div>
-
-            {/* TOP RIDE CARD */}
-            <div style={{ background: '#0D1726', padding: '12px 15px', borderRadius: '14px', border: '1px solid #1E40AF', borderLeft: '5px solid #3B82F6', marginBottom: '18px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#60A5FA', marginBottom: '3px', letterSpacing: '0.5px' }}>🎢 TOP RIDE</div>
-              <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '15px' }}>
-                {topRideData ? topRideData.name : 'None Logged Yet'}
-              </div>
-              {topRideData && (
-                <div style={{ color: '#CBD5E0', marginTop: '3px', fontSize: '12px' }}>
-                  Logged <strong>{topRideData.count}x</strong> | Total Wait: <strong style={{ color: '#3B82F6' }}>{formatMinutes(topRideData.totalWait)}</strong> | Avg Wait: <strong>{topRideData.avgWait}m</strong>
-                </div>
-              )}
-            </div>
-
-            {/* AVERAGES SECTION */}
-            <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: '0 0 10px 0', letterSpacing: '0.8px' }}>AVERAGES</h3>
-            
-            {/* ROW 1: HOUSES | RIDES | SHOWS */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '8px' }}>
-              <div style={{ background: '#1A1A26', padding: '10px 2px', borderRadius: '10px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: '#F3F4F6' }}>{avgHousesPerVisit}</div>
-                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>HOUSES</div>
-              </div>
-              <div style={{ background: '#1A1A26', padding: '10px 2px', borderRadius: '10px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: '#F3F4F6' }}>{avgRidesPerVisit}</div>
-                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>RIDES</div>
-              </div>
-              <div style={{ background: '#1A1A26', padding: '10px 2px', borderRadius: '10px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: '#F3F4F6' }}>{avgShowsPerVisit}</div>
-                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>SHOWS</div>
-              </div>
-            </div>
-
-            {/* ROW 2: TIME IN PARKS | WAIT TIME */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              <div style={{ background: '#1A1A26', padding: '10px 2px', borderRadius: '10px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: '#F3F4F6' }}>{formatMinutes(avgDurationPerVisit)}</div>
-                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TIME IN PARKS</div>
-              </div>
-              <div style={{ background: '#1A1A26', padding: '10px 2px', borderRadius: '10px', textAlign: 'center', border: '1px solid #2A2A3C' }}>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: '#F3F4F6' }}>{avgWaitPerActivity}m</div>
-                <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>WAIT TIME</div>
-              </div>
-            </div>
-
           </div>
         </div>
       )}
 
-      {/* SUBTAB: PAST VISITS */}
-      {mainTab === 'tracker' && trackerSubTab === 'Past Visits' && (
-        <div>
-          <h2 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '12px', color: '#FF5500', paddingLeft: '5px' }}>
-            Past Visits ({visits.length})
-          </h2>
-          {loading ? (
-            <p style={{ color: '#A0AEC0', textAlign: 'center', fontSize: '14px', margin: '20px 0' }}>Syncing with cloud...</p>
-          ) : visits.length === 0 ? (
-            <p style={{ color: '#A0AEC0', textAlign: 'center', fontSize: '14px', marginTop: '20px', fontStyle: 'italic' }}>No completed visits found.</p>
-          ) : (
-            visits.map((v) => {
-              const partyList = parseAttendees(v.attendees);
-              const departureGroups: Record<string, string[]> = {};
-              partyList.forEach(m => {
-                const pTime = getPersonEndTime(v, m);
-                if (!departureGroups[pTime]) departureGroups[pTime] = [];
-                departureGroups[pTime].push(m);
-              });
-
-              const uniqueDepTimes = Object.keys(departureGroups);
-              const hasStaggeredCheckout = uniqueDepTimes.length > 1;
-
-              return (
-                <div key={v.id} style={{ border: '1px solid #2A2A3C', borderRadius: '20px', padding: '16px', marginBottom: '12px', background: 'rgba(18, 18, 26, 0.85)', backdropFilter: 'blur(8px)' }}>
-                  <div style={{ borderBottom: '1px solid #2A2A3C', paddingBottom: '8px', marginBottom: '10px' }}>
-                    <strong style={{ color: '#FF5500', fontSize: '16px', fontWeight: '800' }}>
-                      📅 {formatDisplayDate(v.visitDate)}
-                    </strong>
-                  </div>
-
-                  <div style={{ fontSize: '13px', color: '#CBD5E0', marginBottom: '10px' }}>
-                    👥 <strong>Party:</strong> {partyList.join(', ')} <br />
-                    
-                    {!hasStaggeredCheckout ? (
-                      <div style={{ marginTop: '2px' }}>
-                        ⏱️ <strong>Hours:</strong> {format12Hour(v.startTime)} - {format12Hour(v.endTime)} <span style={{ color: '#FF5500', fontWeight: 'bold' }}>{calculateVisitDuration(v.startTime, v.endTime)}</span>
-                      </div>
-                    ) : (
-                      <div style={{ marginTop: '6px', background: '#1A1A26', padding: '8px 10px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '11px', fontWeight: '800', color: '#FF5500', marginBottom: '4px' }}>⏱️ HOURS:</div>
-                        {uniqueDepTimes.map(depTime => (
-                          <div key={depTime} style={{ fontSize: '12px', color: '#CBD5E0', marginTop: '2px' }}>
-                            • <strong>{departureGroups[depTime].join(', ')}:</strong> {format12Hour(v.startTime)} - {format12Hour(depTime)} <span style={{ color: '#FF5500', fontWeight: '600' }}>{calculateVisitDuration(v.startTime, depTime)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {v.activities.length > 0 && (
-                    <div style={{ background: '#1A1A26', padding: '12px', borderRadius: '12px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {v.activities.map((a) => {
-                          const isEditingThis = editingActivityId === a.id && editingVisitId === v.id;
-                          const actRidersList = parseAttendees(a.riders);
-
-                          return isEditingThis ? (
-                            <div key={a.id} style={{ background: '#12121A', border: '1px solid #2A2A3C', padding: '10px', borderRadius: '10px' }}>
-                              <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#FF5500', marginBottom: '6px' }}>EDIT ENTRY</div>
-                              <select value={editRideName} onChange={(e) => setEditRideName(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px', marginBottom: '6px' }}>
-                                <optgroup label="Houses">
-                                  {HHN_HOUSES.map((house) => (
-                                    <option key={house} value={house}>{house}</option>
-                                  ))}
-                                </optgroup>
-                                <optgroup label="Rides">
-                                  {HHN_RIDES.map((ride) => (
-                                    <option key={ride} value={ride}>{ride}</option>
-                                  ))}
-                                </optgroup>
-                                <optgroup label="Shows">
-                                  {HHN_SHOWS.map((show) => (
-                                    <option key={show} value={show}>{show}</option>
-                                  ))}
-                                </optgroup>
-                              </select>
-
-                              <div style={{ marginBottom: '6px' }}>
-                                <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>WHO DID THIS?</label>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                  {partyList.map((m) => {
-                                    const checked = editRiders.includes(m);
-                                    return (
-                                      <button key={m} type="button" onClick={() => toggleEditRiderSelection(m)} style={{ padding: '4px 8px', borderRadius: '6px', border: checked ? '1px solid #FF5500' : '1px solid #2A2A3C', background: checked ? '#FF5500' : '#12121A', color: checked ? '#FFF' : '#A0AEC0', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-                                        {m}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                              
-                              <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
-                                <input
-                                  type="number"
-                                  inputMode="numeric"
-                                  pattern="[0-9]*"
-                                  value={editWaitTime}
-                                  onChange={(e) => setEditWaitTime(e.target.value)}
-                                  placeholder="Wait (mins)"
-                                  style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }}
-                                />
-                                <input type="text" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Notes (optional)" style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }} />
-                              </div>
-
-                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                                <button onClick={() => deleteActivity(a.id)} style={{ background: '#DC2626', color: '#FFF', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Delete</button>
-                                <button onClick={cancelEditing} style={{ background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
-                                <button onClick={saveEditedActivity} style={{ background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div style={{ minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                                <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#F3F4F6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.rideName}</div>
-                                <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                                  ⏱️ {a.waitTimeMinutes} mins wait {actRidersList.length > 0 ? `• 👥 ${actRidersList.join(', ')}` : ''} {a.notes ? `• ${a.notes}` : ''}
-                                </div>
-                              </div>
-                              <button onClick={() => startEditing(a, v.id)} style={{ background: 'none', border: 'none', color: '#FF5500', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', padding: '2px 6px', flexShrink: 0 }}>
-                                Edit
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '8px', borderTop: '1px solid #2A2A3C' }}>
-                    <button onClick={() => openEditVisit(v)} style={{ background: '#1A1A26', color: '#FF5500', border: '1px solid #FF5500', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: '800' }}>
-                      ✏️ Edit Visit Hours
-                    </button>
-                    <button onClick={() => deleteVisit(v.id)} style={{ background: 'none', border: 'none', color: '#DC2626', fontSize: '11px', cursor: 'pointer', padding: 0, fontWeight: '700' }}>
-                      🗑️ Delete Entire Visit Log
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
+      {/* YUM FULLSCREEN PICTURE MODAL */}
+      {previewYumImage && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px' }}>
+          <div style={{ position: 'relative', maxWidth: '500px', width: '100%', textAlign: 'center' }}>
+            <button
+              onClick={() => setPreviewYumImage(null)}
+              style={{ position: 'absolute', top: '-40px', right: '0', background: 'none', border: 'none', color: '#FFF', fontSize: '24px', fontWeight: '900', cursor: 'pointer' }}
+            >
+              ✕ Close
+            </button>
+            <img
+              src={previewYumImage}
+              alt="Food Preview"
+              style={{ width: '100%', height: 'auto', maxHeight: '80vh', borderRadius: '18px', objectFit: 'contain', border: '1px solid #2A2A3C', boxShadow: '0 8px 30px rgba(0,0,0,0.8)' }}
+            />
+          </div>
         </div>
       )}
 
-      {/* 5. ANALYTICS TAB VIEWS */}
-      {mainTab === 'analytics' && (
-        <div>
-          {/* SHARED ATTENDEE FILTER SELECTOR */}
-          <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '12px 14px', borderRadius: '18px', border: '1px solid #2A2A3C', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0' }}>
-                FILTER BY ATTENDEE:
-              </label>
-              {selectedAttendeeFilter !== 'Everyone' && (
-                <button
-                  onClick={() => setSelectedAttendeeFilter('Everyone')}
-                  style={{ background: 'none', border: 'none', color: '#FF5500', fontSize: '11px', fontWeight: '800', cursor: 'pointer', padding: 0 }}
-                >
-                  Reset to Everyone ✕
-                </button>
-              )}
+      {/* GAMES LEARN MORE FULLSCREEN MODAL */}
+      {activeLearnMoreGame && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '460px', width: '100%', maxHeight: '85vh', overflowY: 'auto', border: '2px solid #10B981', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '900', color: '#FFF' }}>{activeLearnMoreGame.name}</h3>
+              <button
+                onClick={() => setActiveLearnMoreGame(null)}
+                style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '20px', fontWeight: '900', cursor: 'pointer', padding: 0 }}
+              >
+                ✕
+              </button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-              {FIXED_FAMILY_MEMBERS.map(name => {
-                const isSelected = selectedAttendeeFilter === name;
-                return (
-                  <button
-                    key={name}
-                    onClick={() => toggleAttendeeFilter(name)}
-                    style={{
-                      padding: '8px 2px',
-                      borderRadius: '10px',
-                      border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C',
-                      background: isSelected ? '#FF5500' : '#1A1A26',
-                      color: isSelected ? '#FFF' : '#CBD5E0',
-                      fontSize: '11px',
-                      fontWeight: isSelected ? '800' : '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    {name}
-                  </button>
-                );
-              })}
+
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0' }}>👤 Players: {activeLearnMoreGame.players}</span>
+              <span style={{ fontSize: '11px', fontWeight: '900', color: activeLearnMoreGame.appRequired ? '#60A5FA' : '#34D399' }}>
+                • {activeLearnMoreGame.appRequired ? '📱 App Required' : '🎮 No App Required'}
+              </span>
             </div>
+
+            <div style={{ background: '#1A1A26', padding: '14px', borderRadius: '14px', border: '1px solid #2A2A3C', fontSize: '13px', color: '#CBD5E0', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+              {activeLearnMoreGame.description}
+            </div>
+
+            <button
+              onClick={() => setActiveLearnMoreGame(null)}
+              style={{ width: '100%', padding: '12px', background: '#10B981', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginTop: '16px' }}
+            >
+              Close
+            </button>
           </div>
-
-          {/* HOUSES ANALYTICS SUBTAB */}
-          {analyticsSubTab === 'Houses' && (
-            <div>
-              {/* HOUSE STATS GRID */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-                {houseAnalyticsStats.map(stat => (
-                  <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#FF5500', marginBottom: '10px' }}>
-                      🏚️ {stat.name}
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#FFF' }}>{stat.visits}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>VISITS</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG WAIT</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL WAIT</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG POSTED</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
-                          {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
-                        </div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/- POSTED</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* LONGEST INDIVIDUAL WAIT TIMES (HOUSES) */}
-              <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', marginBottom: '20px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#DC2626', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  🔥 Longest Individual Wait Times
-                </h3>
-
-                {longestHouseWaits.length === 0 ? (
-                  <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No house visits logged yet.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {longestHouseWaits.map((act, index) => (
-                      <div key={act.id + index} style={{ background: '#1C1215', border: '1px solid #7F1D1D', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                          <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#DC2626', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {index + 1}
-                          </div>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {act.rideName}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                              📅 {formatDisplayDate(act.visitDate)} <br />
-                              👥 {parseAttendees(act.riders).join(', ')}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ background: '#991B1B', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
-                          {act.waitTimeMinutes}m
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* SHORTEST INDIVIDUAL WAIT TIMES (HOUSES) */}
-              <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#22C55E', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  ⚡ Shortest Individual Wait Times
-                </h3>
-
-                {shortestHouseWaits.length === 0 ? (
-                  <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No house visits logged yet.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {shortestHouseWaits.map((act, index) => (
-                      <div key={act.id + index} style={{ background: '#0B231A', border: '1px solid #15803D', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                          <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {index + 1}
-                          </div>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {act.rideName}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                              📅 {formatDisplayDate(act.visitDate)} <br />
-                              👥 {parseAttendees(act.riders).join(', ')}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
-                          {act.waitTimeMinutes}m
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* RIDES ANALYTICS SUBTAB */}
-          {analyticsSubTab === 'Rides' && (
-            <div>
-              {/* RIDE STATS GRID */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-                {rideAnalyticsStats.map(stat => (
-                  <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#3B82F6', marginBottom: '10px' }}>
-                      🎢 {stat.name}
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#FFF' }}>{stat.visits}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>VISITS</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG WAIT</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL WAIT</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG POSTED</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
-                          {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
-                        </div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/- POSTED</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* LONGEST INDIVIDUAL WAIT TIMES (RIDES) */}
-              <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', marginBottom: '20px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#3B82F6', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  🔥 Longest Individual Wait Times
-                </h3>
-
-                {longestRideWaits.length === 0 ? (
-                  <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No ride visits logged yet.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {longestRideWaits.map((act, index) => (
-                      <div key={act.id + index} style={{ background: '#0D1726', border: '1px solid #1E40AF', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                          <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#3B82F6', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {index + 1}
-                          </div>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {act.rideName}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                              📅 {formatDisplayDate(act.visitDate)} <br />
-                              👥 {parseAttendees(act.riders).join(', ')}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ background: '#1E40AF', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
-                          {act.waitTimeMinutes}m
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* SHORTEST INDIVIDUAL WAIT TIMES (RIDES) */}
-              <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#22C55E', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  ⚡ Shortest Individual Wait Times
-                </h3>
-
-                {shortestRideWaits.length === 0 ? (
-                  <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No ride visits logged yet.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {shortestRideWaits.map((act, index) => (
-                      <div key={act.id + index} style={{ background: '#0B231A', border: '1px solid #15803D', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                          <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {index + 1}
-                          </div>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {act.rideName}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                              📅 {formatDisplayDate(act.visitDate)} <br />
-                              👥 {parseAttendees(act.riders).join(', ')}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
-                          {act.waitTimeMinutes}m
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ATTENDEES ANALYTICS SUBTAB */}
-          {analyticsSubTab === 'Attendees' && (
-            <div>
-              {/* CHECKLIST MATRIX FOR HOUSES, RIDES, SHOWS */}
-              <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '900', color: '#FF5500', margin: '0 0 12px 0' }}>
-                  🏚️ HOUSES ({selectedAttendeeFilter})
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                  {attendeeChecklistData.houseList.map(item => (
-                    <div key={item.name} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div>
-                        <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{item.name}</div>
-                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                          Avg Wait: <strong>{item.avgWait}m</strong> &nbsp;•&nbsp; Total Wait: <strong>{formatMinutes(item.totalWait)}</strong>
-                        </div>
-                      </div>
-                      <div style={{ background: item.visits > 0 ? '#FF5500' : '#2A2A3C', color: item.visits > 0 ? '#FFF' : '#718096', fontSize: '12px', fontWeight: '900', padding: '6px 12px', borderRadius: '10px' }}>
-                        {item.visits} {item.visits === 1 ? 'Visit' : 'Visits'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <h3 style={{ fontSize: '14px', fontWeight: '900', color: '#3B82F6', margin: '0 0 12px 0' }}>
-                  🎢 RIDES ({selectedAttendeeFilter})
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                  {attendeeChecklistData.rideList.map(item => (
-                    <div key={item.name} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div>
-                        <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{item.name}</div>
-                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                          Avg Wait: <strong>{item.avgWait}m</strong> &nbsp;•&nbsp; Total Wait: <strong>{formatMinutes(item.totalWait)}</strong>
-                        </div>
-                      </div>
-                      <div style={{ background: item.visits > 0 ? '#3B82F6' : '#2A2A3C', color: item.visits > 0 ? '#FFF' : '#718096', fontSize: '12px', fontWeight: '900', padding: '6px 12px', borderRadius: '10px' }}>
-                        {item.visits} {item.visits === 1 ? 'Visit' : 'Visits'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <h3 style={{ fontSize: '14px', fontWeight: '900', color: '#10B981', margin: '0 0 12px 0' }}>
-                  🎭 SHOWS ({selectedAttendeeFilter})
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {attendeeChecklistData.showList.map(item => (
-                    <div key={item.name} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div>
-                        <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{item.name}</div>
-                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                          Avg Wait: <strong>{item.avgWait}m</strong> &nbsp;•&nbsp; Total Wait: <strong>{formatMinutes(item.totalWait)}</strong>
-                        </div>
-                      </div>
-                      <div style={{ background: item.visits > 0 ? '#10B981' : '#2A2A3C', color: item.visits > 0 ? '#FFF' : '#718096', fontSize: '12px', fontWeight: '900', padding: '6px 12px', borderRadius: '10px' }}>
-                        {item.visits} {item.visits === 1 ? 'Visit' : 'Visits'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-              </div>
-            </div>
-          )}
         </div>
       )}
 
