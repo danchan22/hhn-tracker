@@ -66,6 +66,14 @@ interface GameItem {
   appRequired: boolean;
   overview: string;
   description: string;
+  isAiTrivia?: boolean;
+}
+
+interface TriviaQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  funFact: string;
 }
 
 const FIXED_FAMILY_MEMBERS = [
@@ -96,6 +104,26 @@ const HHN_SHOWS = [
   'Nightmare Fuel: Blood Noir',
   'Stranger Things (Lagoon Show)'
 ];
+
+const ITEM_EMOJIS: Record<string, string> = {
+  'Sinners': '🧛',
+  'Hellraiser': '🧩',
+  'Ozzy Osbourne': '🦇',
+  'Stranger Things 5': '🚲',
+  'Evil Dead Burn': '🪓',
+  'Jack & Oddfellow': '🎪',
+  'H.R. Bloodengutz': '🩸',
+  'Cybergoria': '🤖',
+  'Madlands: Caged Cannibals': '🥩',
+  'INVASION: Alien Abduction': '👽',
+  'Men in Black: Alien Attack': '🔫',
+  'Transformers: The Ride-3D': '🚗',
+  'Harry Potter and the Escape from Gringotts': '🧙‍♂️',
+  'Harry Potter': '🧙‍♂️',
+  'Revenge of the Mummy': '🧟',
+  'Nightmare Fuel: Blood Noir': '🔥',
+  'Stranger Things (Lagoon Show)': '🌊'
+};
 
 const YUM_LOCATIONS = [
   'Jack’s Circus Surplus',
@@ -170,6 +198,15 @@ const MOCK_YUM_ITEMS: YumItem[] = [
 // SAMPLE GAMES ITEMS
 const MOCK_GAMES: GameItem[] = [
   {
+    id: 'ai-horror-trivia',
+    name: 'AI Horror Movie Trivia',
+    players: '1+',
+    appRequired: false,
+    isAiTrivia: true,
+    overview: 'Endless AI-generated horror trivia. Pick your favorite sub-genre and difficulty to test your knowledge in line!',
+    description: 'Endless AI-generated horror trivia. Pick your favorite sub-genre and difficulty to test your knowledge in line!'
+  },
+  {
     id: 'hide-the-peanut',
     name: 'Hide the Peanut',
     players: '2+',
@@ -191,7 +228,6 @@ interface MapPOI {
 }
 
 const HHN_MAP_LOCATIONS: MapPOI[] = [
-  // HOUSES
   { id: 'sinners', name: 'Sinners', shortName: 'Sinners', category: 'house', lat: 28.4746, lng: -81.4682, apiKey: 'Sinners' },
   { id: 'hellraiser', name: 'Hellraiser', shortName: 'Hellraiser', category: 'house', lat: 28.4750, lng: -81.4691, apiKey: 'Hellraiser' },
   { id: 'ozzy', name: 'Ozzy Osbourne', shortName: 'Ozzy', category: 'house', lat: 28.4739, lng: -81.4658, apiKey: 'Ozzy Osbourne' },
@@ -202,23 +238,15 @@ const HHN_MAP_LOCATIONS: MapPOI[] = [
   { id: 'cybergoria', name: 'Cybergoria', shortName: 'Cyber', category: 'house', lat: 28.4755, lng: -81.4648, apiKey: 'Cybergoria' },
   { id: 'madlands', name: 'Madlands: Caged Cannibals', shortName: 'Cannibals', category: 'house', lat: 28.4732, lng: -81.4685, apiKey: 'Madlands: Caged Cannibals' },
   { id: 'invasion', name: 'INVASION: Alien Abduction', shortName: 'Invasion', category: 'house', lat: 28.4734, lng: -81.4678, apiKey: 'INVASION: Alien Abduction' },
-
-  // RIDES
   { id: 'mib', name: 'Men in Black: Alien Attack', shortName: 'MIB', category: 'ride', lat: 28.480987918842903, lng: -81.46751974578974, apiKey: 'Men in Black: Alien Attack' },
   { id: 'mummy', name: 'Revenge of the Mummy', shortName: 'Mummy', category: 'ride', lat: 28.476908226875782, lng: -81.4697184770946, apiKey: 'Revenge of the Mummy' },
   { id: 'transformers', name: 'Transformers: The Ride-3D', shortName: 'Transformers', category: 'ride', lat: 28.47663140608696, lng: -81.46863197342127, apiKey: 'Transformers: The Ride-3D' },
   { id: 'gringotts', name: 'Escape from Gringotts', shortName: 'Gringotts', category: 'ride', lat: 28.479822824433633, lng: -81.46998923849405, apiKey: 'Harry Potter and the Escape from Gringotts' },
-
-  // SHOWS
   { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', shortName: 'Nightmare', category: 'show', lat: 28.48034245429014, lng: -81.46882577178755 },
   { id: 'lagoon-show', name: 'Stranger Things (Lagoon Show)', shortName: 'Lagoon Show', category: 'show', lat: 28.478983316117194, lng: -81.46855428793143 },
-
-  // SCARE ZONES
   { id: 'origins', name: 'Origins of Horror', shortName: 'Origins', category: 'scarezone', lat: 28.4762, lng: -81.4665 },
   { id: 'masquerade', name: 'Masquerade', shortName: 'Masquerade', category: 'scarezone', lat: 28.4748, lng: -81.4675 },
   { id: 'carnival', name: 'Carnival of Screams', shortName: 'Carnival', category: 'scarezone', lat: 28.4738, lng: -81.4680 },
-
-  // WATER STATIONS
   { id: 'water-1', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.475740212815403, lng: -81.46897601025046 },
   { id: 'water-2', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.476597319582403, lng: -81.46771582061385 },
   { id: 'water-3', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.478125802458248, lng: -81.46904887351499 },
@@ -228,7 +256,6 @@ const HHN_MAP_LOCATIONS: MapPOI[] = [
   { id: 'water-7', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.480178017295195, lng: -81.46787166662219 }
 ];
 
-// Layout mapping for Live Wait Times Widget (Home Screen Display Names)
 const HOUSE_GRID_LAYOUT = [
   [
     { name: 'Sinners', apiKey: 'Sinners' },
@@ -341,9 +368,18 @@ export default function HorrorNightsTracker() {
   const [commentTextInput, setCommentTextInput] = useState<string>('');
   const [submittingComment, setSubmittingComment] = useState<boolean>(false);
 
-  // Games Tab Filter & Modal States
+  // Games Tab Filter & AI Trivia Modal States
   const [gamesAppFilter, setGamesAppFilter] = useState<'all' | 'app' | 'no-app'>('all');
   const [activeLearnMoreGame, setActiveLearnMoreGame] = useState<GameItem | null>(null);
+  
+  // AI Trivia Live State
+  const [showAiTriviaModal, setShowAiTriviaModal] = useState<boolean>(false);
+  const [triviaCategory, setTriviaCategory] = useState<string>('80s Slashers');
+  const [triviaDifficulty, setTriviaDifficulty] = useState<string>('Medium');
+  const [currentQuestion, setCurrentQuestion] = useState<TriviaQuestion | null>(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [triviaLoading, setTriviaLoading] = useState<boolean>(false);
+  const [triviaError, setTriviaError] = useState<string | null>(null);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<any>(null);
@@ -744,6 +780,33 @@ export default function HorrorNightsTracker() {
       alert("Could not post comment. Make sure your yum_comments table is created in Supabase!");
     } finally {
       setSubmittingComment(false);
+    }
+  };
+
+  // GEMINI TRIVIA GENERATOR
+  const fetchNextTriviaQuestion = async () => {
+    setTriviaLoading(true);
+    setSelectedOption(null);
+    setTriviaError(null);
+
+    try {
+      const res = await fetch('/api/trivia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: triviaCategory, difficulty: triviaDifficulty })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to fetch trivia.');
+      }
+
+      const questionData = await res.json();
+      setCurrentQuestion(questionData);
+    } catch (e: any) {
+      setTriviaError(e.message || 'Could not load question. Check your GEMINI_API_KEY.');
+    } finally {
+      setTriviaLoading(false);
     }
   };
 
@@ -1804,7 +1867,6 @@ export default function HorrorNightsTracker() {
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#FFF' }}>{item.name}</h3>
 
-                        {/* Location Badge without Pin Icon */}
                         <div
                           onClick={() => setSelectedYumLocation(item.location)}
                           style={{ fontSize: '11px', fontWeight: '800', color: '#F59E0B', marginTop: '2px', cursor: 'pointer', display: 'inline-block' }}
@@ -1945,7 +2007,7 @@ export default function HorrorNightsTracker() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                       <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: '#FFF' }}>{game.name}</h3>
                       <span style={{ fontSize: '10px', fontWeight: '900', background: game.appRequired ? '#3B82F6' : '#10B981', color: '#FFF', padding: '3px 8px', borderRadius: '6px' }}>
-                        {game.appRequired ? '📱 App Required' : '🎮 No App Required'}
+                        🎮 No App Required
                       </span>
                     </div>
 
@@ -1958,10 +2020,17 @@ export default function HorrorNightsTracker() {
                     </p>
 
                     <button
-                      onClick={() => setActiveLearnMoreGame(game)}
+                      onClick={() => {
+                        if (game.isAiTrivia) {
+                          setShowAiTriviaModal(true);
+                          if (!currentQuestion) fetchNextTriviaQuestion();
+                        } else {
+                          setActiveLearnMoreGame(game);
+                        }
+                      }}
                       style={{ background: '#1A1A26', border: '1px solid #2A2A3C', color: borderAccent, width: '100%', padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
                     >
-                      Learn More
+                      {game.isAiTrivia ? '🎮 Play Live AI Trivia' : 'Learn More'}
                     </button>
                   </div>
                 );
@@ -2031,7 +2100,6 @@ export default function HorrorNightsTracker() {
                 style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
               />
 
-              {/* BOTTOM FLOATING FULLSCREEN TOGGLE */}
               <button
                 onClick={() => setIsMapFullscreen(!isMapFullscreen)}
                 style={{
@@ -2139,7 +2207,6 @@ export default function HorrorNightsTracker() {
                     </div>
                   )}
 
-                  {/* COMPACT POSTED WAIT TIME INPUT WITH NUMERIC KEYPAD */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#1A1A26', border: '1px solid #2A2A3C', padding: '8px 12px', borderRadius: '10px' }}>
                     <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', flex: 1 }}>
                       POSTED WAIT TIME (MINS)
@@ -2423,7 +2490,7 @@ export default function HorrorNightsTracker() {
             <div style={{ background: '#1C130D', padding: '12px 15px', borderRadius: '14px', border: '1px solid #C05621', borderLeft: '5px solid #FF5500', marginBottom: '10px' }}>
               <div style={{ fontSize: '10px', fontWeight: '900', color: '#FF9A56', marginBottom: '3px', letterSpacing: '0.5px' }}>⭐ TOP HOUSE</div>
               <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '15px' }}>
-                {topHouseData ? topHouseData.name : 'None Logged Yet'}
+                {topHouseData ? `${ITEM_EMOJIS[topHouseData.name] || '🏚️'} ${topHouseData.name}` : 'None Logged Yet'}
               </div>
               {topHouseData && (
                 <div style={{ color: '#CBD5E0', marginTop: '3px', fontSize: '12px' }}>
@@ -2435,7 +2502,7 @@ export default function HorrorNightsTracker() {
             <div style={{ background: '#0D1726', padding: '12px 15px', borderRadius: '14px', border: '1px solid #1E40AF', borderLeft: '5px solid #3B82F6', marginBottom: '18px' }}>
               <div style={{ fontSize: '10px', fontWeight: '900', color: '#60A5FA', marginBottom: '3px', letterSpacing: '0.5px' }}>🎢 TOP RIDE</div>
               <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '15px' }}>
-                {topRideData ? topRideData.name : 'None Logged Yet'}
+                {topRideData ? `${ITEM_EMOJIS[topRideData.name] || '🎢'} ${topRideData.name}` : 'None Logged Yet'}
               </div>
               {topRideData && (
                 <div style={{ color: '#CBD5E0', marginTop: '3px', fontSize: '12px' }}>
@@ -2590,7 +2657,9 @@ export default function HorrorNightsTracker() {
                           ) : (
                             <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div style={{ minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                                <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#F3F4F6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.rideName}</div>
+                                <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#F3F4F6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {ITEM_EMOJIS[a.rideName] || '🎟️'} {a.rideName}
+                                </div>
                                 <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
                                   ⏱️ {a.waitTimeMinutes} mins wait {actRidersList.length > 0 ? `• 👥 ${actRidersList.join(', ')}` : ''} {a.notes ? `• ${a.notes}` : ''}
                                 </div>
@@ -2672,7 +2741,7 @@ export default function HorrorNightsTracker() {
                 {houseAnalyticsStats.map(stat => (
                   <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
                     <div style={{ fontSize: '15px', fontWeight: '800', color: '#FF5500', marginBottom: '10px' }}>
-                      🏚️ {stat.name}
+                      {ITEM_EMOJIS[stat.name] || '🏚️'} {stat.name}
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
@@ -2721,7 +2790,7 @@ export default function HorrorNightsTracker() {
                           </div>
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {act.rideName}
+                              {ITEM_EMOJIS[act.rideName] || '🏚️'} {act.rideName}
                             </div>
                             <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
                               📅 {formatDisplayDate(act.visitDate)} <br />
@@ -2756,7 +2825,7 @@ export default function HorrorNightsTracker() {
                           </div>
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {act.rideName}
+                              {ITEM_EMOJIS[act.rideName] || '🏚️'} {act.rideName}
                             </div>
                             <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
                               📅 {formatDisplayDate(act.visitDate)} <br />
@@ -2783,7 +2852,7 @@ export default function HorrorNightsTracker() {
                 {rideAnalyticsStats.map(stat => (
                   <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
                     <div style={{ fontSize: '15px', fontWeight: '800', color: '#3B82F6', marginBottom: '10px' }}>
-                      🎢 {stat.name}
+                      {ITEM_EMOJIS[stat.name] || '🎢'} {stat.name}
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
@@ -2832,7 +2901,7 @@ export default function HorrorNightsTracker() {
                           </div>
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {act.rideName}
+                              {ITEM_EMOJIS[act.rideName] || '🎢'} {act.rideName}
                             </div>
                             <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
                               📅 {formatDisplayDate(act.visitDate)} <br />
@@ -2867,7 +2936,7 @@ export default function HorrorNightsTracker() {
                           </div>
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {act.rideName}
+                              {ITEM_EMOJIS[act.rideName] || '🎢'} {act.rideName}
                             </div>
                             <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
                               📅 {formatDisplayDate(act.visitDate)} <br />
@@ -2898,7 +2967,9 @@ export default function HorrorNightsTracker() {
                   {attendeeChecklistData.houseList.map(item => (
                     <div key={item.name} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
-                        <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{item.name}</div>
+                        <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>
+                          {ITEM_EMOJIS[item.name] || '🏚️'} {item.name}
+                        </div>
                         <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
                           Avg Wait: <strong>{item.avgWait}m</strong> &nbsp;•&nbsp; Total Wait: <strong>{formatMinutes(item.totalWait)}</strong>
                         </div>
@@ -2917,7 +2988,9 @@ export default function HorrorNightsTracker() {
                   {attendeeChecklistData.rideList.map(item => (
                     <div key={item.name} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
-                        <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{item.name}</div>
+                        <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>
+                          {ITEM_EMOJIS[item.name] || '🎢'} {item.name}
+                        </div>
                         <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
                           Avg Wait: <strong>{item.avgWait}m</strong> &nbsp;•&nbsp; Total Wait: <strong>{formatMinutes(item.totalWait)}</strong>
                         </div>
@@ -2936,7 +3009,9 @@ export default function HorrorNightsTracker() {
                   {attendeeChecklistData.showList.map(item => (
                     <div key={item.name} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
-                        <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{item.name}</div>
+                        <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>
+                          {ITEM_EMOJIS[item.name] || '🎭'} {item.name}
+                        </div>
                         <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
                           Avg Wait: <strong>{item.avgWait}m</strong> &nbsp;•&nbsp; Total Wait: <strong>{formatMinutes(item.totalWait)}</strong>
                         </div>
@@ -3082,6 +3157,122 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
+      {/* AI TRIVIA LIVE INTERACTIVE MODAL */}
+      {showAiTriviaModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '460px', width: '100%', border: '2px solid #FF5500', boxShadow: '0 10px 30px rgba(255, 85, 0, 0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>
+                🤖 Horror Trivia (Gemini AI)
+              </h3>
+              <button onClick={() => setShowAiTriviaModal(false)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '20px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            {/* CATEGORY & DIFFICULTY SELECTORS */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+              <select
+                value={triviaCategory}
+                onChange={(e) => setTriviaCategory(e.target.value)}
+                style={{ padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold' }}
+              >
+                <option value="80s Slashers">80s Slashers</option>
+                <option value="Universal Monsters">Universal Monsters</option>
+                <option value="Modern Horror Movies">Modern Horror</option>
+                <option value="Sci-Fi Horror">Sci-Fi Horror</option>
+                <option value="Halloween Horror Nights History">HHN Lore & History</option>
+              </select>
+
+              <select
+                value={triviaDifficulty}
+                onChange={(e) => setTriviaDifficulty(e.target.value)}
+                style={{ padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold' }}
+              >
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Fiendishly Hard">Fiendish</option>
+              </select>
+            </div>
+
+            {/* ERROR BANNER */}
+            {triviaError && (
+              <div style={{ background: '#2C0B0E', border: '1px solid #DC2626', color: '#FCA5A5', padding: '10px', borderRadius: '10px', fontSize: '12px', marginBottom: '12px' }}>
+                {triviaError}
+              </div>
+            )}
+
+            {/* QUESTION DISPLAY */}
+            {triviaLoading ? (
+              <div style={{ textTransform: 'uppercase', textAlign: 'center', padding: '30px 0', color: '#FF9A56', fontSize: '13px', fontWeight: 'bold' }}>
+                🔮 Generating Horror Question...
+              </div>
+            ) : currentQuestion ? (
+              <div>
+                <p style={{ fontSize: '14px', fontWeight: '800', color: '#FFF', marginBottom: '12px', lineHeight: '1.4' }}>
+                  {currentQuestion.question}
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                  {currentQuestion.options.map((opt) => {
+                    const isSelected = selectedOption === opt;
+                    const isCorrect = opt === currentQuestion.correctAnswer;
+                    let btnBg = '#1A1A26';
+                    let btnBorder = '#2A2A3C';
+
+                    if (selectedOption) {
+                      if (isCorrect) {
+                        btnBg = '#0B231A';
+                        btnBorder = '#22C55E';
+                      } else if (isSelected) {
+                        btnBg = '#2C0B0E';
+                        btnBorder = '#DC2626';
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={opt}
+                        onClick={() => setSelectedOption(opt)}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '10px',
+                          border: `1px solid ${btnBorder}`,
+                          background: btnBg,
+                          color: '#FFF',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          textAlign: 'left',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* FUN FACT DISCLOSURE */}
+                {selectedOption && (
+                  <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', padding: '12px', borderRadius: '12px', fontSize: '12px', color: '#CBD5E0', marginBottom: '14px' }}>
+                    <strong style={{ color: '#22C55E' }}>
+                      {selectedOption === currentQuestion.correctAnswer ? '🎉 Correct!' : '❌ Incorrect!'}
+                    </strong>
+                    <div style={{ marginTop: '4px' }}>💡 <em>{currentQuestion.funFact}</em></div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            <button
+              onClick={fetchNextTriviaQuestion}
+              disabled={triviaLoading}
+              style={{ width: '100%', padding: '12px', background: '#FF5500', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}
+            >
+              Next Question ➡️
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* GAMES LEARN MORE FULLSCREEN MODAL */}
       {activeLearnMoreGame && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
@@ -3098,8 +3289,8 @@ export default function HorrorNightsTracker() {
 
             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
               <span style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0' }}>👤 Players: {activeLearnMoreGame.players}</span>
-              <span style={{ fontSize: '11px', fontWeight: '900', color: activeLearnMoreGame.appRequired ? '#60A5FA' : '#34D399' }}>
-                • {activeLearnMoreGame.appRequired ? '📱 App Required' : '🎮 No App Required'}
+              <span style={{ fontSize: '11px', fontWeight: '900', color: '#34D399' }}>
+                • 🎮 No App Required
               </span>
             </div>
 
