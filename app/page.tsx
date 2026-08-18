@@ -372,11 +372,12 @@ export default function HorrorNightsTracker() {
   const [gamesAppFilter, setGamesAppFilter] = useState<'all' | 'app' | 'no-app'>('all');
   const [activeLearnMoreGame, setActiveLearnMoreGame] = useState<GameItem | null>(null);
   
-  // AI Trivia Live State
+  // AI Trivia Live Batch Queue State
   const [showAiTriviaModal, setShowAiTriviaModal] = useState<boolean>(false);
   const [triviaCategory, setTriviaCategory] = useState<string>('80s Slashers');
   const [triviaDifficulty, setTriviaDifficulty] = useState<string>('Medium');
   const [currentQuestion, setCurrentQuestion] = useState<TriviaQuestion | null>(null);
+  const [triviaQueue, setTriviaQueue] = useState<TriviaQuestion[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [triviaLoading, setTriviaLoading] = useState<boolean>(false);
   const [triviaError, setTriviaError] = useState<string | null>(null);
@@ -783,17 +784,37 @@ export default function HorrorNightsTracker() {
     }
   };
 
-  // GEMINI TRIVIA GENERATOR
+  // INSTANT BATCH PREFETCH AI TRIVIA
   const fetchNextTriviaQuestion = async () => {
-    setTriviaLoading(true);
     setSelectedOption(null);
     setTriviaError(null);
+
+    // Pull next question instantly if queue has items (0s delay)
+    if (triviaQueue.length > 0) {
+      const nextQ = triviaQueue[0];
+      const remaining = triviaQueue.slice(1);
+      setCurrentQuestion(nextQ);
+      setTriviaQueue(remaining);
+
+      // Refill in background when queue gets low
+      if (remaining.length < 2 && !triviaLoading) {
+        prefetchTriviaBatch(false, triviaCategory, triviaDifficulty);
+      }
+      return;
+    }
+
+    // Otherwise load initial batch with spinner
+    await prefetchTriviaBatch(true, triviaCategory, triviaDifficulty);
+  };
+
+  const prefetchTriviaBatch = async (isInitialLoad: boolean, cat: string, diff: string) => {
+    if (isInitialLoad) setTriviaLoading(true);
 
     try {
       const res = await fetch('/api/trivia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category: triviaCategory, difficulty: triviaDifficulty })
+        body: JSON.stringify({ category: cat, difficulty: diff })
       });
 
       if (!res.ok) {
@@ -801,13 +822,35 @@ export default function HorrorNightsTracker() {
         throw new Error(errData.error || 'Failed to fetch trivia.');
       }
 
-      const questionData = await res.json();
-      setCurrentQuestion(questionData);
+      const questions: TriviaQuestion[] = await res.json();
+
+      if (questions && questions.length > 0) {
+        if (isInitialLoad || !currentQuestion) {
+          setCurrentQuestion(questions[0]);
+          setTriviaQueue(questions.slice(1));
+        } else {
+          setTriviaQueue(prev => [...prev, ...questions]);
+        }
+      }
     } catch (e: any) {
-      setTriviaError(e.message || 'Could not load question. Check your GEMINI_API_KEY.');
+      if (isInitialLoad) {
+        setTriviaError(e.message || 'Could not load questions.');
+      }
     } finally {
-      setTriviaLoading(false);
+      if (isInitialLoad) setTriviaLoading(false);
     }
+  };
+
+  const handleCategoryOrDiffChange = (newCat?: string, newDiff?: string) => {
+    const updatedCat = newCat || triviaCategory;
+    const updatedDiff = newDiff || triviaDifficulty;
+
+    if (newCat) setTriviaCategory(newCat);
+    if (newDiff) setTriviaDifficulty(newDiff);
+
+    setCurrentQuestion(null);
+    setTriviaQueue([]);
+    prefetchTriviaBatch(true, updatedCat, updatedDiff);
   };
 
   const toggleYumCategoryFilter = (cat: 'food' | 'drink' | 'dessert' | 'gf') => {
@@ -2019,19 +2062,19 @@ export default function HorrorNightsTracker() {
                       {game.overview}
                     </p>
 
-<button
-  onClick={() => {
-    if (game.isAiTrivia) {
-      setShowAiTriviaModal(true);
-      if (!currentQuestion) fetchNextTriviaQuestion();
-    } else {
-      setActiveLearnMoreGame(game);
-    }
-  }}
-  style={{ background: '#1A1A26', border: '1px solid #2A2A3C', color: borderAccent, width: '100%', padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
->
-  {game.isAiTrivia ? 'Play Now' : 'Learn More'}
-</button>
+                    <button
+                      onClick={() => {
+                        if (game.isAiTrivia) {
+                          setShowAiTriviaModal(true);
+                          if (!currentQuestion) fetchNextTriviaQuestion();
+                        } else {
+                          setActiveLearnMoreGame(game);
+                        }
+                      }}
+                      style={{ background: '#1A1A26', border: '1px solid #2A2A3C', color: borderAccent, width: '100%', padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+                    >
+                      {game.isAiTrivia ? 'Play Now' : 'Learn More'}
+                    </button>
                   </div>
                 );
               })
@@ -3172,7 +3215,7 @@ export default function HorrorNightsTracker() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
               <select
                 value={triviaCategory}
-                onChange={(e) => setTriviaCategory(e.target.value)}
+                onChange={(e) => handleCategoryOrDiffChange(e.target.value, undefined)}
                 style={{ padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold' }}
               >
                 <option value="80s Slashers">80s Slashers</option>
@@ -3184,7 +3227,7 @@ export default function HorrorNightsTracker() {
 
               <select
                 value={triviaDifficulty}
-                onChange={(e) => setTriviaDifficulty(e.target.value)}
+                onChange={(e) => handleCategoryOrDiffChange(undefined, e.target.value)}
                 style={{ padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold' }}
               >
                 <option value="Easy">Easy</option>
@@ -3253,7 +3296,7 @@ export default function HorrorNightsTracker() {
                 {/* FUN FACT DISCLOSURE */}
                 {selectedOption && (
                   <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', padding: '12px', borderRadius: '12px', fontSize: '12px', color: '#CBD5E0', marginBottom: '14px' }}>
-                    <strong style={{ color: '#22C55E' }}>
+                    <strong style={{ color: selectedOption === currentQuestion.correctAnswer ? '#22C55E' : '#EF4444' }}>
                       {selectedOption === currentQuestion.correctAnswer ? '🎉 Correct!' : '❌ Incorrect!'}
                     </strong>
                     <div style={{ marginTop: '4px' }}>💡 <em>{currentQuestion.funFact}</em></div>
