@@ -384,7 +384,7 @@ export default function HorrorNightsTracker() {
   // Games Tab Modal States
   const [activeLearnMoreGame, setActiveLearnMoreGame] = useState<GameItem | null>(null);
   
-  // Supabase Trivia Live State
+  // Supabase Trivia Live & Leaderboard States
   const [showAiTriviaModal, setShowAiTriviaModal] = useState<boolean>(false);
   const [triviaCategory, setTriviaCategory] = useState<string>('All');
   const [triviaDifficulty, setTriviaDifficulty] = useState<string>('All');
@@ -396,6 +396,14 @@ export default function HorrorNightsTracker() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [triviaLoading, setTriviaLoading] = useState<boolean>(false);
   const [triviaError, setTriviaError] = useState<string | null>(null);
+
+  // Streak & High Score States
+  const [currentStreak, setCurrentStreak] = useState<number>(0);
+  const [bestThisRun, setBestThisRun] = useState<number>(0);
+  const [allTimeHighScore, setAllTimeHighScore] = useState<number>(0);
+  const [allTimeRecordHolder, setAllTimeHighScoreHolder] = useState<string>('None');
+  const [newHighScorePending, setNewHighScorePending] = useState<boolean>(false);
+  const [recordClaimName, setRecordClaimName] = useState<string>('Dan');
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<any>(null);
@@ -845,11 +853,41 @@ export default function HorrorNightsTracker() {
     }
   };
 
-  // --- SUPABASE DIRECT TRIVIA FETCHING ---
+  // --- SUPABASE DIRECT TRIVIA & LEADERBOARD FETCHING ---
+  const fetchTriviaLeaderboardRecord = async (diff: string) => {
+    try {
+      const supabase = getSupabase();
+      const rowId = `leaderboard_${diff.toLowerCase()}`;
+      const { data, error } = await supabase
+        .from('trivia_leaderboard')
+        .select('*')
+        .eq('id', rowId)
+        .single();
+
+      if (!error && data) {
+        setAllTimeHighScore(data.high_score || 0);
+        setAllTimeHighScoreHolder(data.holder_name || 'None');
+      } else {
+        setAllTimeHighScore(0);
+        setAllTimeHighScoreHolder('None');
+      }
+    } catch (e) {
+      setAllTimeHighScore(0);
+      setAllTimeHighScoreHolder('None');
+    }
+  };
+
   const loadTriviaFromSupabase = async (cat = triviaCategory, diff = triviaDifficulty) => {
     setTriviaLoading(true);
     setTriviaError(null);
     setSelectedOption(null);
+
+    // Reset streaks for new difficulty/category load
+    setCurrentStreak(0);
+    setBestThisRun(0);
+    setNewHighScorePending(false);
+
+    fetchTriviaLeaderboardRecord(diff);
 
     try {
       const supabase = getSupabase();
@@ -888,6 +926,56 @@ export default function HorrorNightsTracker() {
       setTriviaError(e.message || 'Error loading trivia from Supabase.');
     } finally {
       setTriviaLoading(false);
+    }
+  };
+
+  const handleTriviaAnswerSelection = (chosenOption: string) => {
+    if (selectedOption !== null || !currentQuestion) return;
+
+    setSelectedOption(chosenOption);
+
+    const correctVal = currentQuestion.correct_answer?.trim()?.toUpperCase();
+    const isUserCorrect = chosenOption.toUpperCase() === correctVal || 
+      (correctVal === 'A' && chosenOption === currentQuestion.option_a) ||
+      (correctVal === 'B' && chosenOption === currentQuestion.option_b) ||
+      (correctVal === 'C' && chosenOption === currentQuestion.option_c) ||
+      (correctVal === 'D' && chosenOption === currentQuestion.option_d);
+
+    if (isUserCorrect) {
+      const nextStreak = currentStreak + 1;
+      setCurrentStreak(nextStreak);
+
+      if (nextStreak > bestThisRun) {
+        setBestThisRun(nextStreak);
+      }
+
+      if (nextStreak > allTimeHighScore) {
+        setAllTimeHighScore(nextStreak);
+        setNewHighScorePending(true);
+      }
+    } else {
+      setCurrentStreak(0);
+    }
+  };
+
+  const saveNewHighScoreRecord = async () => {
+    try {
+      const supabase = getSupabase();
+      const rowId = `leaderboard_${triviaDifficulty.toLowerCase()}`;
+      await supabase
+        .from('trivia_leaderboard')
+        .upsert({
+          id: rowId,
+          difficulty: triviaDifficulty,
+          high_score: allTimeHighScore,
+          holder_name: recordClaimName,
+          updated_at: new Date().toISOString()
+        });
+
+      setAllTimeHighScoreHolder(recordClaimName);
+      setNewHighScorePending(false);
+    } catch (e) {
+      console.warn("Failed to save high score:", e);
     }
   };
 
@@ -2600,7 +2688,7 @@ export default function HorrorNightsTracker() {
               </div>
               {topHouseData && (
                 <div style={{ color: '#CBD5E0', marginTop: '3px', fontSize: '12px' }}>
-                  Logged <strong>{topHouseData.count}x</strong> | Avg Wait: <strong>{topHouseData.avgWait}m</strong> | Total Wait: <strong style={{ color: '#FF5500' }}>{formatMinutes(topHouseData.totalWait)}</strong>
+                  Logged <strong>{topHouseData.count}x</strong> | Total Wait: <strong style={{ color: '#FF5500' }}>{formatMinutes(topHouseData.totalWait)}</strong> | Avg Wait: <strong>{topHouseData.avgWait}m</strong>
                 </div>
               )}
             </div>
@@ -2612,7 +2700,7 @@ export default function HorrorNightsTracker() {
               </div>
               {topRideData && (
                 <div style={{ color: '#CBD5E0', marginTop: '3px', fontSize: '12px' }}>
-                  Logged <strong>{topRideData.count}x</strong> | Avg Wait: <strong>{topRideData.avgWait}m</strong> | Total Wait: <strong style={{ color: '#3B82F6' }}>{formatMinutes(topRideData.totalWait)}</strong>
+                  Logged <strong>{topRideData.count}x</strong> | Total Wait: <strong style={{ color: '#3B82F6' }}>{formatMinutes(topRideData.totalWait)}</strong> | Avg Wait: <strong>{topRideData.avgWait}m</strong>
                 </div>
               )}
             </div>
@@ -3402,20 +3490,35 @@ export default function HorrorNightsTracker() {
       {/* SUPABASE TRIVIA LIVE INTERACTIVE MODAL */}
       {showAiTriviaModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '92vw', width: '460px', border: '2px solid #FF5500', boxShadow: '0 10px 30px rgba(255, 85, 0, 0.3)', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '20px', maxWidth: '92vw', width: '460px', border: '2px solid #FF5500', boxShadow: '0 10px 30px rgba(255, 85, 0, 0.3)', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>
                 😱 Horror Trivia
               </h3>
               <button onClick={() => setShowAiTriviaModal(false)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '20px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
             </div>
 
+            {/* LEADERBOARD & STREAK BAR */}
+            <div style={{ background: '#1A1A26', borderRadius: '12px', padding: '8px 10px', border: '1px solid #2A2A3C', marginBottom: '12px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '800', color: '#EAB308', marginBottom: '4px', textAlign: 'center' }}>
+                🏆 {triviaDifficulty} Record: <span style={{ color: '#FFF' }}>{allTimeRecordHolder}</span> ({allTimeHighScore})
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', textTransform: 'uppercase', textAlign: 'center' }}>
+                <div style={{ background: '#12121A', padding: '4px', borderRadius: '8px', fontSize: '10px', fontWeight: '900', color: '#FF5500' }}>
+                  🔥 Streak: {currentStreak}
+                </div>
+                <div style={{ background: '#12121A', padding: '4px', borderRadius: '8px', fontSize: '10px', fontWeight: '900', color: '#3B82F6' }}>
+                  ⭐ Best Run: {bestThisRun}
+                </div>
+              </div>
+            </div>
+
             {/* CATEGORY & DIFFICULTY SELECTORS */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px', width: '100%', boxSizing: 'border-box' }}>
               <select
                 value={triviaCategory}
                 onChange={(e) => handleTriviaFilterChange(e.target.value, undefined)}
-                style={{ padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold' }}
+                style={{ width: '100%', minWidth: 0, padding: '8px 4px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold', boxSizing: 'border-box' }}
               >
                 <option value="All">All Categories</option>
                 {availableCategories.map(cat => (
@@ -3426,7 +3529,7 @@ export default function HorrorNightsTracker() {
               <select
                 value={triviaDifficulty}
                 onChange={(e) => handleTriviaFilterChange(undefined, e.target.value)}
-                style={{ padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold' }}
+                style={{ width: '100%', minWidth: 0, padding: '8px 4px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold', boxSizing: 'border-box' }}
               >
                 <option value="All">All Difficulties</option>
                 {availableDifficulties.map(diff => (
@@ -3434,6 +3537,32 @@ export default function HorrorNightsTracker() {
                 ))}
               </select>
             </div>
+
+            {/* NEW HIGH SCORE RECORD CLAIM BANNER */}
+            {newHighScorePending && (
+              <div style={{ background: 'linear-gradient(135deg, #1C130D 0%, #2B1408 100%)', border: '1px solid #FDA30C', padding: '10px 12px', borderRadius: '12px', marginBottom: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', fontWeight: '900', color: '#FDA30C', marginBottom: '6px' }}>
+                  🎉 NEW {triviaDifficulty.toUpperCase()} RECORD: {allTimeHighScore}!
+                </div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <select
+                    value={recordClaimName}
+                    onChange={(e) => setRecordClaimName(e.target.value)}
+                    style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold' }}
+                  >
+                    {FIXED_FAMILY_MEMBERS.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={saveNewHighScoreRecord}
+                    style={{ padding: '6px 12px', background: '#FDA30C', color: '#000', border: 'none', borderRadius: '6px', fontWeight: '900', fontSize: '11px', cursor: 'pointer' }}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* ERROR BANNER */}
             {triviaError && (
@@ -3480,7 +3609,7 @@ export default function HorrorNightsTracker() {
                     return (
                       <button
                         key={item.letter}
-                        onClick={() => setSelectedOption(item.letter)}
+                        onClick={() => handleTriviaAnswerSelection(item.letter)}
                         style={{
                           padding: '10px 12px',
                           borderRadius: '10px',
