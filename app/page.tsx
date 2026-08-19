@@ -81,10 +81,27 @@ interface TriviaQuestion {
   correct_answer: string;
 }
 
+interface ParkingLog {
+  id: string;
+  garage_name: string;
+  row_number: string;
+  parked_by: string;
+  created_at: string;
+}
+
 type AnalyticsSortKey = 'visits' | 'avgWait' | 'totalWait' | 'avgExpected' | 'diff';
 
 const FIXED_FAMILY_MEMBERS = [
   'Dan', 'Mandie', 'Elijah', 'Violette', 'Sophia', 'Zach', 'Jasmine', 'Kimbo'
+];
+
+const PARKING_GARAGES = [
+  { name: 'Jurassic Park', color: '#D9000C', file: '/parking-jp.png' },
+  { name: 'King Kong', color: '#FFE600', file: '/parking-kong.png', darkText: true },
+  { name: 'Jaws', color: '#0050CA', file: '/parking-jaws.png' },
+  { name: 'Spider-Man', color: '#6414B3', file: '/parking-spider.png' },
+  { name: 'Cat in the Hat', color: '#FF8200', file: '/parking-cat.png' },
+  { name: 'E.T.', color: '#009E48', file: '/parking-et.png' }
 ];
 
 const HHN_HOUSES = [
@@ -343,6 +360,17 @@ const parsePostedWait = (notes?: string): number | null => {
   return match ? parseInt(match[1], 10) : null;
 };
 
+// Calculate 6 AM daily cutoff timestamp
+const getRecent6AMCutoffISO = () => {
+  const now = new Date();
+  const cutoff = new Date(now);
+  if (now.getHours() < 6) {
+    cutoff.setDate(cutoff.getDate() - 1);
+  }
+  cutoff.setHours(6, 0, 0, 0);
+  return cutoff.toISOString();
+};
+
 export default function HorrorNightsTracker() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [activeVisit, setActiveVisit] = useState<Visit | null>(null);
@@ -350,14 +378,22 @@ export default function HorrorNightsTracker() {
   // Main Tabs
   const [mainTab, setMainTab] = useState<'tracker' | 'analytics' | 'map' | 'yum' | 'games'>('tracker');
   
-  // Subtabs
-  const [trackerSubTab, setTrackerSubTab] = useState<'Visit HHN' | 'Past Visits'>('Visit HHN');
+  // Tracker Subtabs: Tonight | History | Parking
+  const [trackerSubTab, setTrackerSubTab] = useState<'Tonight' | 'History' | 'Parking'>('Tonight');
   const [analyticsSubTab, setAnalyticsSubTab] = useState<'Houses' | 'Rides' | 'Attendees'>('Houses');
 
-  // Map Filter State
+  // Map Filter & Centering State
   const [mapCategoryFilter, setMapCategoryFilter] = useState<'all' | 'house' | 'ride' | 'show' | 'scarezone' | 'water' | 'food'>('all');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [hasCenteredUserMap, setHasCenteredUserMap] = useState<boolean>(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState<boolean>(false);
+
+  // Parking Form States
+  const [parkingAttendees, setParkingAttendees] = useState<string[]>([]);
+  const [parkingGarage, setParkingGarage] = useState<string>(PARKING_GARAGES[0].name);
+  const [parkingRowNumber, setParkingRowNumber] = useState<string>('');
+  const [parkingLogs, setParkingLogs] = useState<ParkingLog[]>([]);
+  const [parkingSaving, setParkingSaving] = useState<boolean>(false);
 
   // Yum Tab Filter & Sorting States
   const [yumCategoryFilter, setYumCategoryFilter] = useState<'all' | 'food' | 'drink' | 'dessert' | 'gf'>('all');
@@ -501,6 +537,7 @@ export default function HorrorNightsTracker() {
     fetchThemeParkWaitTimes();
     fetchYumComments();
     fetchPretzelCounts();
+    fetchParkingLogs();
 
     if (typeof window !== 'undefined' && navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
@@ -520,16 +557,9 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
+  // LEAFLET MAP - SINGLE INIT & NO RE-CREATION GLITCH
   useEffect(() => {
-    if (mainTab !== 'map' || !mapContainerRef.current) {
-      if (leafletMapRef.current) {
-        leafletMapRef.current.remove();
-        leafletMapRef.current = null;
-        userMarkerRef.current = null;
-        poiMarkersRef.current = [];
-      }
-      return;
-    }
+    if (mainTab !== 'map' || !mapContainerRef.current) return;
 
     if (!document.getElementById('leaflet-css')) {
       const link = document.createElement('link');
@@ -539,15 +569,19 @@ export default function HorrorNightsTracker() {
       document.head.appendChild(link);
     }
 
-    const renderMap = () => {
+    const initOrUpdateMap = () => {
       const L = (window as any).L;
       if (!L || !mapContainerRef.current) return;
 
+      // 1. Initialize Map Once
       if (!leafletMapRef.current) {
+        const initialLat = userLocation?.lat || 28.4770;
+        const initialLng = userLocation?.lng || -81.4680;
+
         const map = L.map(mapContainerRef.current, {
           zoomControl: true,
           fadeAnimation: false
-        }).setView([28.4770, -81.4680], 17);
+        }).setView([initialLat, initialLng], 17);
         
         leafletMapRef.current = map;
 
@@ -560,21 +594,28 @@ export default function HorrorNightsTracker() {
       const map = leafletMapRef.current;
       setTimeout(() => { if (map) map.invalidateSize(); }, 150);
 
+      // 2. User Location Marker & First-Time Centering
       if (userLocation) {
+        if (!hasCenteredUserMap) {
+          map.setView([userLocation.lat, userLocation.lng], 17);
+          setHasCenteredUserMap(true);
+        }
+
         if (userMarkerRef.current) {
           userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
         } else {
           userMarkerRef.current = L.circleMarker([userLocation.lat, userLocation.lng], {
-            radius: 8,
+            radius: 9,
             fillColor: '#3B82F6',
             color: '#FFFFFF',
-            weight: 2,
+            weight: 3,
             opacity: 1,
-            fillOpacity: 0.9
+            fillOpacity: 0.95
           }).addTo(map).bindPopup('<b>📍 You are here</b>');
         }
       }
 
+      // 3. Update POI Markers in place
       poiMarkersRef.current.forEach(m => map.removeLayer(m));
       poiMarkersRef.current = [];
 
@@ -622,23 +663,14 @@ export default function HorrorNightsTracker() {
     };
 
     if ((window as any).L) {
-      renderMap();
+      initOrUpdateMap();
     } else {
       const script = document.createElement('script');
       script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = renderMap;
+      script.onload = initOrUpdateMap;
       document.body.appendChild(script);
     }
-
-    return () => {
-      if (leafletMapRef.current) {
-        leafletMapRef.current.remove();
-        leafletMapRef.current = null;
-        userMarkerRef.current = null;
-        poiMarkersRef.current = [];
-      }
-    };
-  }, [mainTab, mapCategoryFilter, liveWaitTimes, userLocation, isMapFullscreen]);
+  }, [mainTab, mapCategoryFilter, liveWaitTimes, userLocation]);
 
   const fetchThemeParkWaitTimes = async () => {
     setWaitsSyncing(true);
@@ -779,6 +811,66 @@ export default function HorrorNightsTracker() {
     } catch (e) {}
   };
 
+  // --- PARKING LOGS SUPABASE API (WITH 6 AM RESET FILTER) ---
+  const fetchParkingLogs = async () => {
+    try {
+      const cutoffISO = getRecent6AMCutoffISO();
+      const supabase = getSupabase();
+      const { data, error } = await supabase
+        .from('parking_logs')
+        .select('*')
+        .gte('created_at', cutoffISO)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setParkingLogs(data);
+      }
+    } catch (e) {}
+  };
+
+  const handleSaveParkingLog = async () => {
+    if (!parkingRowNumber.trim()) {
+      alert("Please enter a row number!");
+      return;
+    }
+
+    setParkingSaving(true);
+    const parkedByStr = parkingAttendees.length > 0 ? parkingAttendees.join(', ') : 'Just Me';
+
+    try {
+      const supabase = getSupabase();
+      const { data, error } = await supabase
+        .from('parking_logs')
+        .insert({
+          garage_name: parkingGarage,
+          row_number: parkingRowNumber.trim(),
+          parked_by: parkedByStr
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        setParkingLogs(prev => [data, ...prev]);
+        setParkingRowNumber('');
+        setParkingAttendees([]);
+      } else if (error) {
+        alert("Error saving parking: " + error.message);
+      }
+    } catch (e: any) {
+      alert("Error saving parking: " + e.message);
+    } finally {
+      setParkingSaving(false);
+    }
+  };
+
+  const toggleParkingAttendee = (name: string) => {
+    if (parkingAttendees.includes(name)) {
+      setParkingAttendees(parkingAttendees.filter(a => a !== name));
+    } else {
+      setParkingAttendees([...parkingAttendees, name]);
+    }
+  };
+
   // --- PRETZEL TRACKER SUPABASE API ---
   const fetchPretzelCounts = async () => {
     try {
@@ -882,7 +974,6 @@ export default function HorrorNightsTracker() {
     setTriviaError(null);
     setSelectedOption(null);
 
-    // Reset streaks for new difficulty/category load
     setCurrentStreak(0);
     setBestThisRun(0);
     setNewHighScorePending(false);
@@ -1907,14 +1998,17 @@ export default function HorrorNightsTracker() {
 
       </div>
 
-      {/* 2. TRACKER SUBHEADER NAVS */}
+      {/* 2. TRACKER SUBHEADER NAVS (Tonight | History | Parking) */}
       {mainTab === 'tracker' && (
         <div style={{ display: 'flex', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '12px', border: '1px solid #27273A', padding: '3px', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
-          <button onClick={() => setTrackerSubTab('Visit HHN')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: trackerSubTab === 'Visit HHN' ? '#FF5500' : 'transparent', color: trackerSubTab === 'Visit HHN' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
-            Visit HHN
+          <button onClick={() => setTrackerSubTab('Tonight')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: trackerSubTab === 'Tonight' ? '#FF5500' : 'transparent', color: trackerSubTab === 'Tonight' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
+            Tonight
           </button>
-          <button onClick={() => setTrackerSubTab('Past Visits')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: trackerSubTab === 'Past Visits' ? '#FF5500' : 'transparent', color: trackerSubTab === 'Past Visits' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
-            Past Visits
+          <button onClick={() => setTrackerSubTab('History')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: trackerSubTab === 'History' ? '#FF5500' : 'transparent', color: trackerSubTab === 'History' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
+            History
+          </button>
+          <button onClick={() => setTrackerSubTab('Parking')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: trackerSubTab === 'Parking' ? '#FF5500' : 'transparent', color: trackerSubTab === 'Parking' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
+            Parking
           </button>
         </div>
       )}
@@ -2325,7 +2419,7 @@ export default function HorrorNightsTracker() {
       )}
 
       {/* 6. TRACKER TAB VIEWS */}
-      {mainTab === 'tracker' && trackerSubTab === 'Visit HHN' && (
+      {mainTab === 'tracker' && trackerSubTab === 'Tonight' && (
         <div>
           {activeVisit ? (
             /* ACTIVE VISIT LIVE WIDGET */
@@ -2472,11 +2566,14 @@ export default function HorrorNightsTracker() {
                     <strong style={{ fontSize: '11px', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>TONIGHT'S LOG ({activeVisit.activities.length}):</strong>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {activeVisit.activities.map((act) => (
-                        <div key={act.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1A1A26', padding: '8px 10px', borderRadius: '8px', border: '1px solid #2A2A3C' }}>
+                        <div key={act.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', background: '#1A1A26', padding: '8px 10px', borderRadius: '8px', border: '1px solid #2A2A3C' }}>
                           <div style={{ minWidth: 0, flex: 1, paddingRight: '8px' }}>
                             <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#F3F4F6' }}>{act.rideName}</div>
                             <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                              ⏱️ {act.waitTimeMinutes} mins wait {act.notes ? `(${act.notes})` : ''} • 👥 {parseAttendees(act.riders).join(', ')}
+                              ⏱️ {act.waitTimeMinutes} mins wait {act.notes ? `(${act.notes})` : ''}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                              👥 {parseAttendees(act.riders).join(', ')}
                             </div>
                           </div>
                           <button
@@ -2735,7 +2832,7 @@ export default function HorrorNightsTracker() {
 
           </div>
 
-          {/* 🥨 BRANDED AUNTIE ANNE'S PRETZEL TRACKER WIDGET */}
+          {/* 🥨 BRANDED DANDIE PRETZEL TRACKER WIDGET */}
           <div style={{
             background: '#000F9F',
             borderRadius: '24px',
@@ -2756,7 +2853,7 @@ export default function HorrorNightsTracker() {
             </div>
 
             <h3 style={{ margin: '0 0 10px 0', fontSize: '11px', fontWeight: '900', color: '#FDA30C', letterSpacing: '1px', textTransform: 'uppercase' }}>
-              PRETZEL TRACKER
+              DANDIE PRETZEL TRACKER
             </h3>
 
             {/* TOTAL PRETZELS DISPLAY */}
@@ -2825,11 +2922,11 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
-      {/* SUBTAB: PAST VISITS */}
-      {mainTab === 'tracker' && trackerSubTab === 'Past Visits' && (
+      {/* SUBTAB: HISTORY */}
+      {mainTab === 'tracker' && trackerSubTab === 'History' && (
         <div>
           <h2 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '12px', color: '#FF5500', paddingLeft: '5px' }}>
-            Past Visits ({visits.length})
+            History ({visits.length})
           </h2>
           {loading ? (
             <p style={{ color: '#A0AEC0', textAlign: 'center', fontSize: '14px', margin: '20px 0' }}>Syncing with cloud...</p>
@@ -2973,6 +3070,178 @@ export default function HorrorNightsTracker() {
               );
             })
           )}
+        </div>
+      )}
+
+      {/* SUBTAB: PARKING */}
+      {mainTab === 'tracker' && trackerSubTab === 'Parking' && (
+        <div>
+          {/* PARKING FORM WIDGET */}
+          <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '20px', borderRadius: '24px', border: '1px solid #2A2A3C', marginBottom: '20px', backdropFilter: 'blur(8px)' }}>
+            <h2 style={{ marginTop: 0, fontSize: '18px', fontWeight: '900', color: '#FF5500', marginBottom: '14px' }}>
+              🚗 Log Your Parking
+            </h2>
+
+            {/* WHO'S PARKING */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>
+                WHO'S PARKING?
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                {FIXED_FAMILY_MEMBERS.map((name) => {
+                  const isSelected = parkingAttendees.includes(name);
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => toggleParkingAttendee(name)}
+                      style={{
+                        padding: '10px 2px',
+                        borderRadius: '10px',
+                        border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C',
+                        background: isSelected ? '#FF5500' : '#1A1A26',
+                        color: isSelected ? '#FFF' : '#CBD5E0',
+                        fontSize: '12px',
+                        fontWeight: isSelected ? '800' : '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* GARAGE SELECTOR */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>
+                SELECT GARAGE
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                {PARKING_GARAGES.map((g) => {
+                  const isSelected = parkingGarage === g.name;
+                  return (
+                    <button
+                      key={g.name}
+                      type="button"
+                      onClick={() => setParkingGarage(g.name)}
+                      style={{
+                        padding: '12px 8px',
+                        borderRadius: '12px',
+                        border: isSelected ? `2px solid #FFF` : '1px solid #2A2A3C',
+                        background: isSelected ? g.color : '#1A1A26',
+                        color: isSelected ? (g.darkText ? '#000000' : '#FFFFFF') : '#CBD5E0',
+                        fontSize: '12px',
+                        fontWeight: '900',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        boxShadow: isSelected ? `0 4px 14px ${g.color}66` : 'none',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {g.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ROW NUMBER INPUT */}
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>
+                ROW / FLOOR NUMBER
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 304 or Level 3, Row 12"
+                value={parkingRowNumber}
+                onChange={(e) => setParkingRowNumber(e.target.value)}
+                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px', fontWeight: 'bold', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            {/* SAVE BUTTON */}
+            <button
+              type="button"
+              onClick={handleSaveParkingLog}
+              disabled={parkingSaving}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: '#FF5500',
+                color: '#FFF',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '15px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(255, 85, 0, 0.4)'
+              }}
+            >
+              {parkingSaving ? 'Saving...' : '💾 Save Parking Spot'}
+            </button>
+          </div>
+
+          {/* SAVED PARKING SPOTS CARDS */}
+          <div>
+            <h3 style={{ fontSize: '14px', fontWeight: '900', color: '#A0AEC0', marginBottom: '12px', letterSpacing: '0.8px' }}>
+              TODAY'S PARKING SPOTS ({parkingLogs.length})
+            </h3>
+
+            {parkingLogs.length === 0 ? (
+              <p style={{ color: '#A0AEC0', textAlign: 'center', fontSize: '13px', fontStyle: 'italic', margin: '20px 0' }}>
+                No parking spots logged today.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {parkingLogs.map(log => {
+                  const garageInfo = PARKING_GARAGES.find(g => g.name === log.garage_name) || PARKING_GARAGES[0];
+                  const textColor = garageInfo.darkText ? '#000000' : '#FFFFFF';
+
+                  return (
+                    <div
+                      key={log.id}
+                      style={{
+                        background: garageInfo.color,
+                        color: textColor,
+                        borderRadius: '20px',
+                        padding: '16px 18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        boxShadow: `0 6px 20px ${garageInfo.color}55`,
+                        boxSizing: 'border-box',
+                        width: '100%'
+                      }}
+                    >
+                      {/* LOGO */}
+                      <img
+                        src={garageInfo.file}
+                        alt={garageInfo.name}
+                        onError={(e: any) => { e.target.style.display = 'none'; }}
+                        style={{ width: '56px', height: '56px', objectFit: 'contain', flexShrink: 0 }}
+                      />
+
+                      {/* TEXT CONTENT */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '22px', fontWeight: '900', lineHeight: '1.1' }}>
+                          Row {log.row_number}
+                        </div>
+                        <div style={{ fontSize: '12px', fontWeight: '800', marginTop: '4px', opacity: 0.9 }}>
+                          {garageInfo.name} Garage
+                        </div>
+                        <div style={{ fontSize: '11px', fontWeight: '700', marginTop: '6px', opacity: 0.85 }}>
+                          👤 Parked by: {log.parked_by}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -3503,12 +3772,9 @@ export default function HorrorNightsTracker() {
               <div style={{ fontSize: '10px', fontWeight: '800', color: '#EAB308', marginBottom: '4px', textAlign: 'center' }}>
                 🏆 {triviaDifficulty} Record: <span style={{ color: '#FFF' }}>{allTimeRecordHolder}</span> ({allTimeHighScore})
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', textTransform: 'uppercase', textAlign: 'center' }}>
-                <div style={{ background: '#12121A', padding: '4px', borderRadius: '8px', fontSize: '10px', fontWeight: '900', color: '#FF5500' }}>
-                  🔥 Streak: {currentStreak}
-                </div>
-                <div style={{ background: '#12121A', padding: '4px', borderRadius: '8px', fontSize: '10px', fontWeight: '900', color: '#3B82F6' }}>
-                  ⭐ Best Run: {bestThisRun}
+              <div style={{ display: 'flex', justifyContent: 'center', textTransform: 'uppercase', textAlign: 'center' }}>
+                <div style={{ background: '#12121A', padding: '6px 16px', borderRadius: '8px', fontSize: '11px', fontWeight: '900', color: '#FF5500' }}>
+                  🔥 Current Streak: {currentStreak}
                 </div>
               </div>
             </div>
@@ -3542,7 +3808,7 @@ export default function HorrorNightsTracker() {
             {newHighScorePending && (
               <div style={{ background: 'linear-gradient(135deg, #1C130D 0%, #2B1408 100%)', border: '1px solid #FDA30C', padding: '10px 12px', borderRadius: '12px', marginBottom: '12px', textAlign: 'center' }}>
                 <div style={{ fontSize: '11px', fontWeight: '900', color: '#FDA30C', marginBottom: '6px' }}>
-                  🎉 NEW {triviaDifficulty.toUpperCase()} RECORD: {allTimeHighScore}!
+                  🎉 NEW {triviaDifficulty === 'All' ? 'ALL DIFFICULTIES' : triviaDifficulty.toUpperCase()} RECORD: {allTimeHighScore}!
                 </div>
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <select
@@ -3659,7 +3925,7 @@ export default function HorrorNightsTracker() {
               disabled={triviaLoading || triviaDeck.length === 0}
               style={{ width: '100%', padding: '12px', background: '#FF5500', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}
             >
-              Next Question ➡️
+              Next Question
             </button>
           </div>
         </div>
