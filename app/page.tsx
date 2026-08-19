@@ -129,6 +129,38 @@ const HHN_SHOWS = [
   'Stranger Things (Lagoon Show)'
 ];
 
+const HOUSE_GRID_LAYOUT = [
+  [
+    { name: 'Sinners', apiKey: 'Sinners' },
+    { name: 'Hellraiser', apiKey: 'Hellraiser' }
+  ],
+  [
+    { name: 'Ozzy Osbourne', apiKey: 'Ozzy Osbourne' },
+    { name: 'Evil Dead', apiKey: 'Evil Dead Burn' }
+  ],
+  [
+    { name: 'ST5', apiKey: 'Stranger Things 5' },
+    { name: 'INVASION', apiKey: 'INVASION: Alien Abduction' },
+    { name: 'Cybergoria', apiKey: 'Cybergoria' }
+  ],
+  [
+    { name: 'Oddfellow', apiKey: 'Jack & Oddfellow' },
+    { name: 'Bloodengutz', apiKey: 'H.R. Bloodengutz' },
+    { name: 'Cannibals', apiKey: 'Madlands: Caged Cannibals' }
+  ]
+];
+
+const RIDE_GRID_LAYOUT = [
+  [
+    { name: 'Men in Black', apiKey: 'Men in Black: Alien Attack' },
+    { name: 'Transformers', apiKey: 'Transformers: The Ride-3D' }
+  ],
+  [
+    { name: 'Harry Potter', apiKey: 'Harry Potter and the Escape from Gringotts' },
+    { name: 'Mummy', apiKey: 'Revenge of the Mummy' }
+  ]
+];
+
 const ITEM_EMOJIS: Record<string, string> = {
   'Sinners': '🧛',
   'Hellraiser': '🧩',
