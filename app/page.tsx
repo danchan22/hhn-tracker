@@ -277,38 +277,6 @@ const HHN_MAP_LOCATIONS: MapPOI[] = [
   { id: 'water-7', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.480178017295195, lng: -81.46787166662219 }
 ];
 
-const HOUSE_GRID_LAYOUT = [
-  [
-    { name: 'Sinners', apiKey: 'Sinners' },
-    { name: 'Hellraiser', apiKey: 'Hellraiser' }
-  ],
-  [
-    { name: 'Ozzy Osbourne', apiKey: 'Ozzy Osbourne' },
-    { name: 'Evil Dead', apiKey: 'Evil Dead Burn' }
-  ],
-  [
-    { name: 'ST5', apiKey: 'Stranger Things 5' },
-    { name: 'INVASION', apiKey: 'INVASION: Alien Abduction' },
-    { name: 'Cybergoria', apiKey: 'Cybergoria' }
-  ],
-  [
-    { name: 'Oddfellow', apiKey: 'Jack & Oddfellow' },
-    { name: 'Bloodengutz', apiKey: 'H.R. Bloodengutz' },
-    { name: 'Cannibals', apiKey: 'Madlands: Caged Cannibals' }
-  ]
-];
-
-const RIDE_GRID_LAYOUT = [
-  [
-    { name: 'Men in Black', apiKey: 'Men in Black: Alien Attack' },
-    { name: 'Transformers', apiKey: 'Transformers: The Ride-3D' }
-  ],
-  [
-    { name: 'Harry Potter', apiKey: 'Harry Potter and the Escape from Gringotts' },
-    { name: 'Mummy', apiKey: 'Revenge of the Mummy' }
-  ]
-];
-
 const EVENING_HOURS = [18, 19, 20, 21, 22, 23];
 
 const INITIAL_MOCK_WAITS: Record<string, number> = {
@@ -360,7 +328,6 @@ const parsePostedWait = (notes?: string): number | null => {
   return match ? parseInt(match[1], 10) : null;
 };
 
-// Calculate 6 AM daily cutoff timestamp
 const getRecent6AMCutoffISO = () => {
   const now = new Date();
   const cutoff = new Date(now);
@@ -378,11 +345,11 @@ export default function HorrorNightsTracker() {
   // Main Tabs
   const [mainTab, setMainTab] = useState<'tracker' | 'analytics' | 'map' | 'yum' | 'games'>('tracker');
   
-  // Tracker Subtabs: Tonight | History | Parking
+  // Tracker Subtabs
   const [trackerSubTab, setTrackerSubTab] = useState<'Tonight' | 'History' | 'Parking'>('Tonight');
   const [analyticsSubTab, setAnalyticsSubTab] = useState<'Houses' | 'Rides' | 'Attendees'>('Houses');
 
-  // Map Filter & Centering State
+  // Map Filter & Location States
   const [mapCategoryFilter, setMapCategoryFilter] = useState<'all' | 'house' | 'ride' | 'show' | 'scarezone' | 'water' | 'food'>('all');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [hasCenteredUserMap, setHasCenteredUserMap] = useState<boolean>(false);
@@ -557,7 +524,7 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
-  // LEAFLET MAP - SINGLE INIT & NO RE-CREATION GLITCH
+  // LEAFLET MAP - SINGLE INIT & PERSISTENT CANVAS FIX
   useEffect(() => {
     if (mainTab !== 'map' || !mapContainerRef.current) return;
 
@@ -573,7 +540,6 @@ export default function HorrorNightsTracker() {
       const L = (window as any).L;
       if (!L || !mapContainerRef.current) return;
 
-      // 1. Initialize Map Once
       if (!leafletMapRef.current) {
         const initialLat = userLocation?.lat || 28.4770;
         const initialLng = userLocation?.lng || -81.4680;
@@ -592,9 +558,8 @@ export default function HorrorNightsTracker() {
       }
 
       const map = leafletMapRef.current;
-      setTimeout(() => { if (map) map.invalidateSize(); }, 150);
+      setTimeout(() => { if (map) map.invalidateSize(); }, 200);
 
-      // 2. User Location Marker & First-Time Centering
       if (userLocation) {
         if (!hasCenteredUserMap) {
           map.setView([userLocation.lat, userLocation.lng], 17);
@@ -615,7 +580,6 @@ export default function HorrorNightsTracker() {
         }
       }
 
-      // 3. Update POI Markers in place
       poiMarkersRef.current.forEach(m => map.removeLayer(m));
       poiMarkersRef.current = [];
 
@@ -671,6 +635,14 @@ export default function HorrorNightsTracker() {
       document.body.appendChild(script);
     }
   }, [mainTab, mapCategoryFilter, liveWaitTimes, userLocation]);
+
+  const handleRecenterUserMap = () => {
+    if (leafletMapRef.current && userLocation) {
+      leafletMapRef.current.setView([userLocation.lat, userLocation.lng], 17);
+    } else if (leafletMapRef.current) {
+      leafletMapRef.current.setView([28.4770, -81.4680], 17);
+    }
+  };
 
   const fetchThemeParkWaitTimes = async () => {
     setWaitsSyncing(true);
@@ -2388,31 +2360,44 @@ export default function HorrorNightsTracker() {
                 style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
               />
 
-              <button
-                onClick={() => setIsMapFullscreen(!isMapFullscreen)}
-                style={{
-                  position: 'absolute',
-                  bottom: '12px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  zIndex: 999,
-                  padding: '8px 16px',
-                  borderRadius: '20px',
-                  background: 'rgba(42, 42, 60, 0.85)',
-                  color: '#CBD5E0',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  fontSize: '12px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                  backdropFilter: 'blur(6px)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                {isMapFullscreen ? '✕ Exit Fullscreen' : '⛶ Fullscreen'}
-              </button>
+              {/* RECENTER & FULLSCREEN BUTTONS */}
+              <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 999, display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={handleRecenterUserMap}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '20px',
+                    background: 'rgba(59, 130, 246, 0.9)',
+                    color: '#FFF',
+                    border: '1px solid rgba(255, 255, 255, 0.4)',
+                    fontSize: '12px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                    backdropFilter: 'blur(6px)'
+                  }}
+                >
+                  📍 Center on Me
+                </button>
+
+                <button
+                  onClick={() => setIsMapFullscreen(!isMapFullscreen)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '20px',
+                    background: 'rgba(42, 42, 60, 0.85)',
+                    color: '#CBD5E0',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    fontSize: '12px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                    backdropFilter: 'blur(6px)'
+                  }}
+                >
+                  {isMapFullscreen ? '✕ Exit' : '⛶ Fullscreen'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -3151,11 +3136,13 @@ export default function HorrorNightsTracker() {
             {/* ROW NUMBER INPUT */}
             <div style={{ marginBottom: '18px' }}>
               <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>
-                ROW / FLOOR NUMBER
+                ROW NUMBER
               </label>
               <input
-                type="text"
-                placeholder="e.g. 304 or Level 3, Row 12"
+                type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="e.g. 305"
                 value={parkingRowNumber}
                 onChange={(e) => setParkingRowNumber(e.target.value)}
                 style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px', fontWeight: 'bold', boxSizing: 'border-box' }}
@@ -3233,7 +3220,7 @@ export default function HorrorNightsTracker() {
                           {garageInfo.name} Garage
                         </div>
                         <div style={{ fontSize: '11px', fontWeight: '700', marginTop: '6px', opacity: 0.85 }}>
-                          👤 Parked by: {log.parked_by}
+                          {log.parked_by}
                         </div>
                       </div>
                     </div>
@@ -3770,7 +3757,7 @@ export default function HorrorNightsTracker() {
             {/* LEADERBOARD & STREAK BAR */}
             <div style={{ background: '#1A1A26', borderRadius: '12px', padding: '8px 10px', border: '1px solid #2A2A3C', marginBottom: '12px' }}>
               <div style={{ fontSize: '10px', fontWeight: '800', color: '#EAB308', marginBottom: '4px', textAlign: 'center' }}>
-                🏆 {triviaDifficulty} Record: <span style={{ color: '#FFF' }}>{allTimeRecordHolder}</span> ({allTimeHighScore})
+                🏆 {triviaDifficulty === 'All' ? 'All Difficulties' : triviaDifficulty} Record: <span style={{ color: '#FFF' }}>{allTimeRecordHolder}</span> ({allTimeHighScore})
               </div>
               <div style={{ display: 'flex', justifyContent: 'center', textTransform: 'uppercase', textAlign: 'center' }}>
                 <div style={{ background: '#12121A', padding: '6px 16px', borderRadius: '8px', fontSize: '11px', fontWeight: '900', color: '#FF5500' }}>
