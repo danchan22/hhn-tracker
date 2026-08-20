@@ -2098,7 +2098,7 @@ export default function HorrorNightsTracker() {
     setQueueStartTimeStr(null);
   };
 
-  const deleteVisit = async (id: string) => {
+ const deleteVisit = async (id: string) => {
     const confirmDelete = window.confirm("⚠️ Are you sure you want to delete this entire visit log? This action cannot be undone!");
     if (!confirmDelete) return;
 
@@ -2345,35 +2345,32 @@ export default function HorrorNightsTracker() {
 )}
 
 {/* 🛠️ UTILITY MODALS */}
-   <UtilityModals
-     activeLearnMoreGame={activeLearnMoreGame}
-     setActiveLearnMoreGame={setActiveLearnMoreGame}
-     activeLearnMoreColor={activeLearnMoreColor}
-     previewYumImage={previewYumImage}
-     setPreviewYumImage={setPreviewYumImage}
-     showCheckoutModal={showCheckoutModal}
-     setShowCheckoutModal={setShowCheckoutModal}
-     activeVisit={activeVisit}
-     activePartyList={activePartyList}
-     departingMembers={departingMembers}
-     toggleDepartingMember={toggleDepartingMember}
-     processCheckout={processCheckout}
-     editingVisit={editingVisit}
-     setEditingVisit={setEditingVisit}
-     editVisitStartTime={editVisitStartTime}
-     setEditVisitStartTime={setEditVisitStartTime}
-     editVisitEndTime={editVisitEndTime}
-     setEditVisitEndTime={setEditVisitEndTime}
-     editVisitMemberEndTimes={editVisitMemberEndTimes}
-     setEditVisitMemberEndTimes={setEditVisitMemberEndTimes}
-     handleSaveVisitEdit={handleSaveVisitEdit}
-     formatDisplayDate={formatDisplayDate}
-     parseAttendees={parseAttendees}
-   />
+      <UtilityModals
+        activeLearnMoreGame={activeLearnMoreGame}
+        setActiveLearnMoreGame={setActiveLearnMoreGame}
+        activeLearnMoreColor={activeLearnMoreColor}
+        previewYumImage={previewYumImage}
+        setPreviewYumImage={setPreviewYumImage}
+        showCheckoutModal={showCheckoutModal}
+        setShowCheckoutModal={setShowCheckoutModal}
+        activeVisit={activeVisit}
+        activePartyList={activePartyList}
+        departingMembers={departingMembers}
+        toggleDepartingMember={toggleDepartingMember}
+        processCheckout={processCheckout}
+        editingVisit={editingVisit}
+        setEditingVisit={setEditingVisit}
+        editVisitStartTime={editVisitStartTime}
+        setEditVisitStartTime={setEditVisitStartTime}
+        editVisitEndTime={editVisitEndTime}
+        setEditVisitEndTime={setEditVisitEndTime}
+        editVisitMemberEndTimes={editVisitMemberEndTimes}
+        setEditVisitMemberEndTimes={setEditVisitMemberEndTimes}
+        handleSaveVisitEdit={handleSaveVisitEdit}
+        formatDisplayDate={formatDisplayDate}
+        parseAttendees={parseAttendees}
+      />
 
-   {/* ⭐ HOUSE RATING MODAL */}
-   <HouseRatingModal ... />
-      
       {/* ⭐ HOUSE RATING MODAL */}
       <HouseRatingModal
         isOpen={showRatingModal}
