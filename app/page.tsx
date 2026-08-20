@@ -67,6 +67,10 @@ interface GameItem {
   overview: string;
   description: string;
   isAiTrivia?: boolean;
+  noLearnMore?: boolean;
+  externalLink?: string;
+  iosLink?: string;
+  androidLink?: string;
 }
 
 interface TriviaQuestion {
@@ -211,8 +215,8 @@ const YUM_LOCATIONS = [
   'Animal Actors'
 ];
 
-const RANDOM_ACCENT_COLORS = [
-  '#FF5500', '#3B82F6', '#10B981', '#A855F7', '#F59E0B', '#EC4899', '#06B6D4'
+const ACCENT_COLORS = [
+  '#FF5500', '#3B82F6', '#10B981', '#A855F7', '#F59E0B', '#EC4899', '#06B6D4', '#E11D48', '#8B5CF6'
 ];
 
 const MOCK_YUM_ITEMS: YumItem[] = [
@@ -270,7 +274,8 @@ const MOCK_YUM_ITEMS: YumItem[] = [
   }
 ];
 
-const MOCK_GAMES: GameItem[] = [
+// FULL SPREADSHEET GAMES LIST
+const RAW_GAMES_LIST: GameItem[] = [
   {
     id: 'ai-horror-trivia',
     name: 'Horror Movie Trivia',
@@ -287,6 +292,140 @@ const MOCK_GAMES: GameItem[] = [
     appRequired: false,
     overview: 'One player hides an imaginary peanut anywhere in the world. Everyone else asks Yes or No questions to discover where it’s hidden.',
     description: `One player hides an imaginary peanut anywhere in the world. Everyone else asks Yes or No questions to discover where it’s hidden.\n\nFor the Peanut hider: Think of anywhere in the world, real or imaginary. Be as generic (the peanut is in Florida) or specific (the peanut is behind Mickey Mouse’s left ear) as you’d like.\n\nFor the guessers: Ask questions that can only be answered with Yes or No. Keep asking questions until you find the peanut.`
+  },
+  {
+    id: 'the-puppeteer',
+    name: 'The Puppeteer',
+    players: '2',
+    appRequired: false,
+    overview: 'The puppeteer thinks of an action and the puppet acts out the gestures of that action until they guess what they\'re doing.',
+    description: `This game has two roles: The puppeteer and the puppet.\n\nThe puppeteer thinks of an action that involves some movement (like mowing the lawn). They have to get the puppet to act out the action good enough to guess what they're supposed to be doing.\n\nNote for the puppet: You can't do anything unless the puppeteer tells you to. You can guess as many times as you like, but the game isn't over until you guess correctly.`
+  },
+  {
+    id: 'last-answers',
+    name: 'Last Answers',
+    players: '2+',
+    appRequired: false,
+    overview: 'One player must answer absurd questions with a pre-chosen, mismatched noun without cracking a smile.',
+    description: `One player is designated "it" and silently thinks of a random noun (like "the Marianas Trench"). The other players take turns asking any question that would normally prompt a noun answer. No matter how nonsensical it sounds, "it" must answer with their secret word, straight-faced. If they laugh, the player who asked that question becomes the new "it."\n\nThe twist that keeps it going: after answering, "it" immediately thinks up a new noun that's a plausible response to the question just asked, and that becomes the answer to whatever question comes next. So questioners get a rough sense of what the next answer might be based on the previous question, but "it" has no idea what's coming, since the next question is usually shaped around their last answer.`
+  },
+  {
+    id: 'party-crasher',
+    name: 'Party Crasher',
+    players: '4+',
+    appRequired: true,
+    overview: 'An impostor style game. Players take turns asking each other questions about the party.',
+    description: `Partygoers (most players):\nYou see the party theme (e.g., "Beach Party"). Your goal is to find the crasher!\n\nThe Party Crasher (1 player):\nYou DON'T see the theme - just that you're the crasher. Blend in and figure out what kind of party it is!\n\nThe goal is to ask questions that:\n• Help you identify who doesn't know the theme (the crasher)\n• Don't give away too much info (or the crasher will figure it out)`,
+    externalLink: 'https://partycrasher.playfecture.com/rules.html'
+  },
+  {
+    id: 'jinx',
+    name: 'Jinx',
+    players: '2+',
+    appRequired: false,
+    overview: 'A group game where everyone shouts out a word simultaneously, again and again, until by chance everyone lands on the same word at once.',
+    description: `A group game where everyone shouts out a word simultaneously, again and again, until by chance everyone lands on the same word at once.\n\nEveryone says a word at the same time. Then they do it again. And again. Repeat until everyone has said exactly the same word.`
+  },
+  {
+    id: 'starts-with-ends-with',
+    name: 'Starts with Ends With',
+    players: '2-4',
+    appRequired: true,
+    overview: 'Players press the spinner to reveal two letters, then race to shout a word that starts and ends with those letters.',
+    description: 'Players press the spinner to reveal two letters, then race to shout a word that starts and ends with those letters.',
+    externalLink: 'https://starts-with-ends-with.vercel.app/'
+  },
+  {
+    id: 'rhyme-rush',
+    name: 'Rhyme Rush',
+    players: '1+',
+    appRequired: true,
+    overview: 'Match words that rhyme with the given target word to score points.',
+    description: 'Match words that rhyme with the given target word to score points.',
+    externalLink: 'https://rhymerush.com'
+  },
+  {
+    id: 'name-chain',
+    name: 'Name Chain',
+    players: '2+',
+    appRequired: false,
+    overview: 'A chain game where players take turns naming items in a category, each one starting with the same letter as the last name of the item before it.',
+    description: `Pick a category — "Celebrities," "NBA players," "Horror movies," whatever. Going around the group, each person names an item in that category whose first or last name starts with the same letter as the previous person's last name.\n\nExample: Category is "Celebrities." First person says "Tom Holland" — last name starts with "H." The next person must name a celebrity starting with "H," like "Harry Connick Jr." or "Woody Harrelson."`
+  },
+  {
+    id: 'count-to-21',
+    name: 'Count to 21',
+    players: '4+',
+    appRequired: false,
+    overview: 'A chaotic counting game where numbers get swapped for words or sounds.',
+    description: `A chaotic counting game where numbers get swapped for words or sounds.\n\nGo around the group counting up by one. Whoever says "21" adds a new rule — like replacing "5" with a dog bark. Start counting again from 1, following all the rules so far, and keep adding a new rule each time you reach 21. Mess up, and the count restarts from 1.`
+  },
+  {
+    id: 'secret-categories',
+    name: 'Secret Categories',
+    players: '2+',
+    appRequired: false,
+    overview: 'Guess each other\'s secret categories, one word at a time.',
+    description: `Each player secretly picks a category. Taking turns, everyone says one word or phrase that fits their own secret category. After each round, players try to guess what everyone else's category is.`
+  },
+  {
+    id: 'neanderthal-cinema',
+    name: 'Neanderthal Cinema',
+    players: '2+',
+    appRequired: false,
+    overview: 'A guessing game where one player describes a movie using only one-syllable words until the group figures it out.',
+    description: `One player is the "Neanderthal" and can only speak in one-syllable words. They think of a movie, then describe it using only one-syllable words until the rest of the group guesses what it is.`
+  },
+  {
+    id: 'guess-the-number',
+    name: 'Guess the Number',
+    players: '2+',
+    appRequired: false,
+    overview: 'A guessing game where players secretly pick a number and drop clues through quirky comparison questions until the group can guess it.',
+    description: `Each person secretly picks a number from 0 to 100. Taking turns, players ask yes/no-style questions that hint at their number without stating it outright — like "Would I get arrested for driving this fast?" or "Could I eat this many eggs without puking?" After a few rounds of questions, everyone guesses each other's number.`
+  },
+  {
+    id: 'categories',
+    name: 'Categories',
+    players: '2+',
+    appRequired: false,
+    overview: 'A fast-paced elimination game where players race to name things in a category without repeating, missing, or hesitating.',
+    description: `Pick a random category, like "Horror movies." Going quickly around the circle, each person names something that fits. Repeat an answer, name something that doesn't fit, or hesitate too long, and you're out. Start a new category each round and keep playing until one person remains.`
+  },
+  {
+    id: 'finish-the-song',
+    name: 'Finish the Song',
+    players: '2+',
+    appRequired: false,
+    noLearnMore: true,
+    overview: 'One person sings a word from a random song. The other person must finish singing that song.',
+    description: 'One person sings a word from a random song. The other person must finish singing that song.'
+  },
+  {
+    id: 'wavelength',
+    name: 'Wavelength',
+    players: '2+',
+    appRequired: true,
+    overview: 'Win by reading each other\'s minds.',
+    description: 'Hot or cold. Soft or hard. Wizard or…not a wizard? Work together to decide where your clue falls on the spectrum — and win by reading your friends\' minds.',
+    iosLink: 'https://apps.apple.com/us/app/wavelength-a-party-game/id1512834505',
+    androidLink: 'https://play.google.com/store/apps/details?id=com.PalmCourt.Wavelength'
+  },
+  {
+    id: 'contact',
+    name: 'Contact',
+    players: '2+',
+    appRequired: false,
+    overview: 'A word-guessing game where one player secretly thinks of a word and reveals it letter by letter while everyone else tries to guess it using clues.',
+    description: `One player is the "wordmaster" and secretly thinks of a word, then announces its first letter.\n\nThe other players try to get more letters by offering a clue: a word that starts with the same letter(s) revealed so far and relates to what they think the secret word might be. If the letter is D, they might say "a type of flower" for "daffodil."\n\nIf another player thinks they know what word the clue-giver means, they shout "Contact!" Both players then count down together from 3 and say their guess at the same time. If their words match, the wordmaster must reveal the next letter of the secret word; if they don't match — or if the wordmaster can guess the clue-giver's word first — nothing happens and play continues.\n\nThe game ends when someone guesses the full secret word correctly.`
+  },
+  {
+    id: 'nah-thats',
+    name: 'Nah that\'s...',
+    players: '2+',
+    appRequired: false,
+    overview: 'A circle game where players take turns rhyming off a starting word, each one posing a joke riddle about their word.',
+    description: `One player kicks things off with a word or short phrase (e.g., "I'm broke.") Going around the group, each other player has to come up with a new word that rhymes with it. Instead of just blurting the word out, they build in a little bit: they first pose a mock riddle describing their word ("Are you talking about the thing inside of an egg?"), then someone answers "No, that's yolk!" Play continues around the circle — smoke, choke, a boat, a tote — with each person trying to find a rhyme nobody's used yet.`
   }
 ];
 
@@ -452,6 +591,7 @@ export default function HorrorNightsTracker() {
 
   // Games Tab Modal States
   const [activeLearnMoreGame, setActiveLearnMoreGame] = useState<GameItem | null>(null);
+  const [activeLearnMoreColor, setActiveLearnMoreColor] = useState<string>('#10B981');
   
   // Supabase Trivia Live & Leaderboard States
   const [showAiTriviaModal, setShowAiTriviaModal] = useState<boolean>(false);
@@ -538,6 +678,14 @@ export default function HorrorNightsTracker() {
   // Checkout Modal State
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [departingMembers, setDepartingMembers] = useState<string[]>([]);
+
+  // SORT GAMES: HORROR MOVIE TRIVIA PINNED TO TOP, REST ALPHABETICAL
+  const sortedGamesList = useMemo(() => {
+    const pinned = RAW_GAMES_LIST.find(g => g.id === 'ai-horror-trivia');
+    const others = RAW_GAMES_LIST.filter(g => g.id !== 'ai-horror-trivia');
+    others.sort((a, b) => a.name.localeCompare(b.name));
+    return pinned ? [pinned, ...others] : others;
+  }, []);
 
   const activePartyList = useMemo(() => {
     if (!activeVisit) return [];
@@ -2326,13 +2474,13 @@ export default function HorrorNightsTracker() {
       {/* 4. GAMES TAB VIEW */}
       {mainTab === 'games' && (
         <div>
-          {/* GAMES LIST */}
+          {/* GAMES LIST (PINNED TOP + ALPHABETICAL) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {MOCK_GAMES.length === 0 ? (
+            {sortedGamesList.length === 0 ? (
               <p style={{ color: '#A0AEC0', textAlign: 'center', fontSize: '13px', fontStyle: 'italic', margin: '20px 0' }}>No games found.</p>
             ) : (
-              MOCK_GAMES.map((game, idx) => {
-                const borderAccent = RANDOM_ACCENT_COLORS[idx % RANDOM_ACCENT_COLORS.length];
+              sortedGamesList.map((game, idx) => {
+                const borderAccent = ACCENT_COLORS[idx % ACCENT_COLORS.length];
 
                 return (
                   <div
@@ -2346,7 +2494,9 @@ export default function HorrorNightsTracker() {
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: '#FFF' }}>{game.name}</h3>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: '#FFF' }}>
+                        {game.isAiTrivia ? `📌 ${game.name}` : game.name}
+                      </h3>
                       {game.appRequired && (
                         <span style={{ fontSize: '10px', fontWeight: '900', background: '#3B82F6', color: '#FFF', padding: '3px 8px', borderRadius: '6px' }}>
                           📱 App Required
@@ -2362,19 +2512,22 @@ export default function HorrorNightsTracker() {
                       {game.overview}
                     </p>
 
-                    <button
-                      onClick={() => {
-                        if (game.isAiTrivia) {
-                          setShowAiTriviaModal(true);
-                          if (triviaDeck.length === 0) loadTriviaFromSupabase('All', 'All');
-                        } else {
-                          setActiveLearnMoreGame(game);
-                        }
-                      }}
-                      style={{ background: '#1A1A26', border: '1px solid #2A2A3C', color: borderAccent, width: '100%', padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
-                    >
-                      {game.isAiTrivia ? 'Play Now' : 'Learn More'}
-                    </button>
+                    {!game.noLearnMore && (
+                      <button
+                        onClick={() => {
+                          if (game.isAiTrivia) {
+                            setShowAiTriviaModal(true);
+                            if (triviaDeck.length === 0) loadTriviaFromSupabase('All', 'All');
+                          } else {
+                            setActiveLearnMoreGame(game);
+                            setActiveLearnMoreColor(borderAccent);
+                          }
+                        }}
+                        style={{ background: '#1A1A26', border: '1px solid #2A2A3C', color: borderAccent, width: '100%', padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+                      >
+                        {game.isAiTrivia ? 'Play Now' : 'Learn More'}
+                      </button>
+                    )}
                   </div>
                 );
               })
@@ -4044,7 +4197,7 @@ export default function HorrorNightsTracker() {
       {/* GAMES LEARN MORE FULLSCREEN MODAL */}
       {activeLearnMoreGame && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '460px', width: '100%', maxHeight: '85vh', overflowY: 'auto', border: '2px solid #10B981', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '460px', width: '100%', maxHeight: '85vh', overflowY: 'auto', border: `2px solid ${activeLearnMoreColor}`, boxShadow: `0 10px 30px ${activeLearnMoreColor}44` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
               <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '900', color: '#FFF' }}>{activeLearnMoreGame.name}</h3>
               <button
@@ -4064,13 +4217,47 @@ export default function HorrorNightsTracker() {
               )}
             </div>
 
-            <div style={{ background: '#1A1A26', padding: '14px', borderRadius: '14px', border: '1px solid #2A2A3C', fontSize: '13px', color: '#CBD5E0', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+            <div style={{ background: '#1A1A26', padding: '14px', borderRadius: '14px', border: '1px solid #2A2A3C', fontSize: '13px', color: '#CBD5E0', lineHeight: '1.6', whiteSpace: 'pre-line', marginBottom: '16px' }}>
               {activeLearnMoreGame.description}
             </div>
 
+            {/* EXTERNAL / APP LINKS IF APPLICABLE */}
+            {activeLearnMoreGame.externalLink && (
+              <a
+                href={activeLearnMoreGame.externalLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'block', textDecoration: 'none', textAlign: 'center', padding: '12px', background: activeLearnMoreColor, color: '#FFF', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', marginBottom: '10px' }}
+              >
+                🎮 Play Game Now ↗
+              </a>
+            )}
+
+            {activeLearnMoreGame.iosLink && (
+              <a
+                href={activeLearnMoreGame.iosLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'block', textDecoration: 'none', textAlign: 'center', padding: '12px', background: '#3B82F6', color: '#FFF', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', marginBottom: '8px' }}
+              >
+                📱 Download for iOS (App Store) ↗
+              </a>
+            )}
+
+            {activeLearnMoreGame.androidLink && (
+              <a
+                href={activeLearnMoreGame.androidLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'block', textDecoration: 'none', textAlign: 'center', padding: '12px', background: '#10B981', color: '#FFF', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', marginBottom: '10px' }}
+              >
+                🤖 Download for Android (Google Play) ↗
+              </a>
+            )}
+
             <button
               onClick={() => setActiveLearnMoreGame(null)}
-              style={{ width: '100%', padding: '12px', background: '#10B981', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginTop: '16px' }}
+              style={{ width: '100%', padding: '12px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginTop: '4px' }}
             >
               Close
             </button>
