@@ -280,33 +280,47 @@ interface MapPOI {
   apiKey?: string;
 }
 
+// Updated Map POIs: Clean short names without letters/numbers & "Death Daddies"
 const HHN_MAP_LOCATIONS: MapPOI[] = [
-  { id: 'sinners', name: 'Sinners', shortName: 'Sinners', category: 'house', lat: 28.4746, lng: -81.4682, apiKey: 'Sinners' },
-  { id: 'hellraiser', name: 'Hellraiser', shortName: 'Hellraiser', category: 'house', lat: 28.4750, lng: -81.4691, apiKey: 'Hellraiser' },
-  { id: 'ozzy', name: 'Ozzy Osbourne', shortName: 'Ozzy', category: 'house', lat: 28.4739, lng: -81.4658, apiKey: 'Ozzy Osbourne' },
-  { id: 'stranger-things', name: 'Stranger Things 5', shortName: 'ST5', category: 'house', lat: 28.4758, lng: -81.4688, apiKey: 'Stranger Things 5' },
-  { id: 'evil-dead', name: 'Evil Dead Burn', shortName: 'Evil Dead', category: 'house', lat: 28.4760, lng: -81.4672, apiKey: 'Evil Dead Burn' },
-  { id: 'oddfellow', name: 'Jack & Oddfellow', shortName: 'Oddfellow', category: 'house', lat: 28.4764, lng: -81.4661, apiKey: 'Jack & Oddfellow' },
-  { id: 'bloodengutz', name: 'H.R. Bloodengutz', shortName: 'Bloodengutz', category: 'house', lat: 28.4762, lng: -81.4653, apiKey: 'H.R. Bloodengutz' },
-  { id: 'cybergoria', name: 'Cybergoria', shortName: 'Cyber', category: 'house', lat: 28.4755, lng: -81.4648, apiKey: 'Cybergoria' },
-  { id: 'madlands', name: 'Madlands: Caged Cannibals', shortName: 'Cannibals', category: 'house', lat: 28.4732, lng: -81.4685, apiKey: 'Madlands: Caged Cannibals' },
-  { id: 'invasion', name: 'INVASION: Alien Abduction', shortName: 'Invasion', category: 'house', lat: 28.4734, lng: -81.4678, apiKey: 'INVASION: Alien Abduction' },
-  { id: 'mib', name: 'Men in Black: Alien Attack', shortName: 'MIB', category: 'ride', lat: 28.480987918842903, lng: -81.46751974578974, apiKey: 'Men in Black: Alien Attack' },
-  { id: 'mummy', name: 'Revenge of the Mummy', shortName: 'Mummy', category: 'ride', lat: 28.476908226875782, lng: -81.4697184770946, apiKey: 'Revenge of the Mummy' },
-  { id: 'transformers', name: 'Transformers: The Ride-3D', shortName: 'Transformers', category: 'ride', lat: 28.47663140608696, lng: -81.46863197342127, apiKey: 'Transformers: The Ride-3D' },
-  { id: 'gringotts', name: 'Escape from Gringotts', shortName: 'Gringotts', category: 'ride', lat: 28.479822824433633, lng: -81.46998923849405, apiKey: 'Harry Potter and the Escape from Gringotts' },
-  { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', shortName: 'Nightmare', category: 'show', lat: 28.48034245429014, lng: -81.46882577178755 },
-  { id: 'lagoon-show', name: 'Stranger Things (Lagoon Show)', shortName: 'Lagoon Show', category: 'show', lat: 28.478983316117194, lng: -81.46855428793143 },
-  { id: 'origins', name: 'Origins of Horror', shortName: 'Origins', category: 'scarezone', lat: 28.4762, lng: -81.4665 },
-  { id: 'masquerade', name: 'Masquerade', shortName: 'Masquerade', category: 'scarezone', lat: 28.4748, lng: -81.4675 },
-  { id: 'carnival', name: 'Carnival of Screams', shortName: 'Carnival', category: 'scarezone', lat: 28.4738, lng: -81.4680 },
-  { id: 'water-1', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.475740212815403, lng: -81.46897601025046 },
-  { id: 'water-2', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.476597319582403, lng: -81.46771582061385 },
-  { id: 'water-3', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.478125802458248, lng: -81.46904887351499 },
-  { id: 'water-4', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47744793913227, lng: -81.46932729621692 },
-  { id: 'water-5', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47731687542911, lng: -81.46781681362134 },
-  { id: 'water-6', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.479983895989903, lng: -81.46766287065016 },
-  { id: 'water-7', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.480178017295195, lng: -81.46787166662219 }
+  // HOUSES
+  { id: 'stranger-things-5', name: 'Stranger Things 5', shortName: 'ST5', category: 'house', lat: 28.4760, lng: -81.4687, apiKey: 'Stranger Things 5' },
+  { id: 'evil-dead-burn', name: 'Evil Dead Burn', shortName: 'Evil Dead', category: 'house', lat: 28.4757, lng: -81.4690, apiKey: 'Evil Dead Burn' },
+  { id: 'jack-oddfellow', name: 'Jack & Oddfellow', shortName: 'Oddfellow', category: 'house', lat: 28.4746, lng: -81.4682, apiKey: 'Jack & Oddfellow' },
+  { id: 'ozzy-osbourne', name: 'Ozzy Osbourne', shortName: 'Ozzy', category: 'house', lat: 28.4743, lng: -81.4685, apiKey: 'Ozzy Osbourne' },
+  { id: 'madlands', name: 'Madlands: Caged Cannibals', shortName: 'Madlands', category: 'house', lat: 28.4740, lng: -81.4687, apiKey: 'Madlands: Caged Cannibals' },
+  { id: 'cybergoria', name: 'Cybergoria', shortName: 'Cyber', category: 'house', lat: 28.4754, lng: -81.4646, apiKey: 'Cybergoria' },
+  { id: 'invasion', name: 'INVASION: Alien Abduction', shortName: 'Invasion', category: 'house', lat: 28.4770, lng: -81.4650, apiKey: 'INVASION: Alien Abduction' },
+  { id: 'bloodengutz', name: 'H.R. Bloodengutz', shortName: 'Bloodengutz', category: 'house', lat: 28.4763, lng: -81.4648, apiKey: 'H.R. Bloodengutz' },
+  { id: 'hellraiser', name: 'Hellraiser', shortName: 'Hellraiser', category: 'house', lat: 28.4782, lng: -81.4647, apiKey: 'Hellraiser' },
+  { id: 'sinners', name: 'Sinners', shortName: 'Sinners', category: 'house', lat: 28.4786, lng: -81.4646, apiKey: 'Sinners' },
+
+  // SCARE ZONES
+  { id: 'infernal-carnival', name: 'Infernal Carnival of Nightmares', shortName: 'Infernal Carnival', category: 'scarezone', lat: 28.4750, lng: -81.4687 },
+  { id: 'sideshow-decay', name: 'Sideshow of Decay', shortName: 'Sideshow', category: 'scarezone', lat: 28.4755, lng: -81.4678 },
+  { id: 'downtown-clowntown', name: 'Downtown Clowntown', shortName: 'Clowntown', category: 'scarezone', lat: 28.4765, lng: -81.4682 },
+  { id: 'fortnitemares', name: 'Fortnitemares', shortName: 'Fortnite', category: 'scarezone', lat: 28.4768, lng: -81.4665 },
+
+  // LIVE ENTERTAINMENT
+  { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', shortName: 'Nightmare Fuel', category: 'show', lat: 28.4803, lng: -81.4688 },
+  { id: 'club-horror', name: 'Club Horror', shortName: 'Club Horror', category: 'show', lat: 28.4762, lng: -81.4655 },
+  { id: 'stranger-things-lagoon', name: 'Stranger Things: Return to Hawkins', shortName: 'Lagoon Show', category: 'show', lat: 28.4772, lng: -81.4670 },
+  { id: 'mels-zombies', name: 'Mel’s Die-In: Zombies', shortName: 'Mel’s Zombies', category: 'show', lat: 28.4761, lng: -81.4674 },
+
+  // RIDES & ATTRACTIONS
+  { id: 'mummy', name: 'Revenge of the Mummy', shortName: 'Mummy', category: 'ride', lat: 28.4769, lng: -81.4697, apiKey: 'Revenge of the Mummy' },
+  { id: 'transformers', name: 'TRANSFORMERS: The Ride-3D', shortName: 'Transformers', category: 'ride', lat: 28.4766, lng: -81.4686, apiKey: 'Transformers: The Ride-3D' },
+  { id: 'gringotts', name: 'Escape from Gringotts', shortName: 'Gringotts', category: 'ride', lat: 28.4798, lng: -81.4700, apiKey: 'Harry Potter and the Escape from Gringotts' },
+  { id: 'mib', name: 'MEN IN BLACK Alien Attack', shortName: 'MIB', category: 'ride', lat: 28.4810, lng: -81.4675, apiKey: 'Men in Black: Alien Attack' },
+  { id: 'death-eaters', name: 'Death Eaters Encounter', shortName: 'Death Daddies', category: 'show', lat: 28.4795, lng: -81.4692 },
+
+  // WATER STATIONS
+  { id: 'water-1', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47574, lng: -81.46897 },
+  { id: 'water-2', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47659, lng: -81.46771 },
+  { id: 'water-3', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47812, lng: -81.46904 },
+  { id: 'water-4', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47744, lng: -81.46932 },
+  { id: 'water-5', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47731, lng: -81.46781 },
+  { id: 'water-6', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47998, lng: -81.46766 },
+  { id: 'water-7', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.48017, lng: -81.46787 }
 ];
 
 const EVENING_HOURS = [18, 19, 20, 21, 22, 23];
@@ -2244,7 +2258,7 @@ export default function HorrorNightsTracker() {
                               placeholder="Leave a comment"
                               value={commentTextInput}
                               onChange={(e) => setCommentTextInput(e.target.value)}
-                              style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px' }}
+                              style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '16px' }}
                             />
                             <button
                               type="button"
@@ -2392,39 +2406,41 @@ export default function HorrorNightsTracker() {
                 style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
               />
 
-              {/* RECENTER & FULLSCREEN BUTTONS */}
-              <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 999, display: 'flex', gap: '8px' }}>
+              {/* RECENTER & FULLSCREEN BUTTONS (SINGLE LINE & LIGHTER GREY) */}
+              <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 999, display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button
                   onClick={handleRecenterUserMap}
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: '20px',
-                    background: 'rgba(59, 130, 246, 0.9)',
-                    color: '#FFF',
-                    border: '1px solid rgba(255, 255, 255, 0.4)',
+                    padding: '6px 14px',
+                    borderRadius: '16px',
+                    background: 'rgba(225, 225, 235, 0.88)',
+                    color: '#1A1A26',
+                    border: '1px solid rgba(255, 255, 255, 0.5)',
                     fontSize: '12px',
                     fontWeight: '800',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                    backdropFilter: 'blur(6px)'
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    backdropFilter: 'blur(6px)',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  📍 Center on Me
+                  📍 Me
                 </button>
 
                 <button
                   onClick={() => setIsMapFullscreen(!isMapFullscreen)}
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: '20px',
-                    background: 'rgba(42, 42, 60, 0.85)',
-                    color: '#CBD5E0',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    padding: '6px 14px',
+                    borderRadius: '16px',
+                    background: 'rgba(225, 225, 235, 0.88)',
+                    color: '#1A1A26',
+                    border: '1px solid rgba(255, 255, 255, 0.5)',
                     fontSize: '12px',
                     fontWeight: '800',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                    backdropFilter: 'blur(6px)'
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    backdropFilter: 'blur(6px)',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   {isMapFullscreen ? '✕ Exit' : '⛶ Fullscreen'}
@@ -2524,7 +2540,7 @@ export default function HorrorNightsTracker() {
                       value={postedWaitTime}
                       onChange={(e) => setPostedWaitTime(e.target.value)}
                       disabled={!!queueStartTimestamp}
-                      style={{ width: '80px', padding: '6px 8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '13px', textAlign: 'center', fontWeight: 'bold' }}
+                      style={{ width: '80px', padding: '6px 8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '16px', textAlign: 'center', fontWeight: 'bold' }}
                     />
                   </div>
 
@@ -2568,7 +2584,7 @@ export default function HorrorNightsTracker() {
                           placeholder="Actual wait time (mins)"
                           value={waitTime}
                           onChange={(e) => setWaitTime(e.target.value)}
-                          style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }}
+                          style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '16px' }}
                         />
                         <button type="button" onClick={handleAddRideLive} style={{ padding: '11px 22px', background: '#2A2A3C', color: '#FFF', border: '1px solid #3F3F56', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
                           Log
@@ -3039,9 +3055,9 @@ export default function HorrorNightsTracker() {
                                   value={editWaitTime}
                                   onChange={(e) => setEditWaitTime(e.target.value)}
                                   placeholder="Wait (mins)"
-                                  style={{ flex: 1, minWidth: '90px', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px', boxSizing: 'border-box' }}
+                                  style={{ flex: 1, minWidth: '90px', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '16px', boxSizing: 'border-box' }}
                                 />
-                                <input type="text" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Notes (optional)" style={{ flex: 1, minWidth: '110px', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px', boxSizing: 'border-box' }} />
+                                <input type="text" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Notes (optional)" style={{ flex: 1, minWidth: '110px', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '16px', boxSizing: 'border-box' }} />
                               </div>
 
                               <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
@@ -3165,7 +3181,7 @@ export default function HorrorNightsTracker() {
               </div>
             </div>
 
-            {/* ROW NUMBER INPUT */}
+            {/* ROW NUMBER INPUT (Font size 16px to prevent iOS auto-zoom) */}
             <div style={{ marginBottom: '18px' }}>
               <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>
                 ROW NUMBER
@@ -3177,7 +3193,7 @@ export default function HorrorNightsTracker() {
                 placeholder="e.g. 305"
                 value={parkingRowNumber}
                 onChange={(e) => setParkingRowNumber(e.target.value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px', fontWeight: 'bold', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '16px', fontWeight: 'bold', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -3718,7 +3734,7 @@ export default function HorrorNightsTracker() {
                   placeholder="e.g. 45"
                   value={editLivePostedWait}
                   onChange={(e) => setEditLivePostedWait(e.target.value)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '16px' }}
                 />
               </div>
 
@@ -3731,7 +3747,7 @@ export default function HorrorNightsTracker() {
                   placeholder="e.g. 30"
                   value={editLiveActualWait}
                   onChange={(e) => setEditLiveActualWait(e.target.value)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '16px' }}
                 />
               </div>
             </div>
@@ -4106,7 +4122,7 @@ export default function HorrorNightsTracker() {
                 placeholder="e.g. 6:30 PM"
                 value={editVisitStartTime}
                 onChange={(e) => setEditVisitStartTime(e.target.value)}
-                style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }}
+                style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '16px' }}
               />
             </div>
 
@@ -4119,7 +4135,7 @@ export default function HorrorNightsTracker() {
                 placeholder="e.g. 2:00 AM"
                 value={editVisitEndTime}
                 onChange={(e) => setEditVisitEndTime(e.target.value)}
-                style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px' }}
+                style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '16px' }}
               />
             </div>
 
@@ -4141,7 +4157,7 @@ export default function HorrorNightsTracker() {
                           [member]: e.target.value
                         });
                       }}
-                      style={{ width: '120px', padding: '6px 8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '13px', textAlign: 'center' }}
+                      style={{ width: '120px', padding: '6px 8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '16px', textAlign: 'center' }}
                     />
                   </div>
                 ))}
