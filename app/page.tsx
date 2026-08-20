@@ -543,6 +543,36 @@ const getRecent6AMCutoffISO = () => {
   return cutoff.toISOString();
 };
 
+interface HouseRating {
+  id: string;
+  author_name: string;
+  house_name: string;
+  overall_rating: number;
+  scare_rating: number;
+  cool_rating: number;
+  created_at: string;
+}
+
+const getHouseAverages = (houseName: string, ratings: HouseRating[], attendeeFilter: string) => {
+  let houseRatings = ratings.filter(r => r.house_name === houseName);
+  if (attendeeFilter !== 'Everyone') {
+    houseRatings = houseRatings.filter(r => r.author_name === attendeeFilter);
+  }
+
+  if (houseRatings.length === 0) return null;
+
+  const overallAvg = houseRatings.reduce((s, r) => s + Number(r.overall_rating), 0) / houseRatings.length;
+  const scareAvg = houseRatings.reduce((s, r) => s + Number(r.scare_rating), 0) / houseRatings.length;
+  const coolAvg = houseRatings.reduce((s, r) => s + Number(r.cool_rating), 0) / houseRatings.length;
+
+  return {
+    count: houseRatings.length,
+    overall: overallAvg.toFixed(1),
+    scare: scareAvg.toFixed(1),
+    cool: coolAvg.toFixed(1)
+  };
+};
+
 export default function HorrorNightsTracker() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [activeVisit, setActiveVisit] = useState<Visit | null>(null);
@@ -2595,7 +2625,7 @@ export default function HorrorNightsTracker() {
           </div>
 
           {/* LEAFLET MAP CONTAINER WITH EXPLICIT MIN-HEIGHT */}
-          <div style={{ position: 'relative', width: '100%', height: isMapFullscreen ? 'calc(100vh - 80px)' : '420px', minHeight: '420px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2A2A3C' }}>
+          <div style={{ position: 'relative', width: '100%', height: isMapFullscreen ? 'calc(100vh - 80px)' : 'calc(100vh - 250px)', minHeight: '420px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2A2A3C' }}>
             <div
               ref={mapContainerRef}
               style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
@@ -2648,6 +2678,21 @@ export default function HorrorNightsTracker() {
       {/* 6. TRACKER TAB VIEWS */}
       {mainTab === 'tracker' && trackerSubTab === 'Tonight' && (
         <div>
+
+          {/* ⭐ RATE A HOUSE BUTTON / WIDGET */}
+<div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '14px 16px', borderRadius: '18px', border: '1px solid #FDA30C', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backdropFilter: 'blur(8px)' }}>
+  <div>
+    <div style={{ fontSize: '14px', fontWeight: '900', color: '#FDA30C' }}>⭐ Rate a House</div>
+    <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>Score scares, coolness, & overall quality</div>
+  </div>
+  <button
+    type="button"
+    onClick={() => setShowRatingModal(true)}
+    style={{ padding: '8px 16px', background: '#FDA30C', color: '#000', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(253, 163, 12, 0.3)' }}
+  >
+    Rate Now
+  </button>
+</div>
           {activeVisit ? (
             /* ACTIVE VISIT LIVE WIDGET */
             <div style={{ background: 'linear-gradient(135deg, rgba(31, 8, 8, 0.9) 0%, rgba(13, 5, 16, 0.95) 100%)', color: '#FFF', padding: '20px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)', border: '2px solid #DC2626', backdropFilter: 'blur(8px)' }}>
@@ -3587,6 +3632,19 @@ export default function HorrorNightsTracker() {
                       <div style={{ fontSize: '16px', fontWeight: '900', color: '#FF5500', marginBottom: '10px' }}>
                         {stat.name}
                       </div>
+
+                      {/* HOUSE RATINGS DISPLAY ROW */}
+<div style={{ background: '#12121A', padding: '8px 10px', borderRadius: '10px', border: '1px solid #2A2A3C', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+  {getHouseAverages(stat.name, allHouseRatings, selectedAttendeeFilter) ? (
+    <>
+      <div style={{ fontSize: '11px', fontWeight: '800', color: '#FDA30C' }}>⭐ Overall: <span style={{ color: '#FFF' }}>{getHouseAverages(stat.name, allHouseRatings, selectedAttendeeFilter)?.overall}</span></div>
+      <div style={{ fontSize: '11px', fontWeight: '800', color: '#EF4444' }}>😱 Scare: <span style={{ color: '#FFF' }}>{getHouseAverages(stat.name, allHouseRatings, selectedAttendeeFilter)?.scare}</span></div>
+      <div style={{ fontSize: '11px', fontWeight: '800', color: '#3B82F6' }}>😎 Cool: <span style={{ color: '#FFF' }}>{getHouseAverages(stat.name, allHouseRatings, selectedAttendeeFilter)?.cool}</span></div>
+    </>
+  ) : (
+    <div style={{ fontSize: '11px', color: '#718096', fontStyle: 'italic', textAlign: 'center', width: '100%' }}>No ratings logged yet</div>
+  )}
+</div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
                         <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
