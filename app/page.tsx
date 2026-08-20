@@ -137,6 +137,13 @@ const HHN_RIDES = [
   'Revenge of the Mummy'
 ];
 
+const RIDE_BANNERS: Record<string, string> = {
+  'Men in Black: Alien Attack': '/ride-mib.jpg',
+  'Transformers: The Ride-3D': '/ride-transformers.jpg',
+  'Harry Potter and the Escape from Gringotts': '/ride-gringotts.jpg',
+  'Revenge of the Mummy': '/ride-mummy.jpg'
+};
+
 const HHN_SHOWS = [
   'Nightmare Fuel: Blood Noir',
   'Stranger Things (Lagoon Show)'
@@ -291,17 +298,17 @@ interface MapPOI {
   lat: number;
   lng: number;
   apiKey?: string;
-  anchorOffset?: [number, number]; // [X, Y] anchor offset for staggered pins
+  anchorOffset?: [number, number];
 }
 
-// Updated Map POIs with pin staggering offsets and "Cybergoria" shortName
+// Updated Map POIs: Further separated Ozzy/Madlands & Lagoon Show/Fortnitemares
 const HHN_MAP_LOCATIONS: MapPOI[] = [
   // HOUSES
   { id: 'stranger-things-5', name: 'Stranger Things 5', shortName: 'ST5', category: 'house', lat: 28.475292026146676, lng: -81.46777677183829, apiKey: 'Stranger Things 5', anchorOffset: [0, 20] },
   { id: 'evil-dead-burn', name: 'Evil Dead Burn', shortName: 'Evil Dead', category: 'house', lat: 28.475322676539005, lng: -81.46789747123661, apiKey: 'Evil Dead Burn', anchorOffset: [0, -10] },
   { id: 'jack-oddfellow', name: 'Jack & Oddfellow', shortName: 'Oddfellow', category: 'house', lat: 28.47565511483836, lng: -81.46865385413282, apiKey: 'Jack & Oddfellow', anchorOffset: [0, 22] },
-  { id: 'ozzy-osbourne', name: 'Ozzy Osbourne', shortName: 'Ozzy', category: 'house', lat: 28.47566454569684, lng: -81.46908300754912, apiKey: 'Ozzy Osbourne' },
-  { id: 'madlands', name: 'Madlands: Caged Cannibals', shortName: 'Madlands', category: 'house', lat: 28.47565511483836, lng: -81.46922784682711, apiKey: 'Madlands: Caged Cannibals', anchorOffset: [0, -12] },
+  { id: 'ozzy-osbourne', name: 'Ozzy Osbourne', shortName: 'Ozzy', category: 'house', lat: 28.47566454569684, lng: -81.46908300754912, apiKey: 'Ozzy Osbourne', anchorOffset: [0, -28] },
+  { id: 'madlands', name: 'Madlands: Caged Cannibals', shortName: 'Madlands', category: 'house', lat: 28.47565511483836, lng: -81.46922784682711, apiKey: 'Madlands: Caged Cannibals', anchorOffset: [0, 22] },
   { id: 'cybergoria', name: 'Cybergoria', shortName: 'Cybergoria', category: 'house', lat: 28.477930369513274, lng: -81.46954248310902, apiKey: 'Cybergoria' },
   { id: 'hellraiser', name: 'Hellraiser', shortName: 'Hellraiser', category: 'house', lat: 28.480578740065464, lng: -81.46842275368006, apiKey: 'Hellraiser', anchorOffset: [20, -10] },
   { id: 'sinners', name: 'Sinners', shortName: 'Sinners', category: 'house', lat: 28.48051132782185, lng: -81.4683745461523, apiKey: 'Sinners', anchorOffset: [-20, -10] },
@@ -311,7 +318,7 @@ const HHN_MAP_LOCATIONS: MapPOI[] = [
   // SHOWS
   { id: 'club-horror', name: 'Club Horror', shortName: 'Club Horror', category: 'show', lat: 28.478669993859793, lng: -81.46935622675115 },
   { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', shortName: 'Nightmare Fuel', category: 'show', lat: 28.48025323483047, lng: -81.46886319519807 },
-  { id: 'stranger-things-lagoon', name: 'Stranger Things Lagoon Show', shortName: 'Lagoon Show', category: 'show', lat: 28.47772141320968, lng: -81.46822099260383 },
+  { id: 'stranger-things-lagoon', name: 'Stranger Things Lagoon Show', shortName: 'Lagoon Show', category: 'show', lat: 28.47772141320968, lng: -81.46822099260383, anchorOffset: [-15, -15] },
 
   // RIDES
   { id: 'transformers', name: 'TRANSFORMERS: The Ride-3D', shortName: 'Transformers', category: 'ride', lat: 28.476645350396623, lng: -81.46856265903122, apiKey: 'Transformers: The Ride-3D' },
@@ -323,7 +330,7 @@ const HHN_MAP_LOCATIONS: MapPOI[] = [
   { id: 'clowntown', name: 'Downtown Clowntown', shortName: 'Clowntown', category: 'scarezone', lat: 28.47646852330843, lng: -81.46949338552207 },
   { id: 'carnival', name: 'Infernal Carnival of Nightmares', shortName: 'Carnival', category: 'scarezone', lat: 28.475251944861867, lng: -81.46734493618837 },
   { id: 'sideshow-decay', name: 'Sideshow of Decay', shortName: 'Sideshow of Decay', category: 'scarezone', lat: 28.476404865479935, lng: -81.46732347850697 },
-  { id: 'fortnitemares', name: 'Fortnitemares', shortName: 'Fortnitemares', category: 'scarezone', lat: 28.47765915338453, lng: -81.46787869572786 },
+  { id: 'fortnitemares', name: 'Fortnitemares', shortName: 'Fortnitemares', category: 'scarezone', lat: 28.47765915338453, lng: -81.46787869572786, anchorOffset: [15, 15] },
   { id: 'mels-zombies', name: 'Mel’s Die-In: Zombies', shortName: 'Mel’s Die-In', category: 'scarezone', lat: 28.476700537760085, lng: -81.46770869071331 },
   { id: 'death-daddies', name: 'Death Eaters Encounter', shortName: 'Death Daddies', category: 'scarezone', lat: 28.479643609471676, lng: -81.46974899181171, anchorOffset: [15, 15] },
 
@@ -583,6 +590,18 @@ export default function HorrorNightsTracker() {
       setPostedWaitTime(liveWaitTimes[rideName].toString());
     }
   }, [rideName, liveWaitTimes]);
+
+  // RE-INVALIDATE MAP SIZE ON TAB SWITCH OR FULLSCREEN TOGGLE (PREVENTS BLACKOUT)
+  useEffect(() => {
+    if (mainTab === 'map' && leafletMapRef.current) {
+      const timer = setTimeout(() => {
+        if (leafletMapRef.current) {
+          leafletMapRef.current.invalidateSize();
+        }
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [mainTab, isMapFullscreen]);
 
   // LEAFLET MAP - SINGLE INIT & PIN STAGGERING
   useEffect(() => {
@@ -2427,7 +2446,7 @@ export default function HorrorNightsTracker() {
                 style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
               />
 
-              {/* RECENTER & FULLSCREEN BUTTONS */}
+              {/* RECENTER & FULLSCREEN BUTTONS (SINGLE LINE & LIGHTER GREY) */}
               <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 999, display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button
                   onClick={handleRecenterUserMap}
@@ -3516,43 +3535,60 @@ export default function HorrorNightsTracker() {
             </div>
           )}
 
-          {/* RIDES ANALYTICS SUBTAB */}
+          {/* RIDES ANALYTICS SUBTAB WITH BANNER IMAGES */}
           {analyticsSubTab === 'Rides' && (
             <div>
-              {/* RIDE STATS GRID */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-                {rideAnalyticsStats.map(stat => (
-                  <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#3B82F6', marginBottom: '10px' }}>
-                      {ITEM_EMOJIS[stat.name] || '🎢'} {stat.name}
-                    </div>
+              {/* RIDE STATS GRID WITH BANNER IMAGES */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
+                {rideAnalyticsStats.map(stat => {
+                  const bannerPath = RIDE_BANNERS[stat.name];
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#FFF' }}>{stat.visits}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>TOTAL<br />VISITS</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>AVG<br />WAIT</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>TOTAL<br />WAIT</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>AVG<br />POSTED</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
-                          {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
+                  return (
+                    <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', overflow: 'hidden' }}>
+                      
+                      {/* RIDE BANNER IMAGE */}
+                      {bannerPath && (
+                        <div style={{ margin: '-14px -16px 12px -16px', height: '110px', overflow: 'hidden', borderBottom: '1px solid #2A2A3C' }}>
+                          <img
+                            src={bannerPath}
+                            alt={stat.name}
+                            onError={(e: any) => { e.target.parentNode.style.display = 'none'; }}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
                         </div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>+/-<br />POSTED</div>
+                      )}
+
+                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#3B82F6', marginBottom: '10px' }}>
+                        {stat.name}
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
+                        <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '800', color: '#FFF' }}>{stat.visits}</div>
+                          <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>TOTAL<br />VISITS</div>
+                        </div>
+                        <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
+                          <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>AVG<br />WAIT</div>
+                        </div>
+                        <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
+                          <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>TOTAL<br />WAIT</div>
+                        </div>
+                        <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
+                          <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>AVG<br />POSTED</div>
+                        </div>
+                        <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
+                            {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
+                          </div>
+                          <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>+/-<br />POSTED</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* LONGEST INDIVIDUAL WAIT TIMES (RIDES) */}
