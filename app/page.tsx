@@ -2202,8 +2202,8 @@ const [allHouseRatings, setAllHouseRatings] = useState<HouseRating[]>([]);
     const diffSeconds = Math.max(0, Math.floor((nowTimestamp - queueStartTimestamp) / 1000));
     const mins = Math.floor(diffSeconds / 60);
     const secs = diffSeconds % 60;
-    if (mins === 0) return `${secs}s`;
-    return `${mins} mins ${secs > 0 ? `${secs}s` : ''}`;
+    if (mins === 0) return secs + 's';
+    return mins + ' mins' + (secs > 0 ? ' ' + secs + 's' : '');
   };
 
   
