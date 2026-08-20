@@ -2797,7 +2797,6 @@ const [allHouseRatings, setAllHouseRatings] = useState<HouseRating[]>([]);
 <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '14px 16px', borderRadius: '18px', border: '1px solid #FDA30C', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backdropFilter: 'blur(8px)' }}>
   <div>
     <div style={{ fontSize: '14px', fontWeight: '900', color: '#FDA30C' }}>⭐ Rate a House</div>
-    <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>Score scares, coolness, & overall quality</div>
   </div>
   <button
     type="button"
