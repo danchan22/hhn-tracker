@@ -11,6 +11,7 @@ import { MapTab } from '../components/Tabs/MapTab';
 import { PretzelTracker } from '../components/Shared/PretzelTracker';
 import { TrackerTab } from '../components/Tabs/TrackerTab';
 import { AnalyticsTab } from '../components/Tabs/AnalyticsTab';
+import { UtilityModals } from '../components/Modals/UtilityModals';
 
 // --- SAFE LAZY SUPABASE CLIENT INITIALIZATION ---
 let supabaseInstance: any = null;
@@ -2343,6 +2344,36 @@ export default function HorrorNightsTracker() {
   />
 )}
 
+{/* 🛠️ UTILITY MODALS */}
+   <UtilityModals
+     activeLearnMoreGame={activeLearnMoreGame}
+     setActiveLearnMoreGame={setActiveLearnMoreGame}
+     activeLearnMoreColor={activeLearnMoreColor}
+     previewYumImage={previewYumImage}
+     setPreviewYumImage={setPreviewYumImage}
+     showCheckoutModal={showCheckoutModal}
+     setShowCheckoutModal={setShowCheckoutModal}
+     activeVisit={activeVisit}
+     activePartyList={activePartyList}
+     departingMembers={departingMembers}
+     toggleDepartingMember={toggleDepartingMember}
+     processCheckout={processCheckout}
+     editingVisit={editingVisit}
+     setEditingVisit={setEditingVisit}
+     editVisitStartTime={editVisitStartTime}
+     setEditVisitStartTime={setEditVisitStartTime}
+     editVisitEndTime={editVisitEndTime}
+     setEditVisitEndTime={setEditVisitEndTime}
+     editVisitMemberEndTimes={editVisitMemberEndTimes}
+     setEditVisitMemberEndTimes={setEditVisitMemberEndTimes}
+     handleSaveVisitEdit={handleSaveVisitEdit}
+     formatDisplayDate={formatDisplayDate}
+     parseAttendees={parseAttendees}
+   />
+
+   {/* ⭐ HOUSE RATING MODAL */}
+   <HouseRatingModal ... />
+      
       {/* ⭐ HOUSE RATING MODAL */}
       <HouseRatingModal
         isOpen={showRatingModal}
