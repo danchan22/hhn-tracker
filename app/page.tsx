@@ -117,6 +117,19 @@ const HHN_HOUSES = [
   'Stranger Things 5'
 ];
 
+const HOUSE_BANNERS: Record<string, string> = {
+  'Cybergoria': '/house-cybergoria.jpg',
+  'Evil Dead Burn': '/house-evil.jpg',
+  'Hellraiser': '/house-hellraiser.jpg',
+  'H.R. Bloodengutz': '/house-bloodengutz.jpg',
+  'INVASION: Alien Abduction': '/house-invasion.jpg',
+  'Jack & Oddfellow': '/house-oddfellow.jpg',
+  'Madlands: Caged Cannibals': '/house-madlands.jpg',
+  'Ozzy Osbourne': '/house-ozzy.jpg',
+  'Sinners': '/house-sinners.jpg',
+  'Stranger Things 5': '/house-stranger.jpg'
+};
+
 const HHN_RIDES = [
   'Men in Black: Alien Attack',
   'Transformers: The Ride-3D',
@@ -278,19 +291,20 @@ interface MapPOI {
   lat: number;
   lng: number;
   apiKey?: string;
+  anchorOffset?: [number, number]; // [X, Y] anchor offset for staggered pins
 }
 
-// Updated Map POIs using EXACT user coordinates
+// Updated Map POIs with pin staggering offsets and "Cybergoria" shortName
 const HHN_MAP_LOCATIONS: MapPOI[] = [
   // HOUSES
-  { id: 'stranger-things-5', name: 'Stranger Things 5', shortName: 'ST5', category: 'house', lat: 28.475292026146676, lng: -81.46777677183829, apiKey: 'Stranger Things 5' },
-  { id: 'evil-dead-burn', name: 'Evil Dead Burn', shortName: 'Evil Dead', category: 'house', lat: 28.475322676539005, lng: -81.46789747123661, apiKey: 'Evil Dead Burn' },
-  { id: 'jack-oddfellow', name: 'Jack & Oddfellow', shortName: 'Oddfellow', category: 'house', lat: 28.47565511483836, lng: -81.46865385413282, apiKey: 'Jack & Oddfellow' },
+  { id: 'stranger-things-5', name: 'Stranger Things 5', shortName: 'ST5', category: 'house', lat: 28.475292026146676, lng: -81.46777677183829, apiKey: 'Stranger Things 5', anchorOffset: [0, 20] },
+  { id: 'evil-dead-burn', name: 'Evil Dead Burn', shortName: 'Evil Dead', category: 'house', lat: 28.475322676539005, lng: -81.46789747123661, apiKey: 'Evil Dead Burn', anchorOffset: [0, -10] },
+  { id: 'jack-oddfellow', name: 'Jack & Oddfellow', shortName: 'Oddfellow', category: 'house', lat: 28.47565511483836, lng: -81.46865385413282, apiKey: 'Jack & Oddfellow', anchorOffset: [0, 22] },
   { id: 'ozzy-osbourne', name: 'Ozzy Osbourne', shortName: 'Ozzy', category: 'house', lat: 28.47566454569684, lng: -81.46908300754912, apiKey: 'Ozzy Osbourne' },
-  { id: 'madlands', name: 'Madlands: Caged Cannibals', shortName: 'Madlands', category: 'house', lat: 28.47565511483836, lng: -81.46922784682711, apiKey: 'Madlands: Caged Cannibals' },
-  { id: 'cybergoria', name: 'Cybergoria', shortName: 'Cyber', category: 'house', lat: 28.477930369513274, lng: -81.46954248310902, apiKey: 'Cybergoria' },
-  { id: 'hellraiser', name: 'Hellraiser', shortName: 'Hellraiser', category: 'house', lat: 28.480578740065464, lng: -81.46842275368006, apiKey: 'Hellraiser' },
-  { id: 'sinners', name: 'Sinners', shortName: 'Sinners', category: 'house', lat: 28.48051132782185, lng: -81.4683745461523, apiKey: 'Sinners' },
+  { id: 'madlands', name: 'Madlands: Caged Cannibals', shortName: 'Madlands', category: 'house', lat: 28.47565511483836, lng: -81.46922784682711, apiKey: 'Madlands: Caged Cannibals', anchorOffset: [0, -12] },
+  { id: 'cybergoria', name: 'Cybergoria', shortName: 'Cybergoria', category: 'house', lat: 28.477930369513274, lng: -81.46954248310902, apiKey: 'Cybergoria' },
+  { id: 'hellraiser', name: 'Hellraiser', shortName: 'Hellraiser', category: 'house', lat: 28.480578740065464, lng: -81.46842275368006, apiKey: 'Hellraiser', anchorOffset: [20, -10] },
+  { id: 'sinners', name: 'Sinners', shortName: 'Sinners', category: 'house', lat: 28.48051132782185, lng: -81.4683745461523, apiKey: 'Sinners', anchorOffset: [-20, -10] },
   { id: 'bloodengutz', name: 'H.R. Bloodengutz', shortName: 'Bloodengutz', category: 'house', lat: 28.480131892382673, lng: -81.4674673680962, apiKey: 'H.R. Bloodengutz' },
   { id: 'invasion', name: 'INVASION: Alien Abduction', shortName: 'Invasion', category: 'house', lat: 28.479205447850518, lng: -81.46771936199599, apiKey: 'INVASION: Alien Abduction' },
 
@@ -302,8 +316,8 @@ const HHN_MAP_LOCATIONS: MapPOI[] = [
   // RIDES
   { id: 'transformers', name: 'TRANSFORMERS: The Ride-3D', shortName: 'Transformers', category: 'ride', lat: 28.476645350396623, lng: -81.46856265903122, apiKey: 'Transformers: The Ride-3D' },
   { id: 'mummy', name: 'Revenge of the Mummy', shortName: 'Mummy', category: 'ride', lat: 28.476720796540143, lng: -81.46961676712924, apiKey: 'Revenge of the Mummy' },
-  { id: 'mib', name: 'MEN IN BLACK Alien Attack', shortName: 'MIB', category: 'ride', lat: 28.480530073021992, lng: -81.46800287375153, apiKey: 'Men in Black: Alien Attack' },
-  { id: 'gringotts', name: 'Escape from Gringotts', shortName: 'Gringotts', category: 'ride', lat: 28.479747344951384, lng: -81.46995552189331, apiKey: 'Harry Potter and the Escape from Gringotts' },
+  { id: 'mib', name: 'MEN IN BLACK Alien Attack', shortName: 'MIB', category: 'ride', lat: 28.480530073021992, lng: -81.46800287375153, apiKey: 'Men in Black: Alien Attack', anchorOffset: [0, 18] },
+  { id: 'gringotts', name: 'Escape from Gringotts', shortName: 'Gringotts', category: 'ride', lat: 28.479747344951384, lng: -81.46995552189331, apiKey: 'Harry Potter and the Escape from Gringotts', anchorOffset: [-10, -10] },
 
   // SCARE ZONES
   { id: 'clowntown', name: 'Downtown Clowntown', shortName: 'Clowntown', category: 'scarezone', lat: 28.47646852330843, lng: -81.46949338552207 },
@@ -311,7 +325,7 @@ const HHN_MAP_LOCATIONS: MapPOI[] = [
   { id: 'sideshow-decay', name: 'Sideshow of Decay', shortName: 'Sideshow of Decay', category: 'scarezone', lat: 28.476404865479935, lng: -81.46732347850697 },
   { id: 'fortnitemares', name: 'Fortnitemares', shortName: 'Fortnitemares', category: 'scarezone', lat: 28.47765915338453, lng: -81.46787869572786 },
   { id: 'mels-zombies', name: 'Mel’s Die-In: Zombies', shortName: 'Mel’s Die-In', category: 'scarezone', lat: 28.476700537760085, lng: -81.46770869071331 },
-  { id: 'death-daddies', name: 'Death Eaters Encounter', shortName: 'Death Daddies', category: 'scarezone', lat: 28.479643609471676, lng: -81.46974899181171 },
+  { id: 'death-daddies', name: 'Death Eaters Encounter', shortName: 'Death Daddies', category: 'scarezone', lat: 28.479643609471676, lng: -81.46974899181171, anchorOffset: [15, 15] },
 
   // WATER STATIONS
   { id: 'water-1', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47574, lng: -81.46897 },
@@ -570,7 +584,7 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
-  // LEAFLET MAP - SINGLE INIT & PERSISTENT CANVAS FIX
+  // LEAFLET MAP - SINGLE INIT & PIN STAGGERING
   useEffect(() => {
     if (mainTab !== 'map' || !mapContainerRef.current) return;
 
@@ -653,11 +667,13 @@ export default function HorrorNightsTracker() {
           `;
         }
 
+        const anchorPos = poi.anchorOffset ? [20 + poi.anchorOffset[0], 12 + poi.anchorOffset[1]] : [20, 12];
+
         const customIcon = L.divIcon({
           html: iconHtml,
           className: 'custom-map-pin',
           iconSize: null,
-          iconAnchor: [20, 12]
+          iconAnchor: anchorPos
         });
 
         const popupContent = `
@@ -668,6 +684,11 @@ export default function HorrorNightsTracker() {
         `;
 
         const marker = L.marker([poi.lat, poi.lng], { icon: customIcon }).addTo(map).bindPopup(popupContent);
+        
+        marker.on('click', () => {
+          marker.setZIndexOffset(1000);
+        });
+
         poiMarkersRef.current.push(marker);
       });
     };
@@ -829,7 +850,7 @@ export default function HorrorNightsTracker() {
     } catch (e) {}
   };
 
-  // --- PARKING LOGS SUPABASE API (WITH 6 AM RESET FILTER) ---
+  // --- PARKING LOGS SUPABASE API ---
   const fetchParkingLogs = async () => {
     try {
       const cutoffISO = getRecent6AMCutoffISO();
@@ -2406,7 +2427,7 @@ export default function HorrorNightsTracker() {
                 style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
               />
 
-              {/* RECENTER & FULLSCREEN BUTTONS (SINGLE LINE & LIGHTER GREY) */}
+              {/* RECENTER & FULLSCREEN BUTTONS */}
               <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 999, display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button
                   onClick={handleRecenterUserMap}
@@ -3181,7 +3202,7 @@ export default function HorrorNightsTracker() {
               </div>
             </div>
 
-            {/* ROW NUMBER INPUT (Font size 16px to prevent iOS auto-zoom) */}
+            {/* ROW NUMBER INPUT */}
             <div style={{ marginBottom: '18px' }}>
               <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>
                 ROW NUMBER
@@ -3370,40 +3391,57 @@ export default function HorrorNightsTracker() {
           {/* HOUSES ANALYTICS SUBTAB */}
           {analyticsSubTab === 'Houses' && (
             <div>
-              {/* HOUSE STATS GRID */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-                {houseAnalyticsStats.map(stat => (
-                  <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#FF5500', marginBottom: '10px' }}>
-                      {ITEM_EMOJIS[stat.name] || '🏚️'} {stat.name}
-                    </div>
+              {/* HOUSE STATS GRID WITH BANNER IMAGES */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
+                {houseAnalyticsStats.map(stat => {
+                  const bannerPath = HOUSE_BANNERS[stat.name];
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#FFF' }}>{stat.visits}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>TOTAL<br />VISITS</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>AVG<br />WAIT</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>TOTAL<br />WAIT</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>AVG<br />POSTED</div>
-                      </div>
-                      <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
-                          {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
+                  return (
+                    <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', overflow: 'hidden' }}>
+                      
+                      {/* HOUSE BANNER IMAGE */}
+                      {bannerPath && (
+                        <div style={{ margin: '-14px -16px 12px -16px', height: '110px', overflow: 'hidden', borderBottom: '1px solid #2A2A3C' }}>
+                          <img
+                            src={bannerPath}
+                            alt={stat.name}
+                            onError={(e: any) => { e.target.parentNode.style.display = 'none'; }}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
                         </div>
-                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>+/-<br />POSTED</div>
+                      )}
+
+                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#FF5500', marginBottom: '10px' }}>
+                        {stat.name}
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
+                        <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '800', color: '#FFF' }}>{stat.visits}</div>
+                          <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>TOTAL<br />VISITS</div>
+                        </div>
+                        <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
+                          <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>AVG<br />WAIT</div>
+                        </div>
+                        <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
+                          <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>TOTAL<br />WAIT</div>
+                        </div>
+                        <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
+                          <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>AVG<br />POSTED</div>
+                        </div>
+                        <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
+                            {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
+                          </div>
+                          <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px', lineHeight: '1.2' }}>+/-<br />POSTED</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* LONGEST INDIVIDUAL WAIT TIMES (HOUSES) */}
