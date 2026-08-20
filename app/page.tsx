@@ -93,16 +93,6 @@ interface ParkingLog {
   created_at: string;
 }
 
-interface HouseRating {
-  id: string;
-  author_name: string;
-  house_name: string;
-  overall_rating: number;
-  scare_rating: number;
-  cool_rating: number;
-  created_at: string;
-}
-
 type AnalyticsSortKey = 'visits' | 'avgWait' | 'totalWait' | 'avgExpected' | 'diff';
 
 const FIXED_FAMILY_MEMBERS = [
@@ -173,7 +163,7 @@ const HOUSE_GRID_LAYOUT = [
     { name: 'Evil Dead', apiKey: 'Evil Dead Burn' }
   ],
   [
-    { name: 'Stranger Things', apiKey: 'Stranger Things 5' },
+    { name: 'ST5', apiKey: 'Stranger Things 5' },
     { name: 'INVASION', apiKey: 'INVASION: Alien Abduction' },
     { name: 'Cybergoria', apiKey: 'Cybergoria' }
   ],
@@ -284,6 +274,7 @@ const MOCK_YUM_ITEMS: YumItem[] = [
   }
 ];
 
+// FULL SPREADSHEET GAMES LIST
 const RAW_GAMES_LIST: GameItem[] = [
   {
     id: 'ai-horror-trivia',
@@ -552,63 +543,6 @@ const getRecent6AMCutoffISO = () => {
   return cutoff.toISOString();
 };
 
-const StarRatingPicker = ({ value, onChange, label }: { value: number; onChange: (v: number) => void; label: string }) => {
-  const stars = [1, 2, 3, 4, 5];
-
-  const handlePointerClick = (starIndex: number, event: React.PointerEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const isHalf = clickX < rect.width / 2;
-    const finalVal = isHalf ? starIndex - 0.5 : starIndex;
-    onChange(finalVal);
-  };
-
-  return (
-    <div style={{ marginBottom: '14px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-        <label style={{ fontSize: '12px', fontWeight: '800', color: '#CBD5E0' }}>{label}</label>
-        <span style={{ fontSize: '13px', fontWeight: '900', color: '#FF9A56' }}>{value.toFixed(1)} / 5.0</span>
-      </div>
-
-      <div style={{ display: 'flex', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
-        {stars.map((starIndex) => {
-          let starSymbol = '☆';
-          let starColor = '#4A5568';
-
-          if (value >= starIndex) {
-            starSymbol = '★';
-            starColor = '#FDA30C';
-          } else if (value >= starIndex - 0.5) {
-            starSymbol = '½';
-            starColor = '#FDA30C';
-          }
-
-          return (
-            <div
-              key={starIndex}
-              onPointerDown={(e) => handlePointerClick(starIndex, e)}
-              style={{
-                fontSize: '26px',
-                color: starColor,
-                lineHeight: '1',
-                padding: '4px',
-                background: '#1A1A26',
-                border: '1px solid #2A2A3C',
-                borderRadius: '8px',
-                flex: 1,
-                textAlign: 'center',
-                transition: 'all 0.1s ease'
-              }}
-            >
-              {starSymbol}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
 export default function HorrorNightsTracker() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [activeVisit, setActiveVisit] = useState<Visit | null>(null);
@@ -632,16 +566,6 @@ export default function HorrorNightsTracker() {
   const [parkingRowNumber, setParkingRowNumber] = useState<string>('');
   const [parkingLogs, setParkingLogs] = useState<ParkingLog[]>([]);
   const [parkingSaving, setParkingSaving] = useState<boolean>(false);
-
-  // House Rating States & Modal
-  const [showRatingModal, setShowRatingModal] = useState<boolean>(false);
-  const [ratingAuthor, setRatingAuthor] = useState<string>('Dan');
-  const [ratingHouse, setRatingHouse] = useState<string>(HHN_HOUSES[0]);
-  const [overallRatingVal, setOverallRatingVal] = useState<number>(4.0);
-  const [scareRatingVal, setScareRatingVal] = useState<number>(3.5);
-  const [coolRatingVal, setCoolRatingVal] = useState<number>(4.5);
-  const [ratingSubmitting, setRatingSubmitting] = useState<boolean>(false);
-  const [allHouseRatings, setAllHouseRatings] = useState<HouseRating[]>([]);
 
   // Yum Tab Filter & Sorting States
   const [yumCategoryFilter, setYumCategoryFilter] = useState<'all' | 'food' | 'drink' | 'dessert' | 'gf'>('all');
@@ -755,6 +679,7 @@ export default function HorrorNightsTracker() {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [departingMembers, setDepartingMembers] = useState<string[]>([]);
 
+  // SORT GAMES: HORROR MOVIE TRIVIA PINNED TO TOP, REST ALPHABETICAL
   const sortedGamesList = useMemo(() => {
     const pinned = RAW_GAMES_LIST.find(g => g.id === 'ai-horror-trivia');
     const others = RAW_GAMES_LIST.filter(g => g.id !== 'ai-horror-trivia');
@@ -794,7 +719,6 @@ export default function HorrorNightsTracker() {
     fetchYumComments();
     fetchPretzelCounts();
     fetchParkingLogs();
-    fetchHouseRatings();
 
     if (typeof window !== 'undefined' && navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
@@ -814,7 +738,7 @@ export default function HorrorNightsTracker() {
     }
   }, [rideName, liveWaitTimes]);
 
-  // RE-INVALIDATE MAP SIZE ON TAB SWITCH OR FULLSCREEN TOGGLE
+  // RE-INVALIDATE MAP SIZE ON TAB SWITCH OR FULLSCREEN TOGGLE (PREVENTS BLACKOUT)
   useEffect(() => {
     if (mainTab === 'map' && leafletMapRef.current) {
       const map = leafletMapRef.current;
@@ -1096,45 +1020,7 @@ export default function HorrorNightsTracker() {
     } catch (e) {}
   };
 
-  const fetchHouseRatings = async () => {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase.from('house_ratings').select('*').order('created_at', { ascending: false });
-      if (!error && data) {
-        setAllHouseRatings(data);
-      }
-    } catch (e) {}
-  };
-
-  const handleSaveHouseRating = async () => {
-    setRatingSubmitting(true);
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from('house_ratings')
-        .insert({
-          author_name: ratingAuthor,
-          house_name: ratingHouse,
-          overall_rating: overallRatingVal,
-          scare_rating: scareRatingVal,
-          cool_rating: coolRatingVal
-        })
-        .select()
-        .single();
-
-      if (!error && data) {
-        setAllHouseRatings(prev => [data, ...prev]);
-        setShowRatingModal(false);
-      } else if (error) {
-        alert("Error saving rating: " + error.message);
-      }
-    } catch (e: any) {
-      alert("Error saving rating: " + e.message);
-    } finally {
-      setRatingSubmitting(false);
-    }
-  };
-
+  // --- PARKING LOGS SUPABASE API ---
   const fetchParkingLogs = async () => {
     try {
       const cutoffISO = getRecent6AMCutoffISO();
@@ -1194,6 +1080,7 @@ export default function HorrorNightsTracker() {
     }
   };
 
+  // --- PRETZEL TRACKER SUPABASE API ---
   const fetchPretzelCounts = async () => {
     try {
       const supabase = getSupabase();
@@ -1267,6 +1154,7 @@ export default function HorrorNightsTracker() {
     }
   };
 
+  // --- SUPABASE DIRECT TRIVIA & LEADERBOARD FETCHING ---
   const fetchTriviaLeaderboardRecord = async (diff: string) => {
     try {
       const supabase = getSupabase();
@@ -1690,26 +1578,6 @@ export default function HorrorNightsTracker() {
   const avgShowsPerVisit = totalEventVisits > 0 ? (totalShowsCount / totalEventVisits).toFixed(1) : '0';
   const avgDurationPerVisit = totalEventVisits > 0 ? Math.round(totalTimeInParkMins / totalEventVisits) : 0;
   const avgWaitPerActivity = allCompletedActivities.length > 0 ? Math.round(totalTimeInLinesMins / allCompletedActivities.length) : 0;
-
-  const getHouseAverages = (houseName: string) => {
-    let houseRatings = allHouseRatings.filter(r => r.house_name === houseName);
-    if (selectedAttendeeFilter !== 'Everyone') {
-      houseRatings = houseRatings.filter(r => r.author_name === selectedAttendeeFilter);
-    }
-
-    if (houseRatings.length === 0) return null;
-
-    const overallAvg = houseRatings.reduce((s, r) => s + Number(r.overall_rating), 0) / houseRatings.length;
-    const scareAvg = houseRatings.reduce((s, r) => s + Number(r.scare_rating), 0) / houseRatings.length;
-    const coolAvg = houseRatings.reduce((s, r) => s + Number(r.cool_rating), 0) / houseRatings.length;
-
-    return {
-      count: houseRatings.length,
-      overall: overallAvg.toFixed(1),
-      scare: scareAvg.toFixed(1),
-      cool: coolAvg.toFixed(1)
-    };
-  };
 
   const houseAnalyticsStats = useMemo(() => {
     const stats = HHN_HOUSES.map(houseName => {
@@ -2668,7 +2536,7 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
-      {/* 5. MAP TAB CONTAINER (ALWAYS MOUNTED & FULL HEIGHT FIT) */}
+      {/* 5. MAP TAB CONTAINER (ALWAYS MOUNTED TO PREVENT MAP BLACKOUT) */}
       <div style={{ display: mainTab === 'map' ? 'block' : 'none' }}>
         <div style={{
           position: isMapFullscreen ? 'fixed' : 'relative',
@@ -2726,14 +2594,14 @@ export default function HorrorNightsTracker() {
             </button>
           </div>
 
-          {/* LEAFLET MAP CONTAINER WITH DYNAMIC SCREEN FIT */}
-          <div style={{ position: 'relative', width: '100%', height: isMapFullscreen ? 'calc(100vh - 80px)' : 'calc(100vh - 250px)', minHeight: '420px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2A2A3C' }}>
+          {/* LEAFLET MAP CONTAINER WITH EXPLICIT MIN-HEIGHT */}
+          <div style={{ position: 'relative', width: '100%', height: isMapFullscreen ? 'calc(100vh - 80px)' : '420px', minHeight: '420px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2A2A3C' }}>
             <div
               ref={mapContainerRef}
               style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
             />
 
-            {/* RECENTER & FULLSCREEN BUTTONS */}
+            {/* RECENTER & FULLSCREEN BUTTONS (SINGLE LINE & LIGHTER GREY) */}
             <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 999, display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button
                 onClick={handleRecenterUserMap}
@@ -2780,21 +2648,6 @@ export default function HorrorNightsTracker() {
       {/* 6. TRACKER TAB VIEWS */}
       {mainTab === 'tracker' && trackerSubTab === 'Tonight' && (
         <div>
-          {/* ⭐ RATE A HOUSE BUTTON / WIDGET */}
-          <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '14px 16px', borderRadius: '18px', border: '1px solid #FDA30C', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backdropFilter: 'blur(8px)' }}>
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: '900', color: '#FDA30C' }}>⭐ Rate a House</div>
-              <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>Score scares, coolness, & overall quality</div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowRatingModal(true)}
-              style={{ padding: '8px 16px', background: '#FDA30C', color: '#000', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(253, 163, 12, 0.3)' }}
-            >
-              Rate Now
-            </button>
-          </div>
-
           {activeVisit ? (
             /* ACTIVE VISIT LIVE WIDGET */
             <div style={{ background: 'linear-gradient(135deg, rgba(31, 8, 8, 0.9) 0%, rgba(13, 5, 16, 0.95) 100%)', color: '#FFF', padding: '20px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)', border: '2px solid #DC2626', backdropFilter: 'blur(8px)' }}>
@@ -3711,11 +3564,10 @@ export default function HorrorNightsTracker() {
           {/* HOUSES ANALYTICS SUBTAB */}
           {analyticsSubTab === 'Houses' && (
             <div>
-              {/* HOUSE STATS GRID WITH RATINGS ROW & BANNER IMAGES */}
+              {/* HOUSE STATS GRID WITH BANNER IMAGES */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
                 {houseAnalyticsStats.map(stat => {
                   const bannerPath = HOUSE_BANNERS[stat.name];
-                  const ratingAvg = getHouseAverages(stat.name);
 
                   return (
                     <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', overflow: 'hidden' }}>
@@ -3732,29 +3584,8 @@ export default function HorrorNightsTracker() {
                         </div>
                       )}
 
-                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#FF5500', marginBottom: '8px' }}>
+                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#FF5500', marginBottom: '10px' }}>
                         {stat.name}
-                      </div>
-
-                      {/* HOUSE RATINGS DISPLAY ROW */}
-                      <div style={{ background: '#12121A', padding: '8px 10px', borderRadius: '10px', border: '1px solid #2A2A3C', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        {ratingAvg ? (
-                          <>
-                            <div style={{ fontSize: '11px', fontWeight: '800', color: '#FDA30C' }}>
-                              ⭐ Overall: <span style={{ color: '#FFF' }}>{ratingAvg.overall}</span>
-                            </div>
-                            <div style={{ fontSize: '11px', fontWeight: '800', color: '#EF4444' }}>
-                              😱 Scare: <span style={{ color: '#FFF' }}>{ratingAvg.scare}</span>
-                            </div>
-                            <div style={{ fontSize: '11px', fontWeight: '800', color: '#3B82F6' }}>
-                              😎 Cool: <span style={{ color: '#FFF' }}>{ratingAvg.cool}</span>
-                            </div>
-                          </>
-                        ) : (
-                          <div style={{ fontSize: '11px', color: '#718096', fontStyle: 'italic', textAlign: 'center', width: '100%' }}>
-                            No ratings logged yet
-                          </div>
-                        )}
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
@@ -4057,109 +3888,6 @@ export default function HorrorNightsTracker() {
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* ⭐ RATE A HOUSE FORM MODAL */}
-      {showRatingModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '440px', width: '100%', maxHeight: '90vh', overflowY: 'auto', border: '2px solid #FDA30C', boxShadow: '0 10px 30px rgba(253, 163, 12, 0.3)' }}>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#FDA30C' }}>
-                ⭐ Rate a House
-              </h3>
-              <button onClick={() => setShowRatingModal(false)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '20px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
-            </div>
-
-            {/* WHO'S RATING */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>
-                WHO'S RATING?
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-                {FIXED_FAMILY_MEMBERS.map((name) => {
-                  const isSelected = ratingAuthor === name;
-                  return (
-                    <button
-                      key={name}
-                      type="button"
-                      onClick={() => setRatingAuthor(name)}
-                      style={{
-                        padding: '10px 2px',
-                        borderRadius: '10px',
-                        border: isSelected ? '2px solid #FDA30C' : '1px solid #2A2A3C',
-                        background: isSelected ? '#FDA30C' : '#1A1A26',
-                        color: isSelected ? '#000' : '#CBD5E0',
-                        fontSize: '12px',
-                        fontWeight: isSelected ? '900' : '600',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {name}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* WHICH HOUSE */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>
-                WHICH HOUSE?
-              </label>
-              <select
-                value={ratingHouse}
-                onChange={(e) => setRatingHouse(e.target.value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px', fontWeight: 'bold' }}
-              >
-                {HHN_HOUSES.map(house => (
-                  <option key={house} value={house}>{house}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* STAR RATINGS */}
-            <div style={{ background: '#1A1A26', padding: '14px', borderRadius: '16px', border: '1px solid #2A2A3C', marginBottom: '18px' }}>
-              <StarRatingPicker
-                label="⭐ Overall Rating"
-                value={overallRatingVal}
-                onChange={(v) => setOverallRatingVal(v)}
-              />
-
-              <StarRatingPicker
-                label="😱 How scary was it?"
-                value={scareRatingVal}
-                onChange={(v) => setScareRatingVal(v)}
-              />
-
-              <StarRatingPicker
-                label="😎 How cool was it?"
-                value={coolRatingVal}
-                onChange={(v) => setCoolRatingVal(v)}
-              />
-            </div>
-
-            {/* SUBMIT BUTTON */}
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setShowRatingModal(false)}
-                style={{ flex: 1, padding: '12px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveHouseRating}
-                disabled={ratingSubmitting}
-                style={{ flex: 2, padding: '12px', background: '#FDA30C', color: '#000', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', fontSize: '14px' }}
-              >
-                {ratingSubmitting ? 'Submitting...' : 'Submit Rating'}
-              </button>
-            </div>
-
-          </div>
         </div>
       )}
 
@@ -4599,4 +4327,125 @@ export default function HorrorNightsTracker() {
               <button
                 type="button"
                 onClick={() => processCheckout('everyone')}
-                styleI encountered an error doing what you asked. Could you try again?
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  background: '#2A2A3C',
+                  color: '#F3F4F6',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
+              >
+                Check Out Everyone
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowCheckoutModal(false)}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  background: 'none',
+                  color: '#A0AEC0',
+                  border: 'none',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  marginTop: '4px'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✏️ EDIT VISIT LOG MODAL */}
+      {editingVisit && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '440px', width: '100%', maxHeight: '90vh', overflowY: 'auto', border: '1px solid #2A2A3C', boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>
+              ✏️ Edit Visit Hours
+            </h3>
+            <p style={{ fontSize: '12px', color: '#A0AEC0', margin: '0 0 16px 0' }}>
+              {editingVisit.parkName} • {formatDisplayDate(editingVisit.visitDate)}
+            </p>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#CBD5E0', display: 'block', marginBottom: '4px' }}>
+                ⏰ ARRIVAL TIME (e.g. 6:30 PM)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 6:30 PM"
+                value={editVisitStartTime}
+                onChange={(e) => setEditVisitStartTime(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '16px' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#CBD5E0', display: 'block', marginBottom: '4px' }}>
+                🚪 MAIN DEPARTURE TIME (e.g. 2:00 AM)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 2:00 AM"
+                value={editVisitEndTime}
+                onChange={(e) => setEditVisitEndTime(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '16px' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#CBD5E0', display: 'block', marginBottom: '6px' }}>
+                👥 MEMBER DEPARTURE TIMES
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {parseAttendees(editingVisit.attendees).map(member => (
+                  <div key={member} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1A1A26', padding: '8px 10px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#F3F4F6' }}>👤 {member}</span>
+                    <input
+                      type="text"
+                      placeholder={editVisitEndTime || "e.g. 1:30 AM"}
+                      value={editVisitMemberEndTimes[member] || ''}
+                      onChange={(e) => {
+                        setEditVisitMemberEndTimes({
+                          ...editVisitMemberEndTimes,
+                          [member]: e.target.value
+                        });
+                      }}
+                      style={{ width: '120px', padding: '6px 8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#12121A', color: '#FFF', fontSize: '16px', textAlign: 'center' }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setEditingVisit(null)}
+                style={{ flex: 1, padding: '12px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveVisitEdit}
+                style={{ flex: 2, padding: '12px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+              >
+                💾 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
