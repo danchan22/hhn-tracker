@@ -719,48 +719,6 @@ const [allHouseRatings, setAllHouseRatings] = useState<HouseRating[]>([]);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [departingMembers, setDepartingMembers] = useState<string[]>([]);
 
-  // SORT GAMES: HORROR MOVIE TRIVIA PINNED TO TOP, REST ALPHABETICAL
-  const sortedGamesList = useMemo(() => {
-    const pinned = RAW_GAMES_LIST.find(g => g.id === 'ai-horror-trivia');
-    const others = RAW_GAMES_LIST.filter(g => g.id !== 'ai-horror-trivia');
-    others.sort((a, b) => a.name.localeCompare(b.name));
-    return pinned ? [pinned, ...others] : others;
-  }, []);
-
-  const activePartyList = useMemo(() => {
-    if (!activeVisit) return [];
-    const allParty = parseAttendees(activeVisit.attendees);
-    const endTimes = activeVisit.memberEndTimes || {};
-    return allParty.filter(member => !endTimes[member]);
-  }, [activeVisit]);
-
-  useEffect(() => {
-    if (activeVisit) {
-      setSelectedRiders(activePartyList);
-      setRideName(HHN_HOUSES[0]);
-      setDepartingMembers(activePartyList);
-    }
-  }, [activeVisit, activePartyList.length]);
-
-  useEffect(() => {
-    let interval: any;
-    if (queueStartTimestamp) {
-      interval = setInterval(() => {
-        setNowTimestamp(Date.now());
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [queueStartTimestamp]);
-
-  useEffect(() => {
-    fetchCloudVisits();
-    fetchLiveWeather();
-    fetchThemeParkWaitTimes();
-    fetchYumComments();
-    fetchPretzelCounts();
-    fetchParkingLogs(); 
-    fetchHouseRatings();
-
     // --- HOUSE RATINGS SUPABASE API ---
   const fetchHouseRatings = async () => {
     try {
@@ -803,6 +761,50 @@ const [allHouseRatings, setAllHouseRatings] = useState<HouseRating[]>([]);
       setRatingSubmitting(false);
     }
   };
+  
+  // SORT GAMES: HORROR MOVIE TRIVIA PINNED TO TOP, REST ALPHABETICAL
+  const sortedGamesList = useMemo(() => {
+    const pinned = RAW_GAMES_LIST.find(g => g.id === 'ai-horror-trivia');
+    const others = RAW_GAMES_LIST.filter(g => g.id !== 'ai-horror-trivia');
+    others.sort((a, b) => a.name.localeCompare(b.name));
+    return pinned ? [pinned, ...others] : others;
+  }, []);
+
+  const activePartyList = useMemo(() => {
+    if (!activeVisit) return [];
+    const allParty = parseAttendees(activeVisit.attendees);
+    const endTimes = activeVisit.memberEndTimes || {};
+    return allParty.filter(member => !endTimes[member]);
+  }, [activeVisit]);
+
+  useEffect(() => {
+    if (activeVisit) {
+      setSelectedRiders(activePartyList);
+      setRideName(HHN_HOUSES[0]);
+      setDepartingMembers(activePartyList);
+    }
+  }, [activeVisit, activePartyList.length]);
+
+  useEffect(() => {
+    let interval: any;
+    if (queueStartTimestamp) {
+      interval = setInterval(() => {
+        setNowTimestamp(Date.now());
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [queueStartTimestamp]);
+
+  useEffect(() => {
+    fetchCloudVisits();
+    fetchLiveWeather();
+    fetchThemeParkWaitTimes();
+    fetchYumComments();
+    fetchPretzelCounts();
+    fetchParkingLogs(); 
+    fetchHouseRatings();
+
+
 
     if (typeof window !== 'undefined' && navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
