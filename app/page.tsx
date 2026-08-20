@@ -9,6 +9,8 @@ import { GamesTab } from '../components/Tabs/GamesTab';
 import { YumTab } from '../components/Tabs/YumTab';
 import { MapTab } from '../components/Tabs/MapTab';
 import { PretzelTracker } from '../components/Shared/PretzelTracker';
+import { TrackerTab } from '../components/Tabs/TrackerTab';
+import { AnalyticsTab } from '../components/Tabs/AnalyticsTab';
 
 // --- SAFE LAZY SUPABASE CLIENT INITIALIZATION ---
 let supabaseInstance: any = null;
@@ -2219,25 +2221,127 @@ export default function HorrorNightsTracker() {
       />
 
       {/* 6. TRACKER TAB VIEWS */}
-      {mainTab === 'tracker' && trackerSubTab === 'Tonight' && (
-        <div>
-          {/* RATE A HOUSE WIDGET */}
-          <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '14px 16px', borderRadius: '18px', border: '1px solid #FDA30C', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: '900', color: '#FDA30C' }}>⭐ Rate a House</div>
-            </div>
-            <button type="button" onClick={() => setShowRatingModal(true)} style={{ padding: '8px 16px', background: '#FDA30C', color: '#000', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '900', cursor: 'pointer' }}>
-              Rate Now
-            </button>
-          </div>
+{mainTab === 'tracker' && (
+  <TrackerTab
+    trackerSubTab={trackerSubTab}
+    activeVisit={activeVisit}
+    activePartyList={activePartyList}
+    formatDisplayDate={formatDisplayDate}
+    format12Hour={format12Hour}
+    calculateVisitDuration={calculateVisitDuration}
+    formatMinutes={formatMinutes}
+    rideName={rideName}
+    setRideName={setRideName}
+    queueStartTimestamp={queueStartTimestamp}
+    queueStartTimeStr={queueStartTimeStr}
+    selectedRiders={selectedRiders}
+    toggleRiderSelection={toggleRiderSelection}
+    postedWaitTime={postedWaitTime}
+    setPostedWaitTime={setPostedWaitTime}
+    waitTime={waitTime}
+    setWaitTime={setWaitTime}
+    handleStartQueueTimer={handleStartQueueTimer}
+    handleEndQueueTimer={handleEndQueueTimer}
+    setQueueStartTimestamp={setQueueStartTimestamp}
+    setQueueStartTimeStr={setQueueStartTimeStr}
+    handleAddRideLive={handleAddRideLive}
+    openLiveActivityEdit={openLiveActivityEdit}
+    setDepartingMembers={setDepartingMembers}
+    setShowCheckoutModal={setShowCheckoutModal}
+    selectedAttendees={selectedAttendees}
+    toggleCheckInAttendee={toggleCheckInAttendee}
+    handleCheckIn={handleCheckIn}
+    setShowRatingModal={setShowRatingModal}
+    fetchThemeParkWaitTimes={fetchThemeParkWaitTimes}
+    waitsSyncing={waitsSyncing}
+    liveWaitTimes={liveWaitTimes}
+    getWaitBoxStyle={getWaitBoxStyle}
+    houseGridLayout={HOUSE_GRID_LAYOUT}
+    rideGridLayout={RIDE_GRID_LAYOUT}
+    totalEventVisits={totalEventVisits}
+    totalHousesCount={totalHousesCount}
+    totalRidesCount={totalRidesCount}
+    totalShowsCount={totalShowsCount}
+    totalTimeInParkMins={totalTimeInParkMins}
+    totalTimeInLinesMins={totalTimeInLinesMins}
+    lineTimePercentage={lineTimePercentage}
+    topHouseData={topHouseData}
+    topRideData={topRideData}
+    avgHousesPerVisit={avgHousesPerVisit}
+    avgRidesPerVisit={avgRidesPerVisit}
+    avgShowsPerVisit={avgShowsPerVisit}
+    avgDurationPerVisit={avgDurationPerVisit}
+    avgWaitPerActivity={avgWaitPerActivity}
+    itemEmojis={ITEM_EMOJIS}
+    regularPretzels={regularPretzels}
+    cinnamonPretzels={cinnamonPretzels}
+    updatePretzelCount={updatePretzelCount}
+    visits={visits}
+    loading={loading}
+    getPersonEndTime={getPersonEndTime}
+    editingActivityId={editingActivityId}
+    editingVisitId={editingVisitId}
+    editRideName={editRideName}
+    setEditRideName={setEditRideName}
+    editRiders={editRiders}
+    toggleEditRiderSelection={toggleEditRiderSelection}
+    editWaitTime={editWaitTime}
+    setEditWaitTime={setEditWaitTime}
+    editNotes={editNotes}
+    setEditNotes={setEditNotes}
+    deleteActivity={deleteActivity}
+    cancelEditing={cancelEditing}
+    saveEditedActivity={saveEditedActivity}
+    startEditing={startEditing}
+    openEditVisit={openEditVisit}
+    deleteVisit={deleteVisit}
+    parkingAttendees={parkingAttendees}
+    toggleParkingAttendee={toggleParkingAttendee}
+    parkingGarage={parkingGarage}
+    setParkingGarage={setParkingGarage}
+    parkingRowNumber={parkingRowNumber}
+    setParkingRowNumber={setParkingRowNumber}
+    handleSaveParkingLog={handleSaveParkingLog}
+    parkingSaving={parkingSaving}
+    parkingLogs={parkingLogs}
+    parkingGarages={PARKING_GARAGES}
+    familyMembers={FIXED_FAMILY_MEMBERS}
+    hhnHouses={HHN_HOUSES}
+    hhnRides={HHN_RIDES}
+    hhnShows={HHN_SHOWS}
+    parseAttendees={parseAttendees}
+    getElapsedQueueTimeString={getElapsedQueueTimeString}
+  />
+)}
 
-          <PretzelTracker
-            regularPretzels={regularPretzels}
-            cinnamonPretzels={cinnamonPretzels}
-            updatePretzelCount={updatePretzelCount}
-          />
-        </div>
-      )}
+{/* ANALYTICS TAB */}
+{mainTab === 'analytics' && (
+  <AnalyticsTab
+    analyticsSubTab={analyticsSubTab}
+    selectedAttendeeFilter={selectedAttendeeFilter}
+    setSelectedAttendeeFilter={setSelectedAttendeeFilter}
+    toggleAttendeeFilter={toggleAttendeeFilter}
+    analyticsSortKey={analyticsSortKey}
+    analyticsSortOrder={analyticsSortOrder}
+    handleAnalyticsSortClick={handleAnalyticsSortClick}
+    houseAnalyticsStats={houseAnalyticsStats}
+    rideAnalyticsStats={rideAnalyticsStats}
+    houseBanners={HOUSE_BANNERS}
+    rideBanners={RIDE_BANNERS}
+    getHouseAverages={getHouseAverages}
+    allHouseRatings={allHouseRatings}
+    formatMinutes={formatMinutes}
+    longestHouseWaits={longestHouseWaits}
+    shortestHouseWaits={shortestHouseWaits}
+    longestRideWaits={longestRideWaits}
+    shortestRideWaits={shortestRideWaits}
+    attendeeChecklistData={attendeeChecklistData}
+    itemEmojis={ITEM_EMOJIS}
+    formatDisplayDate={formatDisplayDate}
+    parseAttendees={parseAttendees}
+    familyMembers={FIXED_FAMILY_MEMBERS}
+  />
+)}
 
       {/* ⭐ HOUSE RATING MODAL */}
       <HouseRatingModal
