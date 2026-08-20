@@ -552,7 +552,6 @@ const getRecent6AMCutoffISO = () => {
   return cutoff.toISOString();
 };
 
-// HELPER STAR RATING INPUT COMPONENT WITH HALF-STAR SELECTION
 const StarRatingPicker = ({ value, onChange, label }: { value: number; onChange: (v: number) => void; label: string }) => {
   const stars = [1, 2, 3, 4, 5];
 
@@ -1097,7 +1096,6 @@ export default function HorrorNightsTracker() {
     } catch (e) {}
   };
 
-  // --- HOUSE RATINGS SUPABASE API ---
   const fetchHouseRatings = async () => {
     try {
       const supabase = getSupabase();
@@ -1137,7 +1135,6 @@ export default function HorrorNightsTracker() {
     }
   };
 
-  // --- PARKING LOGS SUPABASE API ---
   const fetchParkingLogs = async () => {
     try {
       const cutoffISO = getRecent6AMCutoffISO();
@@ -1197,7 +1194,6 @@ export default function HorrorNightsTracker() {
     }
   };
 
-  // --- PRETZEL TRACKER SUPABASE API ---
   const fetchPretzelCounts = async () => {
     try {
       const supabase = getSupabase();
@@ -1271,7 +1267,6 @@ export default function HorrorNightsTracker() {
     }
   };
 
-  // --- SUPABASE DIRECT TRIVIA & LEADERBOARD FETCHING ---
   const fetchTriviaLeaderboardRecord = async (diff: string) => {
     try {
       const supabase = getSupabase();
@@ -1696,7 +1691,6 @@ export default function HorrorNightsTracker() {
   const avgDurationPerVisit = totalEventVisits > 0 ? Math.round(totalTimeInParkMins / totalEventVisits) : 0;
   const avgWaitPerActivity = allCompletedActivities.length > 0 ? Math.round(totalTimeInLinesMins / allCompletedActivities.length) : 0;
 
-  // COMPUTE HOUSE AVERAGES FROM HOUSE_RATINGS DATA (SENSITIVE TO ATTENDEE FILTER)
   const getHouseAverages = (houseName: string) => {
     let houseRatings = allHouseRatings.filter(r => r.house_name === houseName);
     if (selectedAttendeeFilter !== 'Everyone') {
@@ -4545,4 +4539,64 @@ export default function HorrorNightsTracker() {
 
       {/* 👋 STAGGERED CHECK-OUT MODAL */}
       {showCheckoutModal && activeVisit && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItemsI encountered an error doing what you asked. Could you try again?
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '400px', width: '100%', border: '1px solid #2A2A3C', boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>
+              Leaving Park
+            </h3>
+            <p style={{ fontSize: '13px', color: '#A0AEC0', margin: '0 0 16px 0' }}>
+              Who is departing the park right now?
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+              {activePartyList.map((member) => {
+                const isSelected = departingMembers.includes(member);
+                return (
+                  <button
+                    key={member}
+                    type="button"
+                    onClick={() => toggleDepartingMember(member)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: isSelected ? '2px solid #DC2626' : '1px solid #2A2A3C',
+                      background: isSelected ? '#2C0B0E' : '#1A1A26',
+                      color: isSelected ? '#FCA5A5' : '#CBD5E0',
+                      fontWeight: '700',
+                      fontSize: '14px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span>👤 {member}</span>
+                    <span>{isSelected ? '🚪 Leaving' : '🎃 Staying'}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => processCheckout('selected')}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: '#DC2626',
+                  color: '#FFF',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Check Out Selected ({departingMembers.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => processCheckout('everyone')}
+                styleI encountered an error doing what you asked. Could you try again?
