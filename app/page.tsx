@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import { GamesTab } from '../components/Tabs/GamesTab';
 import { YumTab } from '../components/Tabs/YumTab';
 import { PretzelTracker } from '../components/Shared/PretzelTracker';
+import { MapTab } from '../components/Tabs/MapTab';
 
 // --- SAFE LAZY SUPABASE CLIENT INITIALIZATION ---
 let supabaseInstance: any = null;
@@ -2205,11 +2206,11 @@ const [allHouseRatings, setAllHouseRatings] = useState<HouseRating[]>([]);
     return `${mins} mins ${secs > 0 ? `${secs}s` : ''}`;
   };
 
-  return (
-    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', minHeight: '100vh', position: 'relative' }}>
-      
-      {/* 🎃 APP HEADER */}
-      <header style={{ textAlign: 'center', marginBottom: '8px', padding: '10px 0 0 0' }}>
+  
+return (
+  <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', minHeight: '100vh', position: 'relative' }}>
+    {/* 🎃 APP HEADER */}
+    <header style={{ textAlign: 'center', marginBottom: '8px', padding: '10px 0 0 0' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#FF5500', letterSpacing: '-0.5px', margin: '0', textShadow: '0 0 12px rgba(255, 85, 0, 0.4)' }}>
           Never Go Alone 😱
         </h1>
@@ -2477,113 +2478,15 @@ const [allHouseRatings, setAllHouseRatings] = useState<HouseRating[]>([]);
 )}
 
       {/* 5. MAP TAB CONTAINER (ALWAYS MOUNTED TO PREVENT MAP BLACKOUT) */}
-      <div style={{ display: mainTab === 'map' ? 'block' : 'none' }}>
-        <div style={{
-          position: isMapFullscreen ? 'fixed' : 'relative',
-          top: isMapFullscreen ? 0 : 'auto',
-          left: isMapFullscreen ? 0 : 'auto',
-          right: isMapFullscreen ? 0 : 'auto',
-          bottom: isMapFullscreen ? 0 : 'auto',
-          width: isMapFullscreen ? '100vw' : '100%',
-          height: isMapFullscreen ? '100vh' : 'auto',
-          zIndex: isMapFullscreen ? 99999 : 'auto',
-          background: 'rgba(18, 18, 26, 0.85)',
-          borderRadius: isMapFullscreen ? 0 : '24px',
-          padding: isMapFullscreen ? '10px' : '14px',
-          border: isMapFullscreen ? 'none' : '1px solid #2A2A3C',
-          backdropFilter: 'blur(8px)',
-          boxSizing: 'border-box'
-        }}>
-          {/* CATEGORY FILTERS GRID */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px', marginBottom: '10px' }}>
-            <button
-              onClick={() => toggleMapFilter('house')}
-              style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'house' ? '2px solid #FF5500' : '1px solid #2A2A3C', background: mapCategoryFilter === 'house' ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center', lineHeight: '1.2' }}
-            >
-              🏚️<br />Houses
-            </button>
-            <button
-              onClick={() => toggleMapFilter('ride')}
-              style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'ride' ? '2px solid #3B82F6' : '1px solid #2A2A3C', background: mapCategoryFilter === 'ride' ? '#3B82F6' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center', lineHeight: '1.2' }}
-            >
-              🎢<br />Rides
-            </button>
-            <button
-              onClick={() => toggleMapFilter('show')}
-              style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'show' ? '2px solid #10B981' : '1px solid #2A2A3C', background: mapCategoryFilter === 'show' ? '#10B981' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center', lineHeight: '1.2' }}
-            >
-              🎭<br />Shows
-            </button>
-            <button
-              onClick={() => toggleMapFilter('scarezone')}
-              style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'scarezone' ? '2px solid #A855F7' : '1px solid #2A2A3C', background: mapCategoryFilter === 'scarezone' ? '#A855F7' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center', lineHeight: '1.2' }}
-            >
-              🧟<br />Zones
-            </button>
-            <button
-              onClick={() => toggleMapFilter('water')}
-              style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'water' ? '2px solid #06B6D4' : '1px solid #2A2A3C', background: mapCategoryFilter === 'water' ? '#06B6D4' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center', lineHeight: '1.2' }}
-            >
-              💧<br />Water
-            </button>
-            <button
-              onClick={() => toggleMapFilter('food')}
-              style={{ padding: '6px 2px', borderRadius: '8px', border: mapCategoryFilter === 'food' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: mapCategoryFilter === 'food' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '10px', fontWeight: '800', cursor: 'pointer', textAlign: 'center', lineHeight: '1.2' }}
-            >
-              🍔<br />Food
-            </button>
-          </div>
-
-          {/* LEAFLET MAP CONTAINER WITH EXPLICIT MIN-HEIGHT */}
-          <div style={{ position: 'relative', width: '100%', height: isMapFullscreen ? 'calc(100vh - 80px)' : 'calc(100vh - 250px)', minHeight: '420px', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2A2A3C' }}>
-            <div
-              ref={mapContainerRef}
-              style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
-            />
-
-            {/* RECENTER & FULLSCREEN BUTTONS (SINGLE LINE & LIGHTER GREY) */}
-            <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 999, display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <button
-                onClick={handleRecenterUserMap}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '16px',
-                  background: 'rgba(225, 225, 235, 0.88)',
-                  color: '#1A1A26',
-                  border: '1px solid rgba(255, 255, 255, 0.5)',
-                  fontSize: '12px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                  backdropFilter: 'blur(6px)',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                📍 Me
-              </button>
-
-              <button
-                onClick={() => setIsMapFullscreen(!isMapFullscreen)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '16px',
-                  background: 'rgba(225, 225, 235, 0.88)',
-                  color: '#1A1A26',
-                  border: '1px solid rgba(255, 255, 255, 0.5)',
-                  fontSize: '12px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                  backdropFilter: 'blur(6px)',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {isMapFullscreen ? '✕ Exit' : '⛶ Fullscreen'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+<MapTab
+  isVisible={mainTab === 'map'}
+  isMapFullscreen={isMapFullscreen}
+  setIsMapFullscreen={setIsMapFullscreen}
+  mapCategoryFilter={mapCategoryFilter}
+  toggleMapFilter={toggleMapFilter}
+  mapContainerRef={mapContainerRef}
+  handleRecenterUserMap={handleRecenterUserMap}
+/>
 
       {/* 6. TRACKER TAB VIEWS */}
       {mainTab === 'tracker' && trackerSubTab === 'Tonight' && (
@@ -3015,8 +2918,7 @@ const [allHouseRatings, setAllHouseRatings] = useState<HouseRating[]>([]);
           </div>
 
           {/* 🥨 BRANDED DANDIE PRETZEL TRACKER WIDGET */}
- {/* ✅ PASTE THIS INSTEAD */}
-<PretzelTracker
+ <PretzelTracker
   regularPretzels={regularPretzels}
   cinnamonPretzels={cinnamonPretzels}
   updatePretzelCount={updatePretzelCount}
