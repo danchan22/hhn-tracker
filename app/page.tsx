@@ -2793,19 +2793,6 @@ const [allHouseRatings, setAllHouseRatings] = useState<HouseRating[]>([]);
       {mainTab === 'tracker' && trackerSubTab === 'Tonight' && (
         <div>
 
-          {/* ⭐ RATE A HOUSE BUTTON / WIDGET */}
-<div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '14px 16px', borderRadius: '18px', border: '1px solid #FDA30C', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backdropFilter: 'blur(8px)' }}>
-  <div>
-    <div style={{ fontSize: '14px', fontWeight: '900', color: '#FDA30C' }}>⭐ Rate a House</div>
-  </div>
-  <button
-    type="button"
-    onClick={() => setShowRatingModal(true)}
-    style={{ padding: '8px 16px', background: '#FDA30C', color: '#000', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(253, 163, 12, 0.3)' }}
-  >
-    Rate Now
-  </button>
-</div>
           {activeVisit ? (
             /* ACTIVE VISIT LIVE WIDGET */
             <div style={{ background: 'linear-gradient(135deg, rgba(31, 8, 8, 0.9) 0%, rgba(13, 5, 16, 0.95) 100%)', color: '#FFF', padding: '20px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)', border: '2px solid #DC2626', backdropFilter: 'blur(8px)' }}>
@@ -3020,6 +3007,20 @@ const [allHouseRatings, setAllHouseRatings] = useState<HouseRating[]>([]);
             </form>
           )}
 
+          {/* ⭐ RATE A HOUSE BUTTON / WIDGET */}
+<div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '14px 16px', borderRadius: '18px', border: '1px solid #FDA30C', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backdropFilter: 'blur(8px)' }}>
+  <div>
+    <div style={{ fontSize: '14px', fontWeight: '900', color: '#FDA30C' }}>⭐ Rate a House</div>
+  </div>
+  <button
+    type="button"
+    onClick={() => setShowRatingModal(true)}
+    style={{ padding: '8px 16px', background: '#FDA30C', color: '#000', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(253, 163, 12, 0.3)' }}
+  >
+    Rate Now
+  </button>
+</div>
+          
           {/* 🎪 LIVE WAIT TIMES & SHOW TIMES WIDGET */}
           <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
