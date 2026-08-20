@@ -280,38 +280,38 @@ interface MapPOI {
   apiKey?: string;
 }
 
-// Updated Map POIs: Clean short names without letters/numbers & "Death Daddies"
+// Updated Map POIs using EXACT user coordinates
 const HHN_MAP_LOCATIONS: MapPOI[] = [
   // HOUSES
-  { id: 'stranger-things-5', name: 'Stranger Things 5', shortName: 'ST5', category: 'house', lat: 28.4760, lng: -81.4687, apiKey: 'Stranger Things 5' },
-  { id: 'evil-dead-burn', name: 'Evil Dead Burn', shortName: 'Evil Dead', category: 'house', lat: 28.4757, lng: -81.4690, apiKey: 'Evil Dead Burn' },
-  { id: 'jack-oddfellow', name: 'Jack & Oddfellow', shortName: 'Oddfellow', category: 'house', lat: 28.4746, lng: -81.4682, apiKey: 'Jack & Oddfellow' },
-  { id: 'ozzy-osbourne', name: 'Ozzy Osbourne', shortName: 'Ozzy', category: 'house', lat: 28.4743, lng: -81.4685, apiKey: 'Ozzy Osbourne' },
-  { id: 'madlands', name: 'Madlands: Caged Cannibals', shortName: 'Madlands', category: 'house', lat: 28.4740, lng: -81.4687, apiKey: 'Madlands: Caged Cannibals' },
-  { id: 'cybergoria', name: 'Cybergoria', shortName: 'Cyber', category: 'house', lat: 28.4754, lng: -81.4646, apiKey: 'Cybergoria' },
-  { id: 'invasion', name: 'INVASION: Alien Abduction', shortName: 'Invasion', category: 'house', lat: 28.4770, lng: -81.4650, apiKey: 'INVASION: Alien Abduction' },
-  { id: 'bloodengutz', name: 'H.R. Bloodengutz', shortName: 'Bloodengutz', category: 'house', lat: 28.4763, lng: -81.4648, apiKey: 'H.R. Bloodengutz' },
-  { id: 'hellraiser', name: 'Hellraiser', shortName: 'Hellraiser', category: 'house', lat: 28.4782, lng: -81.4647, apiKey: 'Hellraiser' },
-  { id: 'sinners', name: 'Sinners', shortName: 'Sinners', category: 'house', lat: 28.4786, lng: -81.4646, apiKey: 'Sinners' },
+  { id: 'stranger-things-5', name: 'Stranger Things 5', shortName: 'ST5', category: 'house', lat: 28.475292026146676, lng: -81.46777677183829, apiKey: 'Stranger Things 5' },
+  { id: 'evil-dead-burn', name: 'Evil Dead Burn', shortName: 'Evil Dead', category: 'house', lat: 28.475322676539005, lng: -81.46789747123661, apiKey: 'Evil Dead Burn' },
+  { id: 'jack-oddfellow', name: 'Jack & Oddfellow', shortName: 'Oddfellow', category: 'house', lat: 28.47565511483836, lng: -81.46865385413282, apiKey: 'Jack & Oddfellow' },
+  { id: 'ozzy-osbourne', name: 'Ozzy Osbourne', shortName: 'Ozzy', category: 'house', lat: 28.47566454569684, lng: -81.46908300754912, apiKey: 'Ozzy Osbourne' },
+  { id: 'madlands', name: 'Madlands: Caged Cannibals', shortName: 'Madlands', category: 'house', lat: 28.47565511483836, lng: -81.46922784682711, apiKey: 'Madlands: Caged Cannibals' },
+  { id: 'cybergoria', name: 'Cybergoria', shortName: 'Cyber', category: 'house', lat: 28.477930369513274, lng: -81.46954248310902, apiKey: 'Cybergoria' },
+  { id: 'hellraiser', name: 'Hellraiser', shortName: 'Hellraiser', category: 'house', lat: 28.480578740065464, lng: -81.46842275368006, apiKey: 'Hellraiser' },
+  { id: 'sinners', name: 'Sinners', shortName: 'Sinners', category: 'house', lat: 28.48051132782185, lng: -81.4683745461523, apiKey: 'Sinners' },
+  { id: 'bloodengutz', name: 'H.R. Bloodengutz', shortName: 'Bloodengutz', category: 'house', lat: 28.480131892382673, lng: -81.4674673680962, apiKey: 'H.R. Bloodengutz' },
+  { id: 'invasion', name: 'INVASION: Alien Abduction', shortName: 'Invasion', category: 'house', lat: 28.479205447850518, lng: -81.46771936199599, apiKey: 'INVASION: Alien Abduction' },
+
+  // SHOWS
+  { id: 'club-horror', name: 'Club Horror', shortName: 'Club Horror', category: 'show', lat: 28.478669993859793, lng: -81.46935622675115 },
+  { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', shortName: 'Nightmare Fuel', category: 'show', lat: 28.48025323483047, lng: -81.46886319519807 },
+  { id: 'stranger-things-lagoon', name: 'Stranger Things Lagoon Show', shortName: 'Lagoon Show', category: 'show', lat: 28.47772141320968, lng: -81.46822099260383 },
+
+  // RIDES
+  { id: 'transformers', name: 'TRANSFORMERS: The Ride-3D', shortName: 'Transformers', category: 'ride', lat: 28.476645350396623, lng: -81.46856265903122, apiKey: 'Transformers: The Ride-3D' },
+  { id: 'mummy', name: 'Revenge of the Mummy', shortName: 'Mummy', category: 'ride', lat: 28.476720796540143, lng: -81.46961676712924, apiKey: 'Revenge of the Mummy' },
+  { id: 'mib', name: 'MEN IN BLACK Alien Attack', shortName: 'MIB', category: 'ride', lat: 28.480530073021992, lng: -81.46800287375153, apiKey: 'Men in Black: Alien Attack' },
+  { id: 'gringotts', name: 'Escape from Gringotts', shortName: 'Gringotts', category: 'ride', lat: 28.479747344951384, lng: -81.46995552189331, apiKey: 'Harry Potter and the Escape from Gringotts' },
 
   // SCARE ZONES
-  { id: 'infernal-carnival', name: 'Infernal Carnival of Nightmares', shortName: 'Infernal Carnival', category: 'scarezone', lat: 28.4750, lng: -81.4687 },
-  { id: 'sideshow-decay', name: 'Sideshow of Decay', shortName: 'Sideshow', category: 'scarezone', lat: 28.4755, lng: -81.4678 },
-  { id: 'downtown-clowntown', name: 'Downtown Clowntown', shortName: 'Clowntown', category: 'scarezone', lat: 28.4765, lng: -81.4682 },
-  { id: 'fortnitemares', name: 'Fortnitemares', shortName: 'Fortnite', category: 'scarezone', lat: 28.4768, lng: -81.4665 },
-
-  // LIVE ENTERTAINMENT
-  { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', shortName: 'Nightmare Fuel', category: 'show', lat: 28.4803, lng: -81.4688 },
-  { id: 'club-horror', name: 'Club Horror', shortName: 'Club Horror', category: 'show', lat: 28.4762, lng: -81.4655 },
-  { id: 'stranger-things-lagoon', name: 'Stranger Things: Return to Hawkins', shortName: 'Lagoon Show', category: 'show', lat: 28.4772, lng: -81.4670 },
-  { id: 'mels-zombies', name: 'Mel’s Die-In: Zombies', shortName: 'Mel’s Zombies', category: 'show', lat: 28.4761, lng: -81.4674 },
-
-  // RIDES & ATTRACTIONS
-  { id: 'mummy', name: 'Revenge of the Mummy', shortName: 'Mummy', category: 'ride', lat: 28.4769, lng: -81.4697, apiKey: 'Revenge of the Mummy' },
-  { id: 'transformers', name: 'TRANSFORMERS: The Ride-3D', shortName: 'Transformers', category: 'ride', lat: 28.4766, lng: -81.4686, apiKey: 'Transformers: The Ride-3D' },
-  { id: 'gringotts', name: 'Escape from Gringotts', shortName: 'Gringotts', category: 'ride', lat: 28.4798, lng: -81.4700, apiKey: 'Harry Potter and the Escape from Gringotts' },
-  { id: 'mib', name: 'MEN IN BLACK Alien Attack', shortName: 'MIB', category: 'ride', lat: 28.4810, lng: -81.4675, apiKey: 'Men in Black: Alien Attack' },
-  { id: 'death-eaters', name: 'Death Eaters Encounter', shortName: 'Death Daddies', category: 'show', lat: 28.4795, lng: -81.4692 },
+  { id: 'clowntown', name: 'Downtown Clowntown', shortName: 'Clowntown', category: 'scarezone', lat: 28.47646852330843, lng: -81.46949338552207 },
+  { id: 'carnival', name: 'Infernal Carnival of Nightmares', shortName: 'Carnival', category: 'scarezone', lat: 28.475251944861867, lng: -81.46734493618837 },
+  { id: 'sideshow-decay', name: 'Sideshow of Decay', shortName: 'Sideshow of Decay', category: 'scarezone', lat: 28.476404865479935, lng: -81.46732347850697 },
+  { id: 'fortnitemares', name: 'Fortnitemares', shortName: 'Fortnitemares', category: 'scarezone', lat: 28.47765915338453, lng: -81.46787869572786 },
+  { id: 'mels-zombies', name: 'Mel’s Die-In: Zombies', shortName: 'Mel’s Die-In', category: 'scarezone', lat: 28.476700537760085, lng: -81.46770869071331 },
+  { id: 'death-daddies', name: 'Death Eaters Encounter', shortName: 'Death Daddies', category: 'scarezone', lat: 28.479643609471676, lng: -81.46974899181171 },
 
   // WATER STATIONS
   { id: 'water-1', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47574, lng: -81.46897 },
