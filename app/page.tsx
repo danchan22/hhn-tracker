@@ -1,12 +1,14 @@
 'use client';
 
-import { HouseRatingModal } from '../components/Modals/HouseRatingModal';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
+
+import { StarRatingPicker } from '../components/UI/StarRatingPicker';
+import { HouseRatingModal } from '../components/Modals/HouseRatingModal';
 import { GamesTab } from '../components/Tabs/GamesTab';
 import { YumTab } from '../components/Tabs/YumTab';
-import { PretzelTracker } from '../components/Shared/PretzelTracker';
 import { MapTab } from '../components/Tabs/MapTab';
+import { PretzelTracker } from '../components/Shared/PretzelTracker';
 
 // --- SAFE LAZY SUPABASE CLIENT INITIALIZATION ---
 let supabaseInstance: any = null;
@@ -2184,7 +2186,7 @@ const [allHouseRatings, setAllHouseRatings] = useState<HouseRating[]>([]);
     setQueueStartTimeStr(null);
   };
 
-  const deleteVisit = async (id: string) => {
+const deleteVisit = async (id: string) => {
     const confirmDelete = window.confirm("⚠️ Are you sure you want to delete this entire visit log? This action cannot be undone!");
     if (!confirmDelete) return;
 
@@ -2206,9 +2208,9 @@ const [allHouseRatings, setAllHouseRatings] = useState<HouseRating[]>([]);
     return mins + ' mins' + (secs > 0 ? ' ' + secs + 's' : '');
   };
 
-  
-return (
-  <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', minHeight: '100vh', position: 'relative' }}>
+  return (
+    <div style={{ maxWidth: '520px', margin: '0 auto', padding: '15px 15px 30px 15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#F3F4F6', minHeight: '100vh', position: 'relative' }}>
+    
     {/* 🎃 APP HEADER */}
     <header style={{ textAlign: 'center', marginBottom: '8px', padding: '10px 0 0 0' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#FF5500', letterSpacing: '-0.5px', margin: '0', textShadow: '0 0 12px rgba(255, 85, 0, 0.4)' }}>
@@ -4234,26 +4236,26 @@ return (
         </div>
       )}
 
-{/* ⭐ RATE A HOUSE FORM MODAL */}
- <HouseRatingModal
-  isOpen={showRatingModal}
-  onClose={() => setShowRatingModal(false)}
-  onSubmit={handleSaveHouseRating}
-  ratingAuthor={ratingAuthor}
-  setRatingAuthor={setRatingAuthor}
-  ratingHouse={ratingHouse}
-  setRatingHouse={setRatingHouse}
-  overallRatingVal={overallRatingVal}
-  setOverallRatingVal={setOverallRatingVal}
-  scareRatingVal={scareRatingVal}
-  setScareRatingVal={setScareRatingVal}
-  coolRatingVal={coolRatingVal}
-  setCoolRatingVal={setCoolRatingVal}
-  ratingSubmitting={ratingSubmitting}
-  familyMembers={FIXED_FAMILY_MEMBERS}
-  houses={HHN_HOUSES}
-/>
-      
+{/* ⭐ HOUSE RATING MODAL */}
+      <HouseRatingModal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        onSubmit={handleSaveHouseRating}
+        ratingAuthor={ratingAuthor}
+        setRatingAuthor={setRatingAuthor}
+        ratingHouse={ratingHouse}
+        setRatingHouse={setRatingHouse}
+        overallRatingVal={overallRatingVal}
+        setOverallRatingVal={setOverallRatingVal}
+        scareRatingVal={scareRatingVal}
+        setScareRatingVal={setScareRatingVal}
+        coolRatingVal={coolRatingVal}
+        setCoolRatingVal={setCoolRatingVal}
+        ratingSubmitting={ratingSubmitting}
+        familyMembers={FIXED_FAMILY_MEMBERS}
+        houses={HHN_HOUSES}
+      />
+
     </div>
   );
 }
