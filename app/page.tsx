@@ -2341,6 +2341,9 @@ export default function HorrorNightsTracker() {
     formatDisplayDate={formatDisplayDate}
     parseAttendees={parseAttendees}
     familyMembers={FIXED_FAMILY_MEMBERS}
+    analyticsSubTab={analyticsSubTab}
+  setAnalyticsSubTab={setAnalyticsSubTab}
+  selectedAttendeeFilter={selectedAttendeeFilter}
   />
 )}
 
