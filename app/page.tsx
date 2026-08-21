@@ -2345,31 +2345,55 @@ export default function HorrorNightsTracker() {
 )}
 
 {/* 🛠️ UTILITY MODALS */}
-      <UtilityModals
-        activeLearnMoreGame={activeLearnMoreGame}
-        setActiveLearnMoreGame={setActiveLearnMoreGame}
-        activeLearnMoreColor={activeLearnMoreColor}
-        previewYumImage={previewYumImage}
-        setPreviewYumImage={setPreviewYumImage}
-        showCheckoutModal={showCheckoutModal}
-        setShowCheckoutModal={setShowCheckoutModal}
-        activeVisit={activeVisit}
-        activePartyList={activePartyList}
-        departingMembers={departingMembers}
-        toggleDepartingMember={toggleDepartingMember}
-        processCheckout={processCheckout}
-        editingVisit={editingVisit}
-        setEditingVisit={setEditingVisit}
-        editVisitStartTime={editVisitStartTime}
-        setEditVisitStartTime={setEditVisitStartTime}
-        editVisitEndTime={editVisitEndTime}
-        setEditVisitEndTime={setEditVisitEndTime}
-        editVisitMemberEndTimes={editVisitMemberEndTimes}
-        setEditVisitMemberEndTimes={setEditVisitMemberEndTimes}
-        handleSaveVisitEdit={handleSaveVisitEdit}
-        formatDisplayDate={formatDisplayDate}
-        parseAttendees={parseAttendees}
-      />
+   <UtilityModals
+  weatherLoading={weatherLoading}
+  hourlyForecast={hourlyForecast}
+  showAiTriviaModal={showAiTriviaModal}
+  setShowAiTriviaModal={setShowAiTriviaModal}
+  triviaDifficulty={triviaDifficulty}
+  allTimeRecordHolder={allTimeRecordHolder}
+  allTimeHighScore={allTimeHighScore}
+  currentStreak={currentStreak}
+  triviaCategory={triviaCategory}
+  handleTriviaFilterChange={handleTriviaFilterChange}
+  availableCategories={availableCategories}
+  availableDifficulties={availableDifficulties}
+  newHighScorePending={newHighScorePending}
+  recordClaimName={recordClaimName}
+  setRecordClaimName={setRecordClaimName}
+  saveNewHighScoreRecord={saveNewHighScoreRecord}
+  triviaError={triviaError}
+  triviaLoading={triviaLoading}
+  currentQuestion={currentQuestion}
+  selectedOption={selectedOption}
+  handleTriviaAnswerSelection={handleTriviaAnswerSelection}
+  handleNextTriviaQuestion={handleNextTriviaQuestion}
+  triviaDeck={triviaDeck}
+  activeLearnMoreGame={activeLearnMoreGame}
+  setActiveLearnMoreGame={setActiveLearnMoreGame}
+  activeLearnMoreColor={activeLearnMoreColor}
+  previewYumImage={previewYumImage}
+  setPreviewYumImage={setPreviewYumImage}
+  showCheckoutModal={showCheckoutModal}
+  setShowCheckoutModal={setShowCheckoutModal}
+  activeVisit={activeVisit}
+  activePartyList={activePartyList}
+  departingMembers={departingMembers}
+  toggleDepartingMember={toggleDepartingMember}
+  processCheckout={processCheckout}
+  editingVisit={editingVisit}
+  setEditingVisit={setEditingVisit}
+  editVisitStartTime={editVisitStartTime}
+  setEditVisitStartTime={setEditVisitStartTime}
+  editVisitEndTime={editVisitEndTime}
+  setEditVisitEndTime={setEditVisitEndTime}
+  editVisitMemberEndTimes={editVisitMemberEndTimes}
+  setEditVisitMemberEndTimes={setEditVisitMemberEndTimes}
+  handleSaveVisitEdit={handleSaveVisitEdit}
+  formatDisplayDate={formatDisplayDate}
+  parseAttendees={parseAttendees}
+  familyMembers={FIXED_FAMILY_MEMBERS}
+/>
 
       {/* ⭐ HOUSE RATING MODAL */}
       <HouseRatingModal
