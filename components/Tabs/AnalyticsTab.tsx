@@ -206,11 +206,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               const bannerPath = rideBanners[stat.name];
               return (
                 <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', overflow: 'hidden' }}>
-                  {bannerPath && (
-                    <div style={{ margin: '-14px -16px 12px -16px', height: '110px', overflow: 'hidden', borderBottom: '1px solid #2A2A3C' }}>
-                      <img src={bannerPath} alt={stat.name} onError={(e: any) => { e.target.parentNode.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
-                  )}
+{bannerPath && (
+  <div style={{ margin: '-14px -16px 12px -16px', height: '110px', overflow: 'hidden', background: '#000000', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #2A2A3C' }}>
+    <img
+      src={bannerPath}
+      alt={stat.name}
+      onError={(e: any) => { e.target.parentNode.style.display = 'none'; }}
+      style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }}
+    />
+  </div>
+)}
                   <div style={{ fontSize: '16px', fontWeight: '900', color: '#3B82F6', marginBottom: '10px' }}>{stat.name}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
                     <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
