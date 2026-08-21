@@ -20,7 +20,7 @@ export const StarRatingPicker: React.FC<StarRatingPickerProps> = ({ value, onCha
 
       <input
         type="range"
-        min="0.5"
+        min="0.0"
         max="5.0"
         step="0.5"
         value={value}
