@@ -89,7 +89,7 @@ interface ParkingLog {
   created_at: string;
 }
 
-type AnalyticsSortKey = 'visits' | 'avgWait' | 'totalWait' | 'avgExpected' | 'diff';
+type AnalyticsSortKey = 'visits' | 'avgWait' | 'totalWait' | 'avgExpected' | 'diff' | 'ratingOverall' | 'ratingScare' | 'ratingCool';
 
 const FIXED_FAMILY_MEMBERS = [
   'Dan', 'Mandie', 'Elijah', 'Violette', 'Sophia', 'Zach', 'Jasmine', 'Kimbo'
@@ -1642,7 +1642,7 @@ export default function HorrorNightsTracker() {
   const avgDurationPerVisit = totalEventVisits > 0 ? Math.round(totalTimeInParkMins / totalEventVisits) : 0;
   const avgWaitPerActivity = allCompletedActivities.length > 0 ? Math.round(totalTimeInLinesMins / allCompletedActivities.length) : 0;
 
-  const houseAnalyticsStats = useMemo(() => {
+ const houseAnalyticsStats = useMemo(() => {
     const stats = HHN_HOUSES.map(houseName => {
       const houseActivities = filteredCompletedActivities.filter(a => a.rideName === houseName);
       const visitsCount = houseActivities.length;
@@ -1653,23 +1653,29 @@ export default function HorrorNightsTracker() {
       const avgExpected = postedWaits.length > 0 ? Math.round(postedWaits.reduce((s, w) => s + w, 0) / postedWaits.length) : 0;
       const diff = visitsCount > 0 && avgExpected > 0 ? avgWait - avgExpected : 0;
 
+      // Fetch ratings for sorting
+      const avgRatings = getHouseAverages(houseName, allHouseRatings, selectedAttendeeFilter);
+
       return {
         name: houseName,
         visits: visitsCount,
         totalWait,
         avgWait,
         avgExpected,
-        diff
+        diff,
+        ratingOverall: avgRatings ? parseFloat(avgRatings.overall) : 0,
+        ratingScare: avgRatings ? parseFloat(avgRatings.scare) : 0,
+        ratingCool: avgRatings ? parseFloat(avgRatings.cool) : 0
       };
     });
 
-    return stats.sort((a, b) => {
-      const valA = a[analyticsSortKey];
-      const valB = b[analyticsSortKey];
+    return stats.sort((a: any, b: any) => {
+      const valA = a[analyticsSortKey] ?? 0;
+      const valB = b[analyticsSortKey] ?? 0;
       if (valA === valB) return b.visits - a.visits;
       return analyticsSortOrder === 'desc' ? valB - valA : valA - valB;
     });
-  }, [filteredCompletedActivities, analyticsSortKey, analyticsSortOrder]);
+  }, [filteredCompletedActivities, analyticsSortKey, analyticsSortOrder, allHouseRatings, selectedAttendeeFilter]);
 
   const rideAnalyticsStats = useMemo(() => {
     const stats = HHN_RIDES.map(rideName => {
