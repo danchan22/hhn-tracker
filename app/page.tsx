@@ -2312,6 +2312,9 @@ export default function HorrorNightsTracker() {
     hhnShows={HHN_SHOWS}
     parseAttendees={parseAttendees}
     getElapsedQueueTimeString={getElapsedQueueTimeString}
+    weatherLoading={weatherLoading}
+  hourlyForecast={hourlyForecast}
+  trackerSubTab={trackerSubTab}
   />
 )}
 
