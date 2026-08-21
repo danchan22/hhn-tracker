@@ -716,17 +716,34 @@ export default function HorrorNightsTracker() {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [departingMembers, setDepartingMembers] = useState<string[]>([]);
 
-  const fetchYumItems = async () => {
+ const fetchYumItems = async () => {
     try {
       const supabase = getSupabase();
       const { data, error } = await supabase
         .from('yum_items')
         .select('*')
         .order('name', { ascending: true });
+
       if (!error && data && data.length > 0) {
-        setYumItems(data);
+        const formattedItems: YumItem[] = data.map((item: any) => ({
+          id: item.id || item.name,
+          name: item.name || '',
+          description: item.description || '',
+          location: item.location || 'General',
+          price: item.price || `$${Number(item.raw_price || item.rawPrice || 0).toFixed(2)}`,
+          rawPrice: Number(item.raw_price ?? item.rawPrice ?? 0),
+          image: item.image || '/hhn-bg.jpg',
+          isFood: Boolean(item.is_food ?? item.isFood),
+          isDrink: Boolean(item.is_drink ?? item.isDrink),
+          isDessert: Boolean(item.is_dessert ?? item.isDessert),
+          isGlutenFree: Boolean(item.is_gluten_free ?? item.isGlutenFree)
+        }));
+
+        setYumItems(formattedItems);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("Yum items fetch fallback:", e);
+    }
   };
 
   const fetchHouseRatings = async () => {
