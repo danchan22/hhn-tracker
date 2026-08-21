@@ -98,7 +98,7 @@ export const HouseRatingModal: React.FC<HouseRatingModalProps> = ({
         <div style={{ background: '#1A1A26', padding: '14px', borderRadius: '16px', border: '1px solid #2A2A3C', marginBottom: '18px' }}>
           <StarRatingPicker label="⭐ Overall Rating" value={overallRatingVal} onChange={setOverallRatingVal} />
           <StarRatingPicker label="😱 How scary was it?" value={scareRatingVal} onChange={setScareRatingVal} />
-          <StarRatingPicker label="😎 How cool was it?" value={coolRatingVal} onChange={setCoolRatingVal} />
+          <StarRatingPicker label="😎 How was the vibe?" value={coolRatingVal} onChange={setCoolRatingVal} />
         </div>
 
         {/* SUBMIT BUTTON */}
