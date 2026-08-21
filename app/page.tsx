@@ -159,7 +159,7 @@ const HOUSE_GRID_LAYOUT = [
     { name: 'Evil Dead', apiKey: 'Evil Dead Burn' }
   ],
   [
-    { name: 'ST5', apiKey: 'Stranger Things 5' },
+    { name: 'Stranger Things', apiKey: 'Stranger Things 5' },
     { name: 'INVASION', apiKey: 'INVASION: Alien Abduction' },
     { name: 'Cybergoria', apiKey: 'Cybergoria' }
   ],
