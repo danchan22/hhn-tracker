@@ -57,7 +57,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 }) => {
   return (
     <div>
-      {/* ANALYTICS SUBHEADER NAVS (Houses | Rides | Attendees) */}
+      {/* SUBHEADER NAVS (Houses | Rides | Attendees) */}
       <div style={{ display: 'flex', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '12px', border: '1px solid #27273A', padding: '3px', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
         <button onClick={() => setAnalyticsSubTab('Houses')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Houses' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Houses' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
           Houses
@@ -92,7 +92,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         </div>
       </div>
 
-  {/* TWO-ROW SORT BAR (HOUSES & RIDES) */}
+      {/* TWO-ROW SORT BAR (HOUSES & RIDES) */}
       {(analyticsSubTab === 'Houses' || analyticsSubTab === 'Rides') && (
         <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '10px 12px', borderRadius: '14px', border: '1px solid #2A2A3C', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
           <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', marginBottom: '6px' }}>SORT:</div>
@@ -140,6 +140,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {/* HOUSES ANALYTICS SUBTAB */}
       {analyticsSubTab === 'Houses' && (
         <div>
+          {/* HOUSE CARDS GRID */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
             {houseAnalyticsStats.map(stat => {
               const bannerPath = houseBanners[stat.name];
@@ -195,27 +196,91 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               );
             })}
           </div>
+
+          {/* LONGEST INDIVIDUAL WAIT TIMES (HOUSES) */}
+          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#DC2626', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              🔥 Longest Individual Wait Times
+            </h3>
+            {longestHouseWaits.length === 0 ? (
+              <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No house visits logged yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {longestHouseWaits.map((act, index) => (
+                  <div key={act.id + index} style={{ background: '#1C1215', border: '1px solid #7F1D1D', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#DC2626', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {index + 1}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {itemEmojis[act.rideName] || '🏚️'} {act.rideName}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                          {formatDisplayDate(act.visitDate)} <br />
+                          {parseAttendees(act.riders).join(', ')}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ background: '#991B1B', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
+                      {act.waitTimeMinutes}m
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* SHORTEST INDIVIDUAL WAIT TIMES (HOUSES) */}
+          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#22C55E', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              ⚡ Shortest Individual Wait Times
+            </h3>
+            {shortestHouseWaits.length === 0 ? (
+              <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No house visits logged yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {shortestHouseWaits.map((act, index) => (
+                  <div key={act.id + index} style={{ background: '#0B231A', border: '1px solid #15803D', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {index + 1}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {itemEmojis[act.rideName] || '🏚️'} {act.rideName}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                          {formatDisplayDate(act.visitDate)} <br />
+                          {parseAttendees(act.riders).join(', ')}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
+                      {act.waitTimeMinutes}m
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* RIDES ANALYTICS SUBTAB */}
       {analyticsSubTab === 'Rides' && (
         <div>
+          {/* RIDE CARDS GRID */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
             {rideAnalyticsStats.map(stat => {
               const bannerPath = rideBanners[stat.name];
               return (
                 <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', overflow: 'hidden' }}>
-{bannerPath && (
-  <div style={{ margin: '-14px -16px 12px -16px', height: '110px', overflow: 'hidden', background: '#000000', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #2A2A3C' }}>
-    <img
-      src={bannerPath}
-      alt={stat.name}
-      onError={(e: any) => { e.target.parentNode.style.display = 'none'; }}
-      style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }}
-    />
-  </div>
-)}
+                  {bannerPath && (
+                    <div style={{ margin: '-14px -16px 12px -16px', height: '110px', overflow: 'hidden', background: '#000000', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #2A2A3C' }}>
+                      <img src={bannerPath} alt={stat.name} onError={(e: any) => { e.target.parentNode.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} />
+                    </div>
+                  )}
                   <div style={{ fontSize: '16px', fontWeight: '900', color: '#3B82F6', marginBottom: '10px' }}>{stat.name}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
                     <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
@@ -244,6 +309,74 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
               );
             })}
+          </div>
+
+          {/* LONGEST INDIVIDUAL WAIT TIMES (RIDES) */}
+          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#3B82F6', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              🔥 Longest Individual Wait Times
+            </h3>
+            {longestRideWaits.length === 0 ? (
+              <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No ride visits logged yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {longestRideWaits.map((act, index) => (
+                  <div key={act.id + index} style={{ background: '#0D1726', border: '1px solid #1E40AF', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#3B82F6', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {index + 1}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {itemEmojis[act.rideName] || '🎢'} {act.rideName}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                          {formatDisplayDate(act.visitDate)} <br />
+                          {parseAttendees(act.riders).join(', ')}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ background: '#1E40AF', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
+                      {act.waitTimeMinutes}m
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* SHORTEST INDIVIDUAL WAIT TIMES (RIDES) */}
+          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#22C55E', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              ⚡ Shortest Individual Wait Times
+            </h3>
+            {shortestRideWaits.length === 0 ? (
+              <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No ride visits logged yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {shortestRideWaits.map((act, index) => (
+                  <div key={act.id + index} style={{ background: '#0B231A', border: '1px solid #15803D', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {index + 1}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {itemEmojis[act.rideName] || '🎢'} {act.rideName}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
+                          {formatDisplayDate(act.visitDate)} <br />
+                          {parseAttendees(act.riders).join(', ')}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
+                      {act.waitTimeMinutes}m
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
