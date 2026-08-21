@@ -9,58 +9,30 @@ interface StarRatingPickerProps {
 }
 
 export const StarRatingPicker: React.FC<StarRatingPickerProps> = ({ value, onChange, label }) => {
-  const stars = [1, 2, 3, 4, 5];
-
-  const handlePointerClick = (starIndex: number, event: React.PointerEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const isHalf = clickX < rect.width / 2;
-    const finalVal = isHalf ? starIndex - 0.5 : starIndex;
-    onChange(finalVal);
-  };
-
   return (
-    <div style={{ marginBottom: '14px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-        <label style={{ fontSize: '12px', fontWeight: '800', color: '#CBD5E0' }}>{label}</label>
-        <span style={{ fontSize: '13px', fontWeight: '900', color: '#FF9A56' }}>{value.toFixed(1)} / 5.0</span>
+    <div style={{ marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <label style={{ fontSize: '13px', fontWeight: '800', color: '#CBD5E0' }}>{label}</label>
+        <span style={{ fontSize: '14px', fontWeight: '900', color: '#FDA30C', background: '#12121A', padding: '4px 10px', borderRadius: '8px', border: '1px solid #2A2A3C' }}>
+          ⭐ {value.toFixed(1)} / 5.0
+        </span>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
-        {stars.map((starIndex) => {
-          let starSymbol = '☆';
-          let starColor = '#4A5568';
-
-          if (value >= starIndex) {
-            starSymbol = '★';
-            starColor = '#FDA30C';
-          } else if (value >= starIndex - 0.5) {
-            starSymbol = '½';
-            starColor = '#FDA30C';
-          }
-
-          return (
-            <div
-              key={starIndex}
-              onPointerDown={(e) => handlePointerClick(starIndex, e)}
-              style={{
-                fontSize: '26px',
-                color: starColor,
-                lineHeight: '1',
-                padding: '4px',
-                background: '#1A1A26',
-                border: '1px solid #2A2A3C',
-                borderRadius: '8px',
-                flex: 1,
-                textAlign: 'center',
-                transition: 'all 0.1s ease'
-              }}
-            >
-              {starSymbol}
-            </div>
-          );
-        })}
-      </div>
+      <input
+        type="range"
+        min="0.5"
+        max="5.0"
+        step="0.5"
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        style={{
+          width: '100%',
+          accentColor: '#FDA30C',
+          height: '8px',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }}
+      />
     </div>
   );
 };
