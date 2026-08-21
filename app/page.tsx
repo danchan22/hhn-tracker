@@ -216,59 +216,13 @@ const ACCENT_COLORS = [
 ];
 
 const MOCK_YUM_ITEMS = [
-  {
-    id: 'jack-funnel-cake',
-    name: 'Carnival Terror Funnel Cake',
-    description: 'Crispy funnel cake topped with black sugar, crushed Oreo cookies, and red strawberry drizzle.',
-    location: 'Jack’s Circus Surplus',
-    price: '$9.99',
-    rawPrice: 9.99,
-    image: '/hhn-bg.jpg',
-    isFood: true,
-    isDrink: false,
-    isDessert: true,
-    isGlutenFree: false
-  },
-  {
-    id: 'meetz-speakeasy-burger',
-    name: 'Sour Bloody Mary Cocktail',
-    description: 'Vodka mixed with spiced tomato juice, lime, and served with a salted bacon rim.',
-    location: 'Meetz Meats',
-    price: '$14.50',
-    rawPrice: 14.50,
-    image: '/hhn-bg.jpg',
-    isFood: false,
-    isDrink: true,
-    isDessert: false,
-    isGlutenFree: true
-  },
-  {
-    id: 'hellraiser-fire-tacos',
-    name: 'Cenobite Fiery Tacos',
-    description: 'Spiced pulled pork served in gluten-free corn tortillas with habanero slaw.',
-    location: 'Hellraiser Food Truck',
-    price: '$11.49',
-    rawPrice: 11.49,
-    image: '/hhn-bg.jpg',
-    isFood: true,
-    isDrink: false,
-    isDessert: false,
-    isGlutenFree: true
-  },
-  {
-    id: 'devil-devilish-brownie',
-    name: 'Devilish Dark Chocolate Cake',
-    description: 'Rich dark chocolate lava cake infused with cayenne pepper and raspberry core.',
-    location: 'Devil Food Booth',
-    price: '$8.49',
-    rawPrice: 8.49,
-    image: '/hhn-bg.jpg',
-    isFood: true,
-    isDrink: false,
-    isDessert: true,
-    isGlutenFree: false
-  }
-];
+const [yumItems, setYumItems] = useState<YumItem[]>([]);
+
+const fetchYumItems = async () => {
+  const supabase = getSupabase();
+  const { data } = await supabase.from('yum_items').select('*').order('name', { ascending: true });
+  if (data) setYumItems(data);
+};
 
 const RAW_GAMES_LIST: GameItem[] = [
   {
