@@ -651,6 +651,11 @@ export default function HorrorNightsTracker() {
   const [newHighScorePending, setNewHighScorePending] = useState<boolean>(false);
   const [recordClaimName, setRecordClaimName] = useState<string>('Dan');
 
+  // Late Arrival State
+  const [showAddPartyModal, setShowAddPartyModal] = useState<boolean>(false);
+  const [lateArrivalMember, setLateArrivalMember] = useState<string>('');
+  const [lateArrivalTime, setLateArrivalTime] = useState<string>('');
+
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<any>(null);
   const userMarkerRef = useRef<any>(null);
@@ -716,7 +721,51 @@ export default function HorrorNightsTracker() {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [departingMembers, setDepartingMembers] = useState<string[]>([]);
 
- const fetchYumItems = async () => {
+  const availableToJoin = useMemo(() => {
+    if (!activeVisit) return FIXED_FAMILY_MEMBERS;
+    const currentAllParty = parseAttendees(activeVisit.attendees);
+    return FIXED_FAMILY_MEMBERS.filter(m => !currentAllParty.includes(m));
+  }, [activeVisit]);
+
+  useEffect(() => {
+    if (availableToJoin.length > 0) {
+      setLateArrivalMember(availableToJoin[0]);
+    }
+  }, [availableToJoin]);
+
+  useEffect(() => {
+    if (showAddPartyModal) {
+      const now = new Date();
+      setLateArrivalTime(now.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' }));
+    }
+  }, [showAddPartyModal]);
+
+  const handleAddLateArrival = async () => {
+    if (!activeVisit || !lateArrivalMember) return;
+
+    const currentAttendees = parseAttendees(activeVisit.attendees);
+    if (currentAttendees.includes(lateArrivalMember)) return;
+
+    const updatedAttendees = [...currentAttendees, lateArrivalMember].join(', ');
+
+    const supabase = getSupabase();
+    const { error } = await supabase
+      .from('visits')
+      .update({
+        attendees: updatedAttendees
+      })
+      .eq('id', activeVisit.id);
+
+    if (error) {
+      alert("Error adding late arrival: " + error.message);
+      return;
+    }
+
+    setShowAddPartyModal(false);
+    await fetchCloudVisits();
+  };
+
+  const fetchYumItems = async () => {
     try {
       const supabase = getSupabase();
       const { data, error } = await supabase
@@ -1834,15 +1883,6 @@ export default function HorrorNightsTracker() {
     }
   };
 
-  const toggleLiveEditRiderSelection = (name: string) => {
-    if (editLiveRiders.includes(name)) {
-      if (editLiveRiders.length === 1) return;
-      setEditLiveRiders(editLiveRiders.filter(r => r !== name));
-    } else {
-      setEditLiveRiders([...editLiveRiders, name]);
-    }
-  };
-
   const toggleDepartingMember = (name: string) => {
     if (departingMembers.includes(name)) {
       if (departingMembers.length === 1) return;
@@ -2311,6 +2351,7 @@ export default function HorrorNightsTracker() {
           hhnShows={HHN_SHOWS}
           parseAttendees={parseAttendees}
           getElapsedQueueTimeString={getElapsedQueueTimeString}
+          setShowAddPartyModal={setShowAddPartyModal}
         />
       )}
 
@@ -2445,6 +2486,14 @@ export default function HorrorNightsTracker() {
         formatDisplayDate={formatDisplayDate}
         parseAttendees={parseAttendees}
         familyMembers={FIXED_FAMILY_MEMBERS}
+        showAddPartyModal={showAddPartyModal}
+        setShowAddPartyModal={setShowAddPartyModal}
+        availableToJoin={availableToJoin}
+        lateArrivalMember={lateArrivalMember}
+        setLateArrivalMember={setLateArrivalMember}
+        lateArrivalTime={lateArrivalTime}
+        setLateArrivalTime={setLateArrivalTime}
+        handleAddLateArrival={handleAddLateArrival}
       />
 
       {/* ⭐ HOUSE RATING MODAL */}
