@@ -285,7 +285,7 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justify: 'space-between',
+                      justifyContent: 'space-between',
                       padding: '12px 16px',
                       borderRadius: '16px',
                       border: isLeaving ? '2px solid #DC2626' : '1px solid #2A2A3C',
