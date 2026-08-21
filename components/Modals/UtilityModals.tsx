@@ -3,16 +3,43 @@
 import React from 'react';
 
 interface UtilityModalsProps {
-  // 1. Learn More Modal
+  // Weather State
+  weatherLoading: boolean;
+  hourlyForecast: Array<{ hourLabel: string; temp: number; pop: number }>;
+
+  // Trivia Modal State
+  showAiTriviaModal: boolean;
+  setShowAiTriviaModal: (v: boolean) => void;
+  triviaDifficulty: string;
+  allTimeRecordHolder: string;
+  allTimeHighScore: number;
+  currentStreak: number;
+  triviaCategory: string;
+  handleTriviaFilterChange: (cat?: string, diff?: string) => void;
+  availableCategories: string[];
+  availableDifficulties: string[];
+  newHighScorePending: boolean;
+  recordClaimName: string;
+  setRecordClaimName: (name: string) => void;
+  saveNewHighScoreRecord: () => void;
+  triviaError: string | null;
+  triviaLoading: boolean;
+  currentQuestion: any;
+  selectedOption: string | null;
+  handleTriviaAnswerSelection: (opt: string) => void;
+  handleNextTriviaQuestion: () => void;
+  triviaDeck: any[];
+
+  // Game Learn More State
   activeLearnMoreGame: any;
   setActiveLearnMoreGame: (game: any) => void;
   activeLearnMoreColor: string;
 
-  // 2. Yum Photo Preview Modal
+  // Yum Image State
   previewYumImage: string | null;
   setPreviewYumImage: (img: string | null) => void;
 
-  // 3. Checkout Modal
+  // Checkout State
   showCheckoutModal: boolean;
   setShowCheckoutModal: (v: boolean) => void;
   activeVisit: any;
@@ -21,21 +48,45 @@ interface UtilityModalsProps {
   toggleDepartingMember: (name: string) => void;
   processCheckout: (type: 'selected' | 'everyone') => void;
 
-  // 4. Edit Visit Log Modal
+  // Edit Visit State
   editingVisit: any;
   setEditingVisit: (visit: any) => void;
   editVisitStartTime: string;
-  setEditVisitStartTime: (time: string) => void;
+  setEditVisitStartTime: (t: string) => void;
   editVisitEndTime: string;
-  setEditVisitEndTime: (time: string) => void;
+  setEditVisitEndTime: (t: string) => void;
   editVisitMemberEndTimes: Record<string, string>;
   setEditVisitMemberEndTimes: (val: Record<string, string>) => void;
   handleSaveVisitEdit: () => void;
   formatDisplayDate: (d: string) => string;
   parseAttendees: (raw: any) => string[];
+  familyMembers: string[];
 }
 
 export const UtilityModals: React.FC<UtilityModalsProps> = ({
+  weatherLoading,
+  hourlyForecast,
+  showAiTriviaModal,
+  setShowAiTriviaModal,
+  triviaDifficulty,
+  allTimeRecordHolder,
+  allTimeHighScore,
+  currentStreak,
+  triviaCategory,
+  handleTriviaFilterChange,
+  availableCategories,
+  availableDifficulties,
+  newHighScorePending,
+  recordClaimName,
+  setRecordClaimName,
+  saveNewHighScoreRecord,
+  triviaError,
+  triviaLoading,
+  currentQuestion,
+  selectedOption,
+  handleTriviaAnswerSelection,
+  handleNextTriviaQuestion,
+  triviaDeck,
   activeLearnMoreGame,
   setActiveLearnMoreGame,
   activeLearnMoreColor,
@@ -58,11 +109,123 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
   setEditVisitMemberEndTimes,
   handleSaveVisitEdit,
   formatDisplayDate,
-  parseAttendees
+  parseAttendees,
+  familyMembers
 }) => {
   return (
     <>
-      {/* 1. GAMES LEARN MORE MODAL */}
+      {/* 🌧️ WEATHER BAR */}
+      <a
+        href="https://www.timeanddate.com/weather/@6942262/hourly"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ display: 'block', textDecoration: 'none', background: 'rgba(18, 18, 26, 0.85)', border: '1px solid #2A2A3C', padding: '12px 10px', borderRadius: '16px', marginBottom: '16px', backdropFilter: 'blur(8px)' }}
+      >
+        {weatherLoading ? (
+          <div style={{ textAlign: 'center', color: '#A0AEC0', fontSize: '12px', padding: '4px 0' }}>🌤️ Syncing Weather...</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px' }}>
+            {hourlyForecast.map((item, idx) => (
+              <div key={idx} style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '10px', padding: '6px 2px', textAlign: 'center' }}>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#CBD5E0' }}>{item.hourLabel}</div>
+                <div style={{ fontSize: '13px', fontWeight: '900', color: '#FFF', margin: '2px 0' }}>{item.temp}°</div>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: item.pop > 50 ? '#3B82F6' : '#A0AEC0' }}>{item.pop}%</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </a>
+
+      {/* 😱 LIVE TRIVIA MODAL */}
+      {showAiTriviaModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '20px', maxWidth: '92vw', width: '460px', border: '2px solid #FF5500', boxShadow: '0 10px 30px rgba(255, 85, 0, 0.3)', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>😱 Horror Trivia</h3>
+              <button onClick={() => setShowAiTriviaModal(false)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '20px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ background: '#1A1A26', borderRadius: '12px', padding: '8px 10px', border: '1px solid #2A2A3C', marginBottom: '12px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '800', color: '#EAB308', marginBottom: '4px', textAlign: 'center' }}>
+                🏆 {triviaDifficulty === 'All' ? 'All Difficulties' : triviaDifficulty} Record: <span style={{ color: '#FFF' }}>{allTimeRecordHolder}</span> ({allTimeHighScore})
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', textTransform: 'uppercase', textAlign: 'center' }}>
+                <div style={{ background: '#12121A', padding: '6px 16px', borderRadius: '8px', fontSize: '11px', fontWeight: '900', color: '#FF5500' }}>
+                  🔥 Current Streak: {currentStreak}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px', width: '100%', boxSizing: 'border-box' }}>
+              <select value={triviaCategory} onChange={(e) => handleTriviaFilterChange(e.target.value, undefined)} style={{ width: '100%', padding: '8px 4px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold' }}>
+                <option value="All">All Categories</option>
+                {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+
+              <select value={triviaDifficulty} onChange={(e) => handleTriviaFilterChange(undefined, e.target.value)} style={{ width: '100%', padding: '8px 4px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold' }}>
+                <option value="All">All Difficulties</option>
+                {availableDifficulties.map(diff => <option key={diff} value={diff}>{diff === 'Hard' || diff === 'Fiendishly Hard' ? 'Horror' : diff}</option>)}
+              </select>
+            </div>
+
+            {newHighScorePending && (
+              <div style={{ background: 'linear-gradient(135deg, #1C130D 0%, #2B1408 100%)', border: '1px solid #FDA30C', padding: '10px 12px', borderRadius: '12px', marginBottom: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', fontWeight: '900', color: '#FDA30C', marginBottom: '6px' }}>
+                  🎉 NEW {triviaDifficulty === 'All' ? 'ALL DIFFICULTIES' : triviaDifficulty.toUpperCase()} RECORD: {allTimeHighScore}!
+                </div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <select value={recordClaimName} onChange={(e) => setRecordClaimName(e.target.value)} style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold' }}>
+                    {familyMembers.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <button onClick={saveNewHighScoreRecord} style={{ padding: '6px 12px', background: '#FDA30C', color: '#000', border: 'none', borderRadius: '6px', fontWeight: '900', fontSize: '11px', cursor: 'pointer' }}>Save</button>
+                </div>
+              </div>
+            )}
+
+            {triviaError && (
+              <div style={{ background: '#2C0B0E', border: '1px solid #DC2626', color: '#FCA5A5', padding: '10px', borderRadius: '10px', fontSize: '12px', marginBottom: '12px' }}>{triviaError}</div>
+            )}
+
+            {triviaLoading ? (
+              <div style={{ textTransform: 'uppercase', textAlign: 'center', padding: '30px 0', color: '#FF9A56', fontSize: '13px', fontWeight: 'bold' }}>⚡ Loading Trivia Deck...</div>
+            ) : currentQuestion ? (
+              <div>
+                <p style={{ fontSize: '14px', fontWeight: '800', color: '#FFF', marginBottom: '12px', lineHeight: '1.4' }}>{currentQuestion.question}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                  {[
+                    { letter: 'A', text: currentQuestion.option_a },
+                    { letter: 'B', text: currentQuestion.option_b },
+                    { letter: 'C', text: currentQuestion.option_c },
+                    { letter: 'D', text: currentQuestion.option_d }
+                  ].filter(item => Boolean(item.text)).map((item) => {
+                    const isSelected = selectedOption === item.text || selectedOption === item.letter;
+                    const correctVal = currentQuestion.correct_answer?.trim()?.toUpperCase();
+                    const isCorrect = correctVal === item.letter || correctVal === item.text?.trim()?.toUpperCase();
+
+                    let btnBg = '#1A1A26';
+                    let btnBorder = '#2A2A3C';
+
+                    if (selectedOption) {
+                      if (isCorrect) { btnBg = '#0B231A'; btnBorder = '#22C55E'; }
+                      else if (isSelected) { btnBg = '#2C0B0E'; btnBorder = '#DC2626'; }
+                    }
+
+                    return (
+                      <button key={item.letter} onClick={() => handleTriviaAnswerSelection(item.letter)} style={{ padding: '10px 12px', borderRadius: '10px', border: `1px solid ${btnBorder}`, background: btnBg, color: '#FFF', fontSize: '13px', fontWeight: '700', textAlign: 'left', cursor: 'pointer' }}>
+                        <span style={{ color: '#FF5500', marginRight: '6px' }}>{item.letter}.</span> {item.text}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            <button onClick={handleNextTriviaQuestion} disabled={triviaLoading || triviaDeck.length === 0} style={{ width: '100%', padding: '12px', background: '#FF5500', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>Next Question</button>
+          </div>
+        </div>
+      )}
+
+      {/* GAME LEARN MORE MODAL */}
       {activeLearnMoreGame && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
           <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '460px', width: '100%', maxHeight: '85vh', overflowY: 'auto', border: `2px solid ${activeLearnMoreColor}`, boxShadow: `0 10px 30px ${activeLearnMoreColor}44` }}>
@@ -89,7 +252,7 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
         </div>
       )}
 
-      {/* 2. YUM FULLSCREEN PHOTO MODAL */}
+      {/* YUM FULLSCREEN PHOTO MODAL */}
       {previewYumImage && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px' }}>
           <div style={{ position: 'relative', maxWidth: '500px', width: '100%', textAlign: 'center' }}>
@@ -99,7 +262,7 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
         </div>
       )}
 
-      {/* 3. CHECKOUT MODAL */}
+      {/* CHECKOUT MODAL */}
       {showCheckoutModal && activeVisit && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
           <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '400px', width: '100%', border: '1px solid #2A2A3C', boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
@@ -129,7 +292,7 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
         </div>
       )}
 
-      {/* 4. EDIT VISIT LOG MODAL */}
+      {/* EDIT VISIT MODAL */}
       {editingVisit && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
           <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '440px', width: '100%', maxHeight: '90vh', overflowY: 'auto', border: '1px solid #2A2A3C', boxShadow: '0 10px 30px rgba(0,0,0,0.7)' }}>
