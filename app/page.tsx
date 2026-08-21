@@ -2314,7 +2314,6 @@ export default function HorrorNightsTracker() {
     getElapsedQueueTimeString={getElapsedQueueTimeString}
     weatherLoading={weatherLoading}
   hourlyForecast={hourlyForecast}
-  trackerSubTab={trackerSubTab}
   />
 )}
 
