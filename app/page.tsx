@@ -2321,6 +2321,7 @@ export default function HorrorNightsTracker() {
 {mainTab === 'analytics' && (
   <AnalyticsTab
     analyticsSubTab={analyticsSubTab}
+    setAnalyticsSubTab={setAnalyticsSubTab}
     selectedAttendeeFilter={selectedAttendeeFilter}
     setSelectedAttendeeFilter={setSelectedAttendeeFilter}
     toggleAttendeeFilter={toggleAttendeeFilter}
@@ -2343,9 +2344,6 @@ export default function HorrorNightsTracker() {
     formatDisplayDate={formatDisplayDate}
     parseAttendees={parseAttendees}
     familyMembers={FIXED_FAMILY_MEMBERS}
-    analyticsSubTab={analyticsSubTab}
-  setAnalyticsSubTab={setAnalyticsSubTab}
-  selectedAttendeeFilter={selectedAttendeeFilter}
   />
 )}
 
