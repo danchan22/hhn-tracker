@@ -184,13 +184,37 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
   hhnRides,
   hhnShows,
   parseAttendees,
-  getElapsedQueueTimeString
+  getElapsedQueueTimeString,
+  weatherLoading,
+  hourlyForecast
 }) => {
   return (
     <div>
+      {/* 🌧️ 6-HOUR EVENING WEATHER GRID */}
+      <a
+        href="https://www.timeanddate.com/weather/@6942262/hourly"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ display: 'block', textDecoration: 'none', background: 'rgba(18, 18, 26, 0.85)', border: '1px solid #2A2A3C', padding: '12px 10px', borderRadius: '16px', marginBottom: '16px', backdropFilter: 'blur(8px)' }}
+      >
+        {weatherLoading ? (
+          <div style={{ textAlign: 'center', color: '#A0AEC0', fontSize: '12px', padding: '4px 0' }}>🌤️ Syncing Weather...</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px' }}>
+            {hourlyForecast.map((item, idx) => (
+              <div key={idx} style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '10px', padding: '6px 2px', textAlign: 'center' }}>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#CBD5E0' }}>{item.hourLabel}</div>
+                <div style={{ fontSize: '13px', fontWeight: '900', color: '#FFF', margin: '2px 0' }}>{item.temp}°</div>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: item.pop > 50 ? '#3B82F6' : '#A0AEC0' }}>{item.pop}%</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </a>
+
       {/* SUBTAB: TONIGHT */}
-      return (
-  <div>
+      {trackerSubTab === 'Tonight' && (
+        <div>
     {/* 🌧️ 6-HOUR EVENING WEATHER GRID */}
     <a
       href="https://www.timeanddate.com/weather/@6942262/hourly"
