@@ -1051,11 +1051,13 @@ export default function HorrorNightsTracker() {
           };
         });
 
-        formattedVisits.sort((a, b) => {
-          const dateA = new Date(`${a.visitDate}T${a.startTime || '00:00'}`).getTime();
-          const dateB = new Date(`${b.visitDate}T${b.startTime || '00:00'}`).getTime();
-          return dateB - dateA;
-        });
+formattedVisits.sort((a, b) => {
+  const timeA = parseTimeToMinutes(a.startTime);
+  const timeB = parseTimeToMinutes(b.startTime);
+  const dateA = new Date(`${a.visitDate}T00:00:00`).getTime() + (timeA * 60000);
+  const dateB = new Date(`${b.visitDate}T00:00:00`).getTime() + (timeB * 60000);
+  return dateB - dateA; // Newest visits always stay at the top
+});
 
         const ongoing = formattedVisits.find(v => !v.endTime || v.endTime.trim() === '');
         const completed = formattedVisits.filter(v => !!v.endTime && v.endTime.trim() !== '');
