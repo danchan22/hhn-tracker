@@ -4,6 +4,7 @@ import React from 'react';
 
 interface AnalyticsTabProps {
   analyticsSubTab: 'Houses' | 'Rides' | 'Attendees';
+  setAnalyticsSubTab: (tab: 'Houses' | 'Rides' | 'Attendees') => void;
   selectedAttendeeFilter: string;
   setSelectedAttendeeFilter: (val: string) => void;
   toggleAttendeeFilter: (name: string) => void;
@@ -30,6 +31,7 @@ interface AnalyticsTabProps {
 
 export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   analyticsSubTab,
+  setAnalyticsSubTab,
   selectedAttendeeFilter,
   setSelectedAttendeeFilter,
   toggleAttendeeFilter,
@@ -55,7 +57,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 }) => {
   return (
     <div>
-      {/* ATTENDEE FILTER BAR */}
+      {/* 2. ANALYTICS SUBHEADER NAVS (Houses | Rides | Attendees) */}
+      <div style={{ display: 'flex', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '12px', border: '1px solid #27273A', padding: '3px', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
+        <button onClick={() => setAnalyticsSubTab('Houses')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Houses' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Houses' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
+          Houses
+        </button>
+        <button onClick={() => setAnalyticsSubTab('Rides')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Rides' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Rides' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
+          Rides
+        </button>
+        <button onClick={() => setAnalyticsSubTab('Attendees')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Attendees' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Attendees' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
+          Attendees
+        </button>
+      </div>
+
+      {/* SHARED ATTENDEE FILTER SELECTOR */}
       <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '12px 14px', borderRadius: '18px', border: '1px solid #2A2A3C', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0' }}>FILTER BY ATTENDEE:</label>
@@ -77,11 +92,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         </div>
       </div>
 
-      {/* DUAL-LINE SORT FUNCTIONALITY BAR (HOUSES & RIDES) */}
+      {/* SORT FUNCTIONALITY BAR (HOUSES & RIDES) */}
       {(analyticsSubTab === 'Houses' || analyticsSubTab === 'Rides') && (
         <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '10px 12px', borderRadius: '14px', border: '1px solid #2A2A3C', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
-          <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', marginBottom: '6px' }}>SORT BY LOGS:</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', marginBottom: '8px' }}>
+          <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', marginBottom: '6px' }}>SORT:</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
             {[
               { key: 'visits', label: 'Visits' },
               { key: 'avgWait', label: 'Avg Wait' },
@@ -98,27 +113,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               );
             })}
           </div>
-
-          {analyticsSubTab === 'Houses' && (
-            <>
-              <div style={{ fontSize: '10px', fontWeight: '800', color: '#FDA30C', marginBottom: '6px' }}>SORT BY RATINGS:</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
-                {[
-                  { key: 'overall', label: '⭐ Overall' },
-                  { key: 'scare', label: '😱 Scare' },
-                  { key: 'cool', label: '😎 Vibe' }
-                ].map(item => {
-                  const isActive = analyticsSortKey === item.key;
-                  const arrow = isActive ? (analyticsSortOrder === 'desc' ? ' ▼' : ' ▲') : '';
-                  return (
-                    <button key={item.key} onClick={() => handleAnalyticsSortClick(item.key)} style={{ padding: '6px 2px', borderRadius: '8px', border: isActive ? '1px solid #FDA30C' : '1px solid #2A2A3C', background: isActive ? '#FDA30C' : '#1A1A26', color: isActive ? '#000' : '#FDA30C', fontSize: '10px', fontWeight: '800', cursor: 'pointer' }}>
-                      {item.label}{arrow}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
         </div>
       )}
 
