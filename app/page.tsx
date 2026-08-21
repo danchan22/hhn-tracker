@@ -3,15 +3,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-import { StarRatingPicker } from '../components/UI/StarRatingPicker';
 import { HouseRatingModal } from '../components/Modals/HouseRatingModal';
+import { UtilityModals } from '../components/Modals/UtilityModals';
 import { GamesTab } from '../components/Tabs/GamesTab';
 import { YumTab } from '../components/Tabs/YumTab';
 import { MapTab } from '../components/Tabs/MapTab';
-import { PretzelTracker } from '../components/Shared/PretzelTracker';
 import { TrackerTab } from '../components/Tabs/TrackerTab';
 import { AnalyticsTab } from '../components/Tabs/AnalyticsTab';
-import { UtilityModals } from '../components/Modals/UtilityModals';
 
 // --- SAFE LAZY SUPABASE CLIENT INITIALIZATION ---
 let supabaseInstance: any = null;
@@ -45,6 +43,20 @@ interface Visit {
   memberEndTimes?: Record<string, string>;
   notes?: string;
   activities: Activity[];
+}
+
+interface YumItem {
+  id: string;
+  name: string;
+  description: string;
+  location: string;
+  price: string;
+  rawPrice: number;
+  image: string;
+  isFood: boolean;
+  isDrink: boolean;
+  isDessert: boolean;
+  isGlutenFree: boolean;
 }
 
 interface YumComment {
@@ -86,6 +98,16 @@ interface ParkingLog {
   garage_name: string;
   row_number: string;
   parked_by: string;
+  created_at: string;
+}
+
+interface HouseRating {
+  id: string;
+  author_name: string;
+  house_name: string;
+  overall_rating: number;
+  scare_rating: number;
+  cool_rating: number;
   created_at: string;
 }
 
@@ -215,14 +237,60 @@ const ACCENT_COLORS = [
   '#FF5500', '#3B82F6', '#10B981', '#A855F7', '#F59E0B', '#EC4899', '#06B6D4', '#E11D48', '#8B5CF6'
 ];
 
-const MOCK_YUM_ITEMS = [
-const [yumItems, setYumItems] = useState<YumItem[]>([]);
-
-const fetchYumItems = async () => {
-  const supabase = getSupabase();
-  const { data } = await supabase.from('yum_items').select('*').order('name', { ascending: true });
-  if (data) setYumItems(data);
-};
+const MOCK_YUM_ITEMS: YumItem[] = [
+  {
+    id: 'jack-funnel-cake',
+    name: 'Carnival Terror Funnel Cake',
+    description: 'Crispy funnel cake topped with black sugar, crushed Oreo cookies, and red strawberry drizzle.',
+    location: 'Jack’s Circus Surplus',
+    price: '$9.99',
+    rawPrice: 9.99,
+    image: '/hhn-bg.jpg',
+    isFood: true,
+    isDrink: false,
+    isDessert: true,
+    isGlutenFree: false
+  },
+  {
+    id: 'meetz-speakeasy-burger',
+    name: 'Sour Bloody Mary Cocktail',
+    description: 'Vodka mixed with spiced tomato juice, lime, and served with a salted bacon rim.',
+    location: 'Meetz Meats',
+    price: '$14.50',
+    rawPrice: 14.50,
+    image: '/hhn-bg.jpg',
+    isFood: false,
+    isDrink: true,
+    isDessert: false,
+    isGlutenFree: true
+  },
+  {
+    id: 'hellraiser-fire-tacos',
+    name: 'Cenobite Fiery Tacos',
+    description: 'Spiced pulled pork served in gluten-free corn tortillas with habanero slaw.',
+    location: 'Hellraiser Food Truck',
+    price: '$11.49',
+    rawPrice: 11.49,
+    image: '/hhn-bg.jpg',
+    isFood: true,
+    isDrink: false,
+    isDessert: false,
+    isGlutenFree: true
+  },
+  {
+    id: 'devil-devilish-brownie',
+    name: 'Devilish Dark Chocolate Cake',
+    description: 'Rich dark chocolate lava cake infused with cayenne pepper and raspberry core.',
+    location: 'Devil Food Booth',
+    price: '$8.49',
+    rawPrice: 8.49,
+    image: '/hhn-bg.jpg',
+    isFood: true,
+    isDrink: false,
+    isDessert: true,
+    isGlutenFree: false
+  }
+];
 
 const RAW_GAMES_LIST: GameItem[] = [
   {
@@ -481,16 +549,6 @@ const getRecent6AMCutoffISO = () => {
   return cutoff.toISOString();
 };
 
-interface HouseRating {
-  id: string;
-  author_name: string;
-  house_name: string;
-  overall_rating: number;
-  scare_rating: number;
-  cool_rating: number;
-  created_at: string;
-}
-
 const getHouseAverages = (houseName: string, ratings: HouseRating[], attendeeFilter: string) => {
   let houseRatings = ratings.filter(r => r.house_name === houseName);
   if (attendeeFilter !== 'Everyone') {
@@ -518,7 +576,7 @@ export default function HorrorNightsTracker() {
   // Main Tabs
   const [mainTab, setMainTab] = useState<'tracker' | 'analytics' | 'map' | 'yum' | 'games'>('tracker');
   
-  // Tracker Subtabs
+  // Subtabs
   const [trackerSubTab, setTrackerSubTab] = useState<'Tonight' | 'History' | 'Parking'>('Tonight');
   const [analyticsSubTab, setAnalyticsSubTab] = useState<'Houses' | 'Rides' | 'Attendees'>('Houses');
 
@@ -536,6 +594,7 @@ export default function HorrorNightsTracker() {
   const [parkingSaving, setParkingSaving] = useState<boolean>(false);
 
   // Yum Tab Filter & Sorting States
+  const [yumItems, setYumItems] = useState<YumItem[]>(MOCK_YUM_ITEMS);
   const [yumCategoryFilter, setYumCategoryFilter] = useState<'all' | 'food' | 'drink' | 'dessert' | 'gf'>('all');
   const [selectedYumLocation, setSelectedYumLocation] = useState<string>('All Locations');
   const [yumSortBy, setYumSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'name-asc' | 'location-asc'>('default');
@@ -657,7 +716,19 @@ export default function HorrorNightsTracker() {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [departingMembers, setDepartingMembers] = useState<string[]>([]);
 
-  // --- HOUSE RATINGS SUPABASE API ---
+  const fetchYumItems = async () => {
+    try {
+      const supabase = getSupabase();
+      const { data, error } = await supabase
+        .from('yum_items')
+        .select('*')
+        .order('name', { ascending: true });
+      if (!error && data && data.length > 0) {
+        setYumItems(data);
+      }
+    } catch (e) {}
+  };
+
   const fetchHouseRatings = async () => {
     try {
       const supabase = getSupabase();
@@ -689,7 +760,6 @@ export default function HorrorNightsTracker() {
 
       if (!error && data) {
         setAllHouseRatings(prev => [data, ...prev]);
-        setShowRatingModal(false);
       } else if (error) {
         alert("Error saving rating: " + error.message);
       }
@@ -700,7 +770,6 @@ export default function HorrorNightsTracker() {
     }
   };
   
-  // SORT GAMES: HORROR MOVIE TRIVIA PINNED TO TOP, REST ALPHABETICAL
   const sortedGamesList = useMemo(() => {
     const pinned = RAW_GAMES_LIST.find(g => g.id === 'ai-horror-trivia');
     const others = RAW_GAMES_LIST.filter(g => g.id !== 'ai-horror-trivia');
@@ -741,6 +810,7 @@ export default function HorrorNightsTracker() {
     fetchPretzelCounts();
     fetchParkingLogs(); 
     fetchHouseRatings();
+    fetchYumItems();
 
     if (typeof window !== 'undefined' && navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
@@ -1005,13 +1075,14 @@ export default function HorrorNightsTracker() {
           };
         });
 
-formattedVisits.sort((a, b) => {
-  const timeA = parseTimeToMinutes(a.startTime);
-  const timeB = parseTimeToMinutes(b.startTime);
-  const dateA = new Date(`${a.visitDate}T00:00:00`).getTime() + (timeA * 60000);
-  const dateB = new Date(`${b.visitDate}T00:00:00`).getTime() + (timeB * 60000);
-  return dateB - dateA; // Newest visits always stay at the top
-});
+        // Always sort newest visits at the top cleanly
+        formattedVisits.sort((a, b) => {
+          const timeA = parseTimeToMinutes(a.startTime);
+          const timeB = parseTimeToMinutes(b.startTime);
+          const dateA = new Date(`${a.visitDate}T00:00:00`).getTime() + (timeA * 60000);
+          const dateB = new Date(`${b.visitDate}T00:00:00`).getTime() + (timeB * 60000);
+          return dateB - dateA;
+        });
 
         const ongoing = formattedVisits.find(v => !v.endTime || v.endTime.trim() === '');
         const completed = formattedVisits.filter(v => !!v.endTime && v.endTime.trim() !== '');
@@ -1345,7 +1416,7 @@ formattedVisits.sort((a, b) => {
   };
 
   const filteredYumItems = useMemo(() => {
-    let items = MOCK_YUM_ITEMS.filter(item => {
+    let items = yumItems.filter(item => {
       if (selectedYumLocation !== 'All Locations' && item.location !== selectedYumLocation) return false;
 
       if (yumCategoryFilter === 'food') return item.isFood;
@@ -1362,7 +1433,7 @@ formattedVisits.sort((a, b) => {
     if (yumSortBy === 'location-asc') items.sort((a, b) => a.location.localeCompare(b.location));
 
     return items;
-  }, [yumCategoryFilter, selectedYumLocation, yumSortBy]);
+  }, [yumItems, yumCategoryFilter, selectedYumLocation, yumSortBy]);
 
   const openLiveActivityEdit = (act: Activity) => {
     setEditingLiveActivity(act);
@@ -1598,7 +1669,7 @@ formattedVisits.sort((a, b) => {
   const avgDurationPerVisit = totalEventVisits > 0 ? Math.round(totalTimeInParkMins / totalEventVisits) : 0;
   const avgWaitPerActivity = allCompletedActivities.length > 0 ? Math.round(totalTimeInLinesMins / allCompletedActivities.length) : 0;
 
- const houseAnalyticsStats = useMemo(() => {
+  const houseAnalyticsStats = useMemo(() => {
     const stats = HHN_HOUSES.map(houseName => {
       const houseActivities = filteredCompletedActivities.filter(a => a.rideName === houseName);
       const visitsCount = houseActivities.length;
@@ -1609,7 +1680,6 @@ formattedVisits.sort((a, b) => {
       const avgExpected = postedWaits.length > 0 ? Math.round(postedWaits.reduce((s, w) => s + w, 0) / postedWaits.length) : 0;
       const diff = visitsCount > 0 && avgExpected > 0 ? avgWait - avgExpected : 0;
 
-      // Fetch ratings for sorting
       const avgRatings = getHouseAverages(houseName, allHouseRatings, selectedAttendeeFilter);
 
       return {
@@ -1625,7 +1695,7 @@ formattedVisits.sort((a, b) => {
       };
     });
 
-return stats.sort((a: Record<string, any>, b: Record<string, any>) => {
+    return stats.sort((a: Record<string, any>, b: Record<string, any>) => {
       const valA = a[analyticsSortKey] ?? 0;
       const valB = b[analyticsSortKey] ?? 0;
       if (valA === valB) return b.visits - a.visits;
@@ -2060,7 +2130,7 @@ return stats.sort((a: Record<string, any>, b: Record<string, any>) => {
     setQueueStartTimeStr(null);
   };
 
- const deleteVisit = async (id: string) => {
+  const deleteVisit = async (id: string) => {
     const confirmDelete = window.confirm("⚠️ Are you sure you want to delete this entire visit log? This action cannot be undone!");
     if (!confirmDelete) return;
 
@@ -2131,7 +2201,133 @@ return stats.sort((a: Record<string, any>, b: Record<string, any>) => {
         </div>
       )}
 
-      {/* 3. YUM TAB */}
+      {/* 3. TRACKER TAB VIEW */}
+      {mainTab === 'tracker' && (
+        <TrackerTab
+          weatherLoading={weatherLoading}
+          hourlyForecast={hourlyForecast}
+          trackerSubTab={trackerSubTab}
+          activeVisit={activeVisit}
+          activePartyList={activePartyList}
+          formatDisplayDate={formatDisplayDate}
+          format12Hour={format12Hour}
+          calculateVisitDuration={calculateVisitDuration}
+          formatMinutes={formatMinutes}
+          rideName={rideName}
+          setRideName={setRideName}
+          queueStartTimestamp={queueStartTimestamp}
+          queueStartTimeStr={queueStartTimeStr}
+          selectedRiders={selectedRiders}
+          toggleRiderSelection={toggleRiderSelection}
+          postedWaitTime={postedWaitTime}
+          setPostedWaitTime={setPostedWaitTime}
+          waitTime={waitTime}
+          setWaitTime={setWaitTime}
+          handleStartQueueTimer={handleStartQueueTimer}
+          handleEndQueueTimer={handleEndQueueTimer}
+          setQueueStartTimestamp={setQueueStartTimestamp}
+          setQueueStartTimeStr={setQueueStartTimeStr}
+          handleAddRideLive={handleAddRideLive}
+          openLiveActivityEdit={openLiveActivityEdit}
+          setDepartingMembers={setDepartingMembers}
+          setShowCheckoutModal={setShowCheckoutModal}
+          selectedAttendees={selectedAttendees}
+          toggleCheckInAttendee={toggleCheckInAttendee}
+          handleCheckIn={handleCheckIn}
+          setShowRatingModal={setShowRatingModal}
+          fetchThemeParkWaitTimes={fetchThemeParkWaitTimes}
+          waitsSyncing={waitsSyncing}
+          liveWaitTimes={liveWaitTimes}
+          getWaitBoxStyle={getWaitBoxStyle}
+          houseGridLayout={HOUSE_GRID_LAYOUT}
+          rideGridLayout={RIDE_GRID_LAYOUT}
+          totalEventVisits={totalEventVisits}
+          totalHousesCount={totalHousesCount}
+          totalRidesCount={totalRidesCount}
+          totalShowsCount={totalShowsCount}
+          totalTimeInParkMins={totalTimeInParkMins}
+          totalTimeInLinesMins={totalTimeInLinesMins}
+          lineTimePercentage={lineTimePercentage}
+          topHouseData={topHouseData}
+          topRideData={topRideData}
+          avgHousesPerVisit={avgHousesPerVisit}
+          avgRidesPerVisit={avgRidesPerVisit}
+          avgShowsPerVisit={avgShowsPerVisit}
+          avgDurationPerVisit={avgDurationPerVisit}
+          avgWaitPerActivity={avgWaitPerActivity}
+          itemEmojis={ITEM_EMOJIS}
+          regularPretzels={regularPretzels}
+          cinnamonPretzels={cinnamonPretzels}
+          updatePretzelCount={updatePretzelCount}
+          visits={visits}
+          loading={loading}
+          getPersonEndTime={getPersonEndTime}
+          editingActivityId={editingActivityId}
+          editingVisitId={editingVisitId}
+          editRideName={editRideName}
+          setEditRideName={setEditRideName}
+          editRiders={editRiders}
+          toggleEditRiderSelection={toggleEditRiderSelection}
+          editWaitTime={editWaitTime}
+          setEditWaitTime={setEditWaitTime}
+          editNotes={editNotes}
+          setEditNotes={setEditNotes}
+          deleteActivity={deleteActivity}
+          cancelEditing={cancelEditing}
+          saveEditedActivity={saveEditedActivity}
+          startEditing={startEditing}
+          openEditVisit={openEditVisit}
+          deleteVisit={deleteVisit}
+          parkingAttendees={parkingAttendees}
+          toggleParkingAttendee={toggleParkingAttendee}
+          parkingGarage={parkingGarage}
+          setParkingGarage={setParkingGarage}
+          parkingRowNumber={parkingRowNumber}
+          setParkingRowNumber={setParkingRowNumber}
+          handleSaveParkingLog={handleSaveParkingLog}
+          parkingSaving={parkingSaving}
+          parkingLogs={parkingLogs}
+          parkingGarages={PARKING_GARAGES}
+          familyMembers={FIXED_FAMILY_MEMBERS}
+          hhnHouses={HHN_HOUSES}
+          hhnRides={HHN_RIDES}
+          hhnShows={HHN_SHOWS}
+          parseAttendees={parseAttendees}
+          getElapsedQueueTimeString={getElapsedQueueTimeString}
+        />
+      )}
+
+      {/* 4. ANALYTICS TAB VIEW */}
+      {mainTab === 'analytics' && (
+        <AnalyticsTab
+          analyticsSubTab={analyticsSubTab}
+          setAnalyticsSubTab={setAnalyticsSubTab}
+          selectedAttendeeFilter={selectedAttendeeFilter}
+          setSelectedAttendeeFilter={setSelectedAttendeeFilter}
+          toggleAttendeeFilter={toggleAttendeeFilter}
+          analyticsSortKey={analyticsSortKey}
+          analyticsSortOrder={analyticsSortOrder}
+          handleAnalyticsSortClick={handleAnalyticsSortClick}
+          houseAnalyticsStats={houseAnalyticsStats}
+          rideAnalyticsStats={rideAnalyticsStats}
+          houseBanners={HOUSE_BANNERS}
+          rideBanners={RIDE_BANNERS}
+          getHouseAverages={getHouseAverages}
+          allHouseRatings={allHouseRatings}
+          formatMinutes={formatMinutes}
+          longestHouseWaits={longestHouseWaits}
+          shortestHouseWaits={shortestHouseWaits}
+          longestRideWaits={longestRideWaits}
+          shortestRideWaits={shortestRideWaits}
+          attendeeChecklistData={attendeeChecklistData}
+          itemEmojis={ITEM_EMOJIS}
+          formatDisplayDate={formatDisplayDate}
+          parseAttendees={parseAttendees}
+          familyMembers={FIXED_FAMILY_MEMBERS}
+        />
+      )}
+
+      {/* 5. YUM TAB VIEW */}
       {mainTab === 'yum' && (
         <YumTab
           yumCategoryFilter={yumCategoryFilter}
@@ -2156,7 +2352,7 @@ return stats.sort((a: Record<string, any>, b: Record<string, any>) => {
         />
       )}
 
-      {/* 4. GAMES TAB */}
+      {/* 6. GAMES TAB VIEW */}
       {mainTab === 'games' && (
         <GamesTab
           gamesList={sortedGamesList}
@@ -2172,7 +2368,7 @@ return stats.sort((a: Record<string, any>, b: Record<string, any>) => {
         />
       )}
 
-      {/* 5. MAP TAB */}
+      {/* 7. MAP TAB CONTAINER */}
       <MapTab
         isVisible={mainTab === 'map'}
         isMapFullscreen={isMapFullscreen}
@@ -2183,182 +2379,56 @@ return stats.sort((a: Record<string, any>, b: Record<string, any>) => {
         handleRecenterUserMap={handleRecenterUserMap}
       />
 
-      {/* 6. TRACKER TAB VIEWS */}
-{mainTab === 'tracker' && (
-  <TrackerTab
-    weatherLoading={weatherLoading}
-    hourlyForecast={hourlyForecast}
-    trackerSubTab={trackerSubTab}
-    activeVisit={activeVisit}
-    activePartyList={activePartyList}
-    formatDisplayDate={formatDisplayDate}
-    format12Hour={format12Hour}
-    calculateVisitDuration={calculateVisitDuration}
-    formatMinutes={formatMinutes}
-    rideName={rideName}
-    setRideName={setRideName}
-    queueStartTimestamp={queueStartTimestamp}
-    queueStartTimeStr={queueStartTimeStr}
-    selectedRiders={selectedRiders}
-    toggleRiderSelection={toggleRiderSelection}
-    postedWaitTime={postedWaitTime}
-    setPostedWaitTime={setPostedWaitTime}
-    waitTime={waitTime}
-    setWaitTime={setWaitTime}
-    handleStartQueueTimer={handleStartQueueTimer}
-    handleEndQueueTimer={handleEndQueueTimer}
-    setQueueStartTimestamp={setQueueStartTimestamp}
-    setQueueStartTimeStr={setQueueStartTimeStr}
-    handleAddRideLive={handleAddRideLive}
-    openLiveActivityEdit={openLiveActivityEdit}
-    setDepartingMembers={setDepartingMembers}
-    setShowCheckoutModal={setShowCheckoutModal}
-    selectedAttendees={selectedAttendees}
-    toggleCheckInAttendee={toggleCheckInAttendee}
-    handleCheckIn={handleCheckIn}
-    setShowRatingModal={setShowRatingModal}
-    fetchThemeParkWaitTimes={fetchThemeParkWaitTimes}
-    waitsSyncing={waitsSyncing}
-    liveWaitTimes={liveWaitTimes}
-    getWaitBoxStyle={getWaitBoxStyle}
-    houseGridLayout={HOUSE_GRID_LAYOUT}
-    rideGridLayout={RIDE_GRID_LAYOUT}
-    totalEventVisits={totalEventVisits}
-    totalHousesCount={totalHousesCount}
-    totalRidesCount={totalRidesCount}
-    totalShowsCount={totalShowsCount}
-    totalTimeInParkMins={totalTimeInParkMins}
-    totalTimeInLinesMins={totalTimeInLinesMins}
-    lineTimePercentage={lineTimePercentage}
-    topHouseData={topHouseData}
-    topRideData={topRideData}
-    avgHousesPerVisit={avgHousesPerVisit}
-    avgRidesPerVisit={avgRidesPerVisit}
-    avgShowsPerVisit={avgShowsPerVisit}
-    avgDurationPerVisit={avgDurationPerVisit}
-    avgWaitPerActivity={avgWaitPerActivity}
-    itemEmojis={ITEM_EMOJIS}
-    regularPretzels={regularPretzels}
-    cinnamonPretzels={cinnamonPretzels}
-    updatePretzelCount={updatePretzelCount}
-    visits={visits}
-    loading={loading}
-    getPersonEndTime={getPersonEndTime}
-    editingActivityId={editingActivityId}
-    editingVisitId={editingVisitId}
-    editRideName={editRideName}
-    setEditRideName={setEditRideName}
-    editRiders={editRiders}
-    toggleEditRiderSelection={toggleEditRiderSelection}
-    editWaitTime={editWaitTime}
-    setEditWaitTime={setEditWaitTime}
-    editNotes={editNotes}
-    setEditNotes={setEditNotes}
-    deleteActivity={deleteActivity}
-    cancelEditing={cancelEditing}
-    saveEditedActivity={saveEditedActivity}
-    startEditing={startEditing}
-    openEditVisit={openEditVisit}
-    deleteVisit={deleteVisit}
-    parkingAttendees={parkingAttendees}
-    toggleParkingAttendee={toggleParkingAttendee}
-    parkingGarage={parkingGarage}
-    setParkingGarage={setParkingGarage}
-    parkingRowNumber={parkingRowNumber}
-    setParkingRowNumber={setParkingRowNumber}
-    handleSaveParkingLog={handleSaveParkingLog}
-    parkingSaving={parkingSaving}
-    parkingLogs={parkingLogs}
-    parkingGarages={PARKING_GARAGES}
-    familyMembers={FIXED_FAMILY_MEMBERS}
-    hhnHouses={HHN_HOUSES}
-    hhnRides={HHN_RIDES}
-    hhnShows={HHN_SHOWS}
-    parseAttendees={parseAttendees}
-    getElapsedQueueTimeString={getElapsedQueueTimeString}
-  />
-)}
-
-{/* ANALYTICS TAB */}
-{mainTab === 'analytics' && (
-  <AnalyticsTab
-    analyticsSubTab={analyticsSubTab}
-    setAnalyticsSubTab={setAnalyticsSubTab}
-    selectedAttendeeFilter={selectedAttendeeFilter}
-    setSelectedAttendeeFilter={setSelectedAttendeeFilter}
-    toggleAttendeeFilter={toggleAttendeeFilter}
-    analyticsSortKey={analyticsSortKey}
-    analyticsSortOrder={analyticsSortOrder}
-    handleAnalyticsSortClick={handleAnalyticsSortClick}
-    houseAnalyticsStats={houseAnalyticsStats}
-    rideAnalyticsStats={rideAnalyticsStats}
-    houseBanners={HOUSE_BANNERS}
-    rideBanners={RIDE_BANNERS}
-    getHouseAverages={getHouseAverages}
-    allHouseRatings={allHouseRatings}
-    formatMinutes={formatMinutes}
-    longestHouseWaits={longestHouseWaits}
-    shortestHouseWaits={shortestHouseWaits}
-    longestRideWaits={longestRideWaits}
-    shortestRideWaits={shortestRideWaits}
-    attendeeChecklistData={attendeeChecklistData}
-    itemEmojis={ITEM_EMOJIS}
-    formatDisplayDate={formatDisplayDate}
-    parseAttendees={parseAttendees}
-    familyMembers={FIXED_FAMILY_MEMBERS}
-  />
-)}
-
-{/* 🛠️ UTILITY MODALS */}
-   <UtilityModals
-  weatherLoading={weatherLoading}
-  hourlyForecast={hourlyForecast}
-  showAiTriviaModal={showAiTriviaModal}
-  setShowAiTriviaModal={setShowAiTriviaModal}
-  triviaDifficulty={triviaDifficulty}
-  allTimeRecordHolder={allTimeRecordHolder}
-  allTimeHighScore={allTimeHighScore}
-  currentStreak={currentStreak}
-  triviaCategory={triviaCategory}
-  handleTriviaFilterChange={handleTriviaFilterChange}
-  availableCategories={availableCategories}
-  availableDifficulties={availableDifficulties}
-  newHighScorePending={newHighScorePending}
-  recordClaimName={recordClaimName}
-  setRecordClaimName={setRecordClaimName}
-  saveNewHighScoreRecord={saveNewHighScoreRecord}
-  triviaError={triviaError}
-  triviaLoading={triviaLoading}
-  currentQuestion={currentQuestion}
-  selectedOption={selectedOption}
-  handleTriviaAnswerSelection={handleTriviaAnswerSelection}
-  handleNextTriviaQuestion={handleNextTriviaQuestion}
-  triviaDeck={triviaDeck}
-  activeLearnMoreGame={activeLearnMoreGame}
-  setActiveLearnMoreGame={setActiveLearnMoreGame}
-  activeLearnMoreColor={activeLearnMoreColor}
-  previewYumImage={previewYumImage}
-  setPreviewYumImage={setPreviewYumImage}
-  showCheckoutModal={showCheckoutModal}
-  setShowCheckoutModal={setShowCheckoutModal}
-  activeVisit={activeVisit}
-  activePartyList={activePartyList}
-  departingMembers={departingMembers}
-  toggleDepartingMember={toggleDepartingMember}
-  processCheckout={processCheckout}
-  editingVisit={editingVisit}
-  setEditingVisit={setEditingVisit}
-  editVisitStartTime={editVisitStartTime}
-  setEditVisitStartTime={setEditVisitStartTime}
-  editVisitEndTime={editVisitEndTime}
-  setEditVisitEndTime={setEditVisitEndTime}
-  editVisitMemberEndTimes={editVisitMemberEndTimes}
-  setEditVisitMemberEndTimes={setEditVisitMemberEndTimes}
-  handleSaveVisitEdit={handleSaveVisitEdit}
-  formatDisplayDate={formatDisplayDate}
-  parseAttendees={parseAttendees}
-  familyMembers={FIXED_FAMILY_MEMBERS}
-/>
+      {/* 🛠️ UTILITY MODALS */}
+      <UtilityModals
+        weatherLoading={weatherLoading}
+        hourlyForecast={hourlyForecast}
+        showAiTriviaModal={showAiTriviaModal}
+        setShowAiTriviaModal={setShowAiTriviaModal}
+        triviaDifficulty={triviaDifficulty}
+        allTimeRecordHolder={allTimeRecordHolder}
+        allTimeHighScore={allTimeHighScore}
+        currentStreak={currentStreak}
+        triviaCategory={triviaCategory}
+        handleTriviaFilterChange={handleTriviaFilterChange}
+        availableCategories={availableCategories}
+        availableDifficulties={availableDifficulties}
+        newHighScorePending={newHighScorePending}
+        recordClaimName={recordClaimName}
+        setRecordClaimName={setRecordClaimName}
+        saveNewHighScoreRecord={saveNewHighScoreRecord}
+        triviaError={triviaError}
+        triviaLoading={triviaLoading}
+        currentQuestion={currentQuestion}
+        selectedOption={selectedOption}
+        handleTriviaAnswerSelection={handleTriviaAnswerSelection}
+        handleNextTriviaQuestion={handleNextTriviaQuestion}
+        triviaDeck={triviaDeck}
+        activeLearnMoreGame={activeLearnMoreGame}
+        setActiveLearnMoreGame={setActiveLearnMoreGame}
+        activeLearnMoreColor={activeLearnMoreColor}
+        previewYumImage={previewYumImage}
+        setPreviewYumImage={setPreviewYumImage}
+        showCheckoutModal={showCheckoutModal}
+        setShowCheckoutModal={setShowCheckoutModal}
+        activeVisit={activeVisit}
+        activePartyList={activePartyList}
+        departingMembers={departingMembers}
+        toggleDepartingMember={toggleDepartingMember}
+        processCheckout={processCheckout}
+        editingVisit={editingVisit}
+        setEditingVisit={setEditingVisit}
+        editVisitStartTime={editVisitStartTime}
+        setEditVisitStartTime={setEditVisitStartTime}
+        editVisitEndTime={editVisitEndTime}
+        setEditVisitEndTime={setEditVisitEndTime}
+        editVisitMemberEndTimes={editVisitMemberEndTimes}
+        setEditVisitMemberEndTimes={setEditVisitMemberEndTimes}
+        handleSaveVisitEdit={handleSaveVisitEdit}
+        formatDisplayDate={formatDisplayDate}
+        parseAttendees={parseAttendees}
+        familyMembers={FIXED_FAMILY_MEMBERS}
+      />
 
       {/* ⭐ HOUSE RATING MODAL */}
       <HouseRatingModal
