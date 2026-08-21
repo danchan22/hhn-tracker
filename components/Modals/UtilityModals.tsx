@@ -267,31 +267,101 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
       {/* 🚪 DEPARTURE / CHECKOUT MODAL */}
       {showCheckoutModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '400px', width: '100%', border: '2px solid #DC2626', boxShadow: '0 10px 30px rgba(220, 38, 38, 0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#DC2626' }}>👋 Leaving the Park</h3>
-              <button onClick={() => setShowCheckoutModal(false)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '20px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '400px', width: '100%', border: '2px solid #DC2626', boxShadow: '0 10px 30px rgba(220, 38, 38, 0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ marginBottom: '14px' }}>
+              <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#FF5500' }}>Leaving Park</h2>
+              <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#A0AEC0', fontWeight: '600' }}>Who is departing the park right now?</p>
             </div>
 
-            <p style={{ fontSize: '13px', color: '#CBD5E0', marginBottom: '14px' }}>Who is leaving right now?</p>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '18px' }}>
+            {/* MEMBER TOGGLE LIST */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
               {activePartyList.map(member => {
                 const isLeaving = departingMembers.includes(member);
                 return (
-                  <button key={member} onClick={() => toggleDepartingMember(member)} style={{ padding: '8px 14px', borderRadius: '10px', border: isLeaving ? '2px solid #DC2626' : '1px solid #2A2A3C', background: isLeaving ? '#DC2626' : '#1A1A26', color: isLeaving ? '#FFF' : '#A0AEC0', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}>
-                    {member}
+                  <button
+                    key={member}
+                    type="button"
+                    onClick={() => toggleDepartingMember(member)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justify: 'space-between',
+                      padding: '12px 16px',
+                      borderRadius: '16px',
+                      border: isLeaving ? '2px solid #DC2626' : '1px solid #2A2A3C',
+                      background: isLeaving ? '#2A0B0D' : '#1A1A26',
+                      color: isLeaving ? '#FF8888' : '#A0AEC0',
+                      fontSize: '14px',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isLeaving ? '#FFF' : '#CBD5E0' }}>
+                      👤 {member}
+                    </span>
+                    <span>
+                      {isLeaving ? '🚪 Leaving' : '🎃 Staying'}
+                    </span>
                   </button>
                 );
               })}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button onClick={() => processCheckout('selected')} style={{ padding: '12px', background: '#DC2626', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: '900', fontSize: '13px', cursor: 'pointer' }}>
-                Save Staggered Checkout ({departingMembers.length})
+            {/* ACTION BUTTONS */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => processCheckout('selected')}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  background: '#DC2626',
+                  color: '#FFF',
+                  border: 'none',
+                  borderRadius: '14px',
+                  fontSize: '15px',
+                  fontWeight: '900',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)'
+                }}
+              >
+                Check Out Selected ({departingMembers.length})
               </button>
-              <button onClick={() => processCheckout('everyone')} style={{ padding: '12px', background: '#1A1A26', color: '#CBD5E0', border: '1px solid #2A2A3C', borderRadius: '10px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}>
-                Everyone Leaves Together
+
+              <button
+                type="button"
+                onClick={() => processCheckout('everyone')}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  background: '#1A1A26',
+                  color: '#CBD5E0',
+                  border: '1px solid #2A2A3C',
+                  borderRadius: '14px',
+                  fontSize: '14px',
+                  fontWeight: '800',
+                  cursor: 'pointer'
+                }}
+              >
+                Check Out Everyone
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowCheckoutModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#A0AEC0',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  padding: '6px 0',
+                  textAlign: 'center'
+                }}
+              >
+                Cancel
               </button>
             </div>
           </div>
