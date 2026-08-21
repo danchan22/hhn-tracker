@@ -111,6 +111,13 @@ export const HouseRatingModal: React.FC<HouseRatingModalProps> = ({
           </button>
         </div>
 
+{ratingSuccess && (
+  <div style={{ textAlign: 'center', padding: '20px' }}>
+    <div style={{ fontSize: '48px', animation: 'pop 0.3s ease' }}>🎃</div>
+    <h3 style={{ color: '#22C55E', margin: '10px 0 0 0' }}>Rating Saved!</h3>
+  </div>
+)}
+        
       </div>
     </div>
   );
