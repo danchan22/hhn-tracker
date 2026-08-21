@@ -93,7 +93,7 @@ interface TrackerTabProps {
   parseAttendees: (raw: any) => string[];
   getElapsedQueueTimeString: () => string;
   weatherLoading: boolean;
-hourlyForecast: Array<{ hourLabel: string; temp: number; pop: number }>;
+  hourlyForecast: Array<{ hourLabel: string; temp: number; pop: number }>;
 }
 
 export const TrackerTab: React.FC<TrackerTabProps> = ({
@@ -215,34 +215,7 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
       {/* SUBTAB: TONIGHT */}
       {trackerSubTab === 'Tonight' && (
         <div>
-    {/* 🌧️ 6-HOUR EVENING WEATHER GRID */}
-    <a
-      href="https://www.timeanddate.com/weather/@6942262/hourly"
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{ display: 'block', textDecoration: 'none', background: 'rgba(18, 18, 26, 0.85)', border: '1px solid #2A2A3C', padding: '12px 10px', borderRadius: '16px', marginBottom: '16px', backdropFilter: 'blur(8px)' }}
-    >
-      {weatherLoading ? (
-        <div style={{ textAlign: 'center', color: '#A0AEC0', fontSize: '12px', padding: '4px 0' }}>🌤️ Syncing Weather...</div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px' }}>
-          {hourlyForecast.map((item, idx) => (
-            <div key={idx} style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '10px', padding: '6px 2px', textAlign: 'center' }}>
-              <div style={{ fontSize: '10px', fontWeight: '800', color: '#CBD5E0' }}>{item.hourLabel}</div>
-              <div style={{ fontSize: '13px', fontWeight: '900', color: '#FFF', margin: '2px 0' }}>{item.temp}°</div>
-              <div style={{ fontSize: '10px', fontWeight: '800', color: item.pop > 50 ? '#3B82F6' : '#A0AEC0' }}>{item.pop}%</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </a>
-
-    {/* SUBTAB: TONIGHT */}
-    ...
-      {trackerSubTab === 'Tonight' && (
-        <div>
           {activeVisit ? (
-            /* ACTIVE VISIT LIVE WIDGET */
             <div style={{ background: 'linear-gradient(135deg, rgba(31, 8, 8, 0.9) 0%, rgba(13, 5, 16, 0.95) 100%)', color: '#FFF', padding: '20px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)', border: '2px solid #DC2626', backdropFilter: 'blur(8px)' }}>
               <div style={{ marginBottom: '12px' }}>
                 <span style={{ background: '#DC2626', color: '#FFF', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '900', display: 'inline-block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -258,7 +231,6 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
                 👥 <strong>Active Party:</strong> {activePartyList.join(', ')}
               </p>
 
-              {/* TRACK ATTRACTION CARD */}
               <div style={{ background: 'rgba(18, 18, 26, 0.9)', padding: '16px', borderRadius: '18px', marginBottom: '15px', color: '#F3F4F6', border: '1px solid #2A2A3C' }}>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '800', color: '#FF5500' }}>Track an Attraction:</h3>
                 
@@ -406,13 +378,11 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
                 )}
               </div>
 
-              {/* Leave the Park Button */}
               <button onClick={() => { setDepartingMembers(activePartyList); setShowCheckoutModal(true); }} style={{ width: '100%', padding: '14px', background: '#000000', color: '#FFF', border: '2px solid #DC2626', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)' }}>
                 Leave the Park & Save Day
               </button>
             </div>
           ) : (
-            /* START YOUR NIGHT FORM */
             <form onSubmit={handleCheckIn} style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '22px', borderRadius: '24px', marginBottom: '25px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)', border: '2px solid #DC2626', backdropFilter: 'blur(8px)' }}>
               <h2 style={{ marginTop: 0, fontSize: '20px', fontWeight: '900', color: '#DC2626', marginBottom: '16px', textAlign: 'center' }}>Start Your Night</h2>
 
@@ -450,7 +420,6 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
             </form>
           )}
 
-          {/* ⭐ RATE A HOUSE BUTTON / WIDGET */}
           <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '14px 16px', borderRadius: '18px', border: '1px solid #FDA30C', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backdropFilter: 'blur(8px)' }}>
             <div>
               <div style={{ fontSize: '14px', fontWeight: '900', color: '#FDA30C' }}>⭐ Rate a House</div>
@@ -464,7 +433,6 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
             </button>
           </div>
 
-          {/* LIVE WAIT TIMES & SHOW TIMES WIDGET */}
           <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: 0, letterSpacing: '0.8px' }}>HOUSE WAIT TIMES</h3>
@@ -551,7 +519,6 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
             </div>
           </div>
 
-          {/* TOTALS & SUMMARY STATS WIDGET */}
           <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
             <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: '0 0 12px 0', letterSpacing: '0.8px' }}>TOTALS</h3>
             
