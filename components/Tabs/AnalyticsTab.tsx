@@ -92,12 +92,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         </div>
       </div>
 
-      {/* TWO-ROW SORT BAR (HOUSES & RIDES) */}
+  {/* TWO-ROW SORT BAR (HOUSES & RIDES) */}
       {(analyticsSubTab === 'Houses' || analyticsSubTab === 'Rides') && (
         <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '10px 12px', borderRadius: '14px', border: '1px solid #2A2A3C', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
+          <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', marginBottom: '6px' }}>SORT:</div>
+          
           {/* ROW 1: LOG METRICS */}
-          <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', marginBottom: '6px' }}>SORT BY LOGS:</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', marginBottom: analyticsSubTab === 'Houses' ? '10px' : '0px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', marginBottom: analyticsSubTab === 'Houses' ? '6px' : '0px' }}>
             {[
               { key: 'visits', label: 'Visits' },
               { key: 'avgWait', label: 'Avg Wait' },
@@ -117,24 +118,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
           {/* ROW 2: RATINGS METRICS (HOUSES ONLY) */}
           {analyticsSubTab === 'Houses' && (
-            <>
-              <div style={{ fontSize: '10px', fontWeight: '800', color: '#FDA30C', marginBottom: '6px' }}>SORT BY RATINGS:</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
-                {[
-                  { key: 'ratingOverall', label: '⭐ Overall' },
-                  { key: 'ratingScare', label: '😱 Scare' },
-                  { key: 'ratingCool', label: '😎 Vibe' }
-                ].map(item => {
-                  const isActive = analyticsSortKey === item.key;
-                  const arrow = isActive ? (analyticsSortOrder === 'desc' ? ' ▼' : ' ▲') : '';
-                  return (
-                    <button key={item.key} onClick={() => handleAnalyticsSortClick(item.key)} style={{ padding: '6px 2px', borderRadius: '8px', border: isActive ? '1px solid #FDA30C' : '1px solid #2A2A3C', background: isActive ? '#FDA30C' : '#1A1A26', color: isActive ? '#000' : '#FDA30C', fontSize: '10px', fontWeight: '800', cursor: 'pointer' }}>
-                      {item.label}{arrow}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+              {[
+                { key: 'ratingOverall', label: '⭐ Overall' },
+                { key: 'ratingScare', label: '😱 Scare' },
+                { key: 'ratingCool', label: '😎 Vibe' }
+              ].map(item => {
+                const isActive = analyticsSortKey === item.key;
+                const arrow = isActive ? (analyticsSortOrder === 'desc' ? ' ▼' : ' ▲') : '';
+                return (
+                  <button key={item.key} onClick={() => handleAnalyticsSortClick(item.key)} style={{ padding: '6px 2px', borderRadius: '8px', border: isActive ? '1px solid #FDA30C' : '1px solid #2A2A3C', background: isActive ? '#FDA30C' : '#1A1A26', color: isActive ? '#000' : '#FDA30C', fontSize: '10px', fontWeight: '800', cursor: 'pointer' }}>
+                    {item.label}{arrow}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
