@@ -1669,7 +1669,7 @@ export default function HorrorNightsTracker() {
       };
     });
 
-    return stats.sort((a: any, b: any) => {
+return stats.sort((a: Record<string, any>, b: Record<string, any>) => {
       const valA = a[analyticsSortKey] ?? 0;
       const valB = b[analyticsSortKey] ?? 0;
       if (valA === valB) return b.visits - a.visits;
@@ -1698,9 +1698,9 @@ export default function HorrorNightsTracker() {
       };
     });
 
-    return stats.sort((a, b) => {
-      const valA = a[analyticsSortKey];
-      const valB = b[analyticsSortKey];
+    return stats.sort((a: Record<string, any>, b: Record<string, any>) => {
+      const valA = a[analyticsSortKey] ?? 0;
+      const valB = b[analyticsSortKey] ?? 0;
       if (valA === valB) return b.visits - a.visits;
       return analyticsSortOrder === 'desc' ? valB - valA : valA - valB;
     });
