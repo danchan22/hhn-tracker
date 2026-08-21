@@ -2224,6 +2224,8 @@ export default function HorrorNightsTracker() {
       {/* 6. TRACKER TAB VIEWS */}
 {mainTab === 'tracker' && (
   <TrackerTab
+    weatherLoading={weatherLoading}
+    hourlyForecast={hourlyForecast}
     trackerSubTab={trackerSubTab}
     activeVisit={activeVisit}
     activePartyList={activePartyList}
@@ -2312,8 +2314,6 @@ export default function HorrorNightsTracker() {
     hhnShows={HHN_SHOWS}
     parseAttendees={parseAttendees}
     getElapsedQueueTimeString={getElapsedQueueTimeString}
-    weatherLoading={weatherLoading}
-  hourlyForecast={hourlyForecast}
   />
 )}
 
