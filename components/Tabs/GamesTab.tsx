@@ -129,52 +129,6 @@ export const GamesTab: React.FC<GamesTabProps> = ({
                   🌐 Open Game ↗
                 </a>
               )}
-
-              {game.iosLink && (
-                <a
-                  href={game.iosLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    padding: '8px 12px',
-                    background: '#1A1A26',
-                    color: '#FFF',
-                    border: '1px solid #2A2A3C',
-                    borderRadius: '10px',
-                    fontSize: '12px',
-                    fontWeight: '800',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                   App Store ↗
-                </a>
-              )}
-
-              {game.androidLink && (
-                <a
-                  href={game.androidLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    padding: '8px 12px',
-                    background: '#1A1A26',
-                    color: '#FFF',
-                    border: '1px solid #2A2A3C',
-                    borderRadius: '10px',
-                    fontSize: '12px',
-                    fontWeight: '800',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  🤖 Google Play ↗
-                </a>
-              )}
             </div>
           </div>
         );
