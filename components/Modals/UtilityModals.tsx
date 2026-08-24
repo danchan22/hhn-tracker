@@ -229,7 +229,7 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
       )}
 
       {/* 📖 LEARN MORE GAME MODAL */}
-      {activeLearnMoreGame && (
+ {activeLearnMoreGame && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
           <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '420px', width: '100%', border: `2px solid ${activeLearnMoreColor}`, boxShadow: `0 10px 30px ${activeLearnMoreColor}44`, maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
@@ -245,11 +245,25 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
               {activeLearnMoreGame.description}
             </div>
 
-            {activeLearnMoreGame.externalLink && (
-              <a href={activeLearnMoreGame.externalLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', padding: '10px', background: activeLearnMoreColor, color: '#FFF', borderRadius: '10px', textDecoration: 'none', fontWeight: '900', fontSize: '13px' }}>
-                Open Web Game ↗
-              </a>
-            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {activeLearnMoreGame.externalLink && (
+                <a href={activeLearnMoreGame.externalLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', padding: '10px', background: activeLearnMoreColor, color: '#FFF', borderRadius: '10px', textDecoration: 'none', fontWeight: '900', fontSize: '13px' }}>
+                  Open Web Game ↗
+                </a>
+              )}
+
+              {activeLearnMoreGame.iosLink && (
+                <a href={activeLearnMoreGame.iosLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', padding: '10px', background: '#1A1A26', color: '#FFF', border: '1px solid #2A2A3C', borderRadius: '10px', textDecoration: 'none', fontWeight: '900', fontSize: '13px' }}>
+                   Download on App Store ↗
+                </a>
+              )}
+
+              {activeLearnMoreGame.androidLink && (
+                <a href={activeLearnMoreGame.androidLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', padding: '10px', background: '#1A1A26', color: '#FFF', border: '1px solid #2A2A3C', borderRadius: '10px', textDecoration: 'none', fontWeight: '900', fontSize: '13px' }}>
+                  🤖 Get it on Google Play ↗
+                </a>
+              )}
+            </div>
           </div>
         </div>
       )}
