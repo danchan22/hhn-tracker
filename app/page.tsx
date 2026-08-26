@@ -1051,9 +1051,14 @@ const popupContent = `
           </div>
         `;
 
+const marker = L.marker([poi.lat, poi.lng], { icon: customIcon }).addTo(map).bindPopup(popupContent);
+        
+        marker.on('click', () => {
+          marker.setZIndexOffset(1000);
+        });
+
         poiMarkersRef.current.push(marker);
       });
-    };
 
     if ((window as any).L) {
       initOrUpdateMap();
