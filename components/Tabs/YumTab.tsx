@@ -118,6 +118,22 @@ export const YumTab: React.FC<YumTabProps> = ({
           )}
         </div>
 
+        {/* ACTIVE LOCATION CLEAR BADGE */}
+        {selectedYumLocation !== 'All Locations' && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2D2008', border: '1px solid #F59E0B', padding: '6px 10px', borderRadius: '8px', marginBottom: '10px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#F59E0B' }}>
+              📍 Location: <strong>{selectedYumLocation}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedYumLocation('All Locations')}
+              style={{ background: '#F59E0B', color: '#000', border: 'none', borderRadius: '6px', fontSize: '10px', fontWeight: '900', padding: '3px 8px', cursor: 'pointer' }}
+            >
+              Show All Locations ✕
+            </button>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', marginBottom: '10px' }}>
           <button
             onClick={() => toggleYumCategoryFilter('food')}
@@ -181,6 +197,7 @@ export const YumTab: React.FC<YumTabProps> = ({
             const comments = yumCommentsMap[item.id] || [];
             const isCommentsOpen = openCommentsItemId === item.id;
             const hasComments = comments.length > 0;
+            const isCurrentlyFiltered = selectedYumLocation !== 'All Locations' && (item.location || '').includes(selectedYumLocation);
 
             return (
               <div
@@ -204,13 +221,31 @@ export const YumTab: React.FC<YumTabProps> = ({
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#FFF' }}>{item.name}</h3>
 
-                    {/* LOCATION CLICKABLE WITH TOGGLE UNFILTER */}
-                    <div
-                      onClick={() => setSelectedYumLocation(selectedYumLocation === item.location ? 'All Locations' : item.location)}
-                      style={{ fontSize: '11px', fontWeight: '800', color: selectedYumLocation === item.location ? '#22C55E' : '#F59E0B', marginTop: '2px', cursor: 'pointer', display: 'inline-block' }}
+                    {/* CLICKABLE LOCATION WITH TOGGLE UNFILTER */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isCurrentlyFiltered) {
+                          setSelectedYumLocation('All Locations');
+                        } else {
+                          const primaryLoc = item.location && item.location.includes(',') ? item.location.split(',')[0].trim() : item.location;
+                          setSelectedYumLocation(primaryLoc);
+                        }
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        fontSize: '11px',
+                        fontWeight: '800',
+                        color: isCurrentlyFiltered ? '#22C55E' : '#F59E0B',
+                        marginTop: '2px',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
                     >
-                      {item.location} {selectedYumLocation === item.location ? '(Clear ✕)' : ''}
-                    </div>
+                      📍 {item.location} {isCurrentlyFiltered ? '(Clear ✕)' : ''}
+                    </button>
 
                     <div style={{ fontSize: '14px', fontWeight: '900', color: '#22C55E', marginTop: '4px' }}>
                       {item.price}
