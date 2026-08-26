@@ -462,7 +462,7 @@ const HHN_MAP_LOCATIONS = [
   // SHOWS
   { id: 'club-horror', name: 'Club Horror', shortName: 'Club Horror', category: 'show', lat: 28.478669993859793, lng: -81.46935622675115 },
   { id: 'nightmare-fuel', name: 'Nightmare Fuel: Blood Noir', shortName: 'Nightmare Fuel', category: 'show', lat: 28.48025323483047, lng: -81.46886319519807 },
-  { id: 'stranger-things-lagoon', name: 'Stranger Things Lagoon Show', shortName: 'Lagoon Show', category: 'show', lat: 28.47772141320968, lng: -81.46822099260383, anchorOffset: [-15, -15] },
+  { id: 'stranger-things-lagoon', name: 'Stranger Things Lagoon Show', shortName: 'Lagoon Show', category: 'show', lat: 28.4772141320968, lng: -81.46822099260383, anchorOffset: [-15, -15] },
 
   // RIDES
   { id: 'transformers', name: 'TRANSFORMERS: The Ride-3D', shortName: 'Transformers', category: 'ride', lat: 28.476645350396623, lng: -81.46856265903122, apiKey: 'Transformers: The Ride-3D' },
@@ -485,7 +485,32 @@ const HHN_MAP_LOCATIONS = [
   { id: 'water-4', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47744, lng: -81.46932 },
   { id: 'water-5', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47731, lng: -81.46781 },
   { id: 'water-6', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47998, lng: -81.46766 },
-  { id: 'water-7', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.48017, lng: -81.46787 }
+  { id: 'water-7', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.48017, lng: -81.46787 },
+
+  // FOOD & BEVERAGE BOOTHS
+  { id: 'schwabs', name: 'Schwab’s', shortName: 'Schwab’s', category: 'food', lat: 28.47562532024065, lng: -81.46747333515259 },
+  { id: 'maloneys-food', name: 'Maloney’s', shortName: 'Maloney’s', category: 'food', lat: 28.476897079538272, lng: -81.4681881076738 },
+  { id: 'sinners-food', name: 'Sinners Food Booth', shortName: 'Sinners Food', category: 'food', lat: 28.477272843772493, lng: -81.4676205821814 },
+  { id: 'central-park-crepes', name: 'Central Park Crepes', shortName: 'Crepes', category: 'food', lat: 28.477258266736893, lng: -81.4678453812424 },
+  { id: 'dreamworks-cafe', name: 'Dreamworks Cafe', shortName: 'Dreamworks', category: 'food', lat: 28.477737043678015, lng: -81.46753578412367 },
+  { id: 'dia-de-los-muertos-food', name: 'Dia de los Muertos', shortName: 'Día Muertos', category: 'food', lat: 28.478210332215582, lng: -81.46755384153964 },
+  { id: 'parkside-fare-food', name: 'Parkside Fare', shortName: 'Parkside', category: 'food', lat: 28.478123755205043, lng: -81.46789364935661 },
+  { id: 'hellraiser-food', name: 'Hellraiser Food', shortName: 'Hellraiser Food', category: 'food', lat: 28.47825506364601, lng: -81.46802497604565 },
+  { id: 'world-expo-fanta-bar', name: 'World Expo Fanta Bar', shortName: 'Expo Bar', category: 'food', lat: 28.480145474215917, lng: -81.46781335019756 },
+  { id: 'stranger-things-food', name: 'Stranger Things Food', shortName: 'Stranger Food', category: 'food', lat: 28.47983452381325, lng: -81.46850363614237 },
+  { id: 'meetz-meats-food', name: 'Meetz Meats', shortName: 'Meetz Meats', category: 'food', lat: 28.479900898453923, lng: -81.46874659052637 },
+  { id: 'ozzy-food', name: 'Ozzy Food Booth', shortName: 'Ozzy Food', category: 'food', lat: 28.47895577733624, lng: -81.46891813605151 },
+  { id: 'evil-dead-food', name: 'Evil Dead Food', shortName: 'Evil Dead Food', category: 'food', lat: 28.47891753943429, lng: -81.4694844824065 },
+  { id: 'club-horror-bar', name: 'Club Horror Bar', shortName: 'Club Horror Bar', category: 'food', lat: 28.478863429172183, lng: -81.46952880516406 },
+  { id: 'richters', name: 'Richter’s', shortName: 'Richter’s', category: 'food', lat: 28.478160793516622, lng: -81.46910988959165 },
+  { id: 'san-fran-fanta-bar', name: 'San Fran Fanta Bar', shortName: 'San Fran Bar', category: 'food', lat: 28.47754537341401, lng: -81.46919525194369 },
+  { id: 'oddfellows-food', name: 'Oddfellow’s', shortName: 'Oddfellow’s', category: 'food', lat: 28.476442988173797, lng: -81.46936078586263 },
+  { id: 'jacks-surplus-food', name: 'Jack’s Surplus', shortName: 'Jack’s Surplus', category: 'food', lat: 28.47631827249097, lng: -81.46915625556942 },
+  { id: 'devilish-delights-food', name: 'Devilish Delights', shortName: 'Devilish', category: 'food', lat: 28.476117431340743, lng: -81.4691507277248 },
+  { id: 'death-tank-food', name: 'Death Tank', shortName: 'Death Tank', category: 'food', lat: 28.47621947164984, lng: -81.46934604494172 },
+  { id: 'hhn-bar', name: 'HHN Bar', shortName: 'HHN Bar', category: 'food', lat: 28.475940885176293, lng: -81.46934051709596 },
+  { id: 'music-plaza-fanta-bar', name: 'Music Plaza Fanta Bar', shortName: 'Music Plaza Bar', category: 'food', lat: 28.476358764611103, lng: -81.47001859950949 },
+  { id: 'keyholder-bar', name: 'Keyholder Bar', shortName: 'Keyholder Bar', category: 'food', lat: 28.47537399181535, lng: -81.4686882312944 }
 ];
 
 const EVENING_HOURS = [18, 19, 20, 21, 22, 23];
