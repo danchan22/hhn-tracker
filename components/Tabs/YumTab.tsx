@@ -76,7 +76,7 @@ export const YumTab: React.FC<YumTabProps> = ({
       {/* FILTER & SEARCH CARD */}
       <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '14px', borderRadius: '20px', border: '1px solid #2A2A3C', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
         
-        {/* 🔍 SEARCH BAR */}
+        {/* 1. SEARCH INPUT */}
         <div style={{ position: 'relative', marginBottom: '12px' }}>
           <input
             type="text"
@@ -118,17 +118,17 @@ export const YumTab: React.FC<YumTabProps> = ({
           )}
         </div>
 
-        {/* ACTIVE LOCATION CLEAR BADGE */}
+        {/* LOCATION CLEAR BAR (SHOWS ONLY WHEN A LOCATION IS FILTERED) */}
         {selectedYumLocation !== 'All Locations' && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2D2008', border: '1px solid #F59E0B', padding: '6px 10px', borderRadius: '10px', marginBottom: '12px' }}>
             <span style={{ fontSize: '11px', fontWeight: '800', color: '#F59E0B' }}>
-              📍 Filtered by: <strong>{selectedYumLocation}</strong>
+              📍 Location: <strong>{selectedYumLocation}</strong>
             </span>
             <button
               onClick={() => setSelectedYumLocation('All Locations')}
               style={{ background: '#F59E0B', color: '#000', border: 'none', borderRadius: '6px', fontSize: '10px', fontWeight: '900', padding: '3px 8px', cursor: 'pointer' }}
             >
-              Show All Locations ✕
+              Clear Location ✕
             </button>
           </div>
         )}
@@ -156,6 +156,7 @@ export const YumTab: React.FC<YumTabProps> = ({
               onChange={(e: any) => setYumSortBy(e.target.value)}
               style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold' }}
             >
+              {/* 3. DEFAULT SORT LABEL / BEHAVIOR */}
               <option value="default">Default (ID)</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
@@ -224,24 +225,40 @@ export const YumTab: React.FC<YumTabProps> = ({
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '16px', fontWeight: '900', color: '#FFF' }}>{item.name}</div>
                     
-                    {/* CLICKABLE LOCATION FILTER */}
+                    {/* 2. CLICKABLE LOCATION WITH CLEAR CAPABILITY */}
                     <button
-                      onClick={() => setSelectedYumLocation(item.location)}
+                      onClick={() => {
+                        if (selectedYumLocation === item.location) {
+                          setSelectedYumLocation('All Locations');
+                        } else {
+                          setSelectedYumLocation(item.location);
+                        }
+                      }}
                       style={{
                         background: 'none',
                         border: 'none',
                         padding: 0,
                         fontSize: '11px',
                         fontWeight: '800',
-                        color: '#F59E0B',
+                        color: selectedYumLocation === item.location ? '#22C55E' : '#F59E0B',
                         marginTop: '2px',
                         cursor: 'pointer',
                         textAlign: 'left'
                       }}
                     >
-                      📍 {item.location}
+                      📍 {item.location} {selectedYumLocation === item.location ? '(Click to clear)' : ''}
                     </button>
                   </div>
+
+                  {item.image && (
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      onClick={() => setPreviewYumImage(item.image)}
+                      onError={(e: any) => { e.target.style.display = 'none'; }}
+                      style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '10px', cursor: 'pointer', border: '1px solid #2A2A3C', flexShrink: 0 }}
+                    />
+                  )}
 
                   <div style={{ background: '#2D2008', color: '#F59E0B', border: '1px solid #F59E0B', padding: '4px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: '900', flexShrink: 0 }}>
                     {item.price}
