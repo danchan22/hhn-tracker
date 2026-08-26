@@ -598,6 +598,20 @@ export default function HorrorNightsTracker() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [activeVisit, setActiveVisit] = useState<Visit | null>(null);
 
+// DYNAMICALLY EXTRACT UNIQUE BOOTH LOCATIONS FROM DATABASE ITEMS
+  const dynamicYumLocations = useMemo(() => {
+    const set = new Set<string>();
+    yumItems.forEach(item => {
+      if (item.location) {
+        item.location.split(',').forEach(loc => {
+          const trimmed = loc.trim();
+          if (trimmed) set.add(trimmed);
+        });
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [yumItems]);
+  
   // Main Tabs
   const [mainTab, setMainTab] = useState<'tracker' | 'analytics' | 'map' | 'yum' | 'games'>('tracker');
   
@@ -2547,7 +2561,7 @@ useEffect(() => {
         />
       )}
 
-      {/* 5. YUM TAB VIEW */}
+ {/* 5. YUM TAB VIEW */}
       {mainTab === 'yum' && (
         <YumTab
           yumCategoryFilter={yumCategoryFilter}
@@ -2557,7 +2571,7 @@ useEffect(() => {
           yumSortBy={yumSortBy}
           setYumSortBy={setYumSortBy}
           filteredYumItems={filteredYumItems}
-          yumLocations={YUM_LOCATIONS}
+          yumLocations={dynamicYumLocations}
           yumCommentsMap={yumCommentsMap}
           openCommentsItemId={openCommentsItemId}
           setOpenCommentsDrawerItemId={setOpenCommentsDrawerItemId}
