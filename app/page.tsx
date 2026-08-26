@@ -2242,22 +2242,131 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
-      {/* 1. MAIN HEADER MENU */}
+{/* 1. MAIN HEADER MENU */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '16px', border: '1px solid #27273A', padding: '6px', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
-        <button onClick={() => setMainTab('tracker')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'tracker' ? '3px solid #FF5500' : '3px solid transparent' }}>
-          <span style={{ fontSize: '11px', fontWeight: mainTab === 'tracker' ? '800' : '600', color: mainTab === 'tracker' ? '#FF5500' : '#9CA3AF' }}>Tracker</span>
+        {/* TRACKER */}
+        <button
+          onClick={() => setMainTab('tracker')}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justify: 'center',
+            padding: '8px 2px 6px 2px',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            borderBottom: mainTab === 'tracker' ? '3px solid #FF5500' : '3px solid transparent',
+            color: mainTab === 'tracker' ? '#FF5500' : '#9CA3AF'
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '4px' }}>
+            <circle cx="12" cy="12" r="9" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span style={{ fontSize: '11px', fontWeight: mainTab === 'tracker' ? '800' : '600' }}>Tracker</span>
         </button>
-        <button onClick={() => setMainTab('analytics')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'analytics' ? '3px solid #DC2626' : '3px solid transparent' }}>
-          <span style={{ fontSize: '11px', fontWeight: mainTab === 'analytics' ? '800' : '600', color: mainTab === 'analytics' ? '#DC2626' : '#9CA3AF' }}>Analytics</span>
+
+        {/* ANALYTICS */}
+        <button
+          onClick={() => setMainTab('analytics')}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justify: 'center',
+            padding: '8px 2px 6px 2px',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            borderBottom: mainTab === 'analytics' ? '3px solid #DC2626' : '3px solid transparent',
+            color: mainTab === 'analytics' ? '#DC2626' : '#9CA3AF'
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '4px' }}>
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          <span style={{ fontSize: '11px', fontWeight: mainTab === 'analytics' ? '800' : '600' }}>Analytics</span>
         </button>
-        <button onClick={() => setMainTab('map')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'map' ? '3px solid #3B82F6' : '3px solid transparent' }}>
-          <span style={{ fontSize: '11px', fontWeight: mainTab === 'map' ? '800' : '600', color: mainTab === 'map' ? '#3B82F6' : '#9CA3AF' }}>Map</span>
+
+        {/* MAP */}
+        <button
+          onClick={() => setMainTab('map')}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justify: 'center',
+            padding: '8px 2px 6px 2px',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            borderBottom: mainTab === 'map' ? '3px solid #3B82F6' : '3px solid transparent',
+            color: mainTab === 'map' ? '#3B82F6' : '#9CA3AF'
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '4px' }}>
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+            <line x1="8" y1="2" x2="8" y2="18" />
+            <line x1="16" y1="6" x2="16" y2="22" />
+          </svg>
+          <span style={{ fontSize: '11px', fontWeight: mainTab === 'map' ? '800' : '600' }}>Map</span>
         </button>
-        <button onClick={() => setMainTab('yum')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'yum' ? '3px solid #F59E0B' : '3px solid transparent' }}>
-          <span style={{ fontSize: '11px', fontWeight: mainTab === 'yum' ? '800' : '600', color: mainTab === 'yum' ? '#F59E0B' : '#9CA3AF' }}>Yum</span>
+
+        {/* YUM */}
+        <button
+          onClick={() => setMainTab('yum')}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justify: 'center',
+            padding: '8px 2px 6px 2px',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            borderBottom: mainTab === 'yum' ? '3px solid #F59E0B' : '3px solid transparent',
+            color: mainTab === 'yum' ? '#F59E0B' : '#9CA3AF'
+          }}
+        >
+          <svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '4px' }}>
+            <path d="M2 11a4 4 0 0 1 8 0" />
+            <line x1="1" y1="13" x2="11" y2="13" />
+            <path d="M2 16h8" />
+            <path d="M15 6h6l-2 6a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2z" />
+            <line x1="18" y1="14" x2="18" y2="19" />
+            <line x1="16" y1="19" x2="20" y2="19" />
+          </svg>
+          <span style={{ fontSize: '11px', fontWeight: mainTab === 'yum' ? '800' : '600' }}>Yum</span>
         </button>
-        <button onClick={() => setMainTab('games')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'games' ? '3px solid #10B981' : '3px solid transparent' }}>
-          <span style={{ fontSize: '11px', fontWeight: mainTab === 'games' ? '800' : '600', color: mainTab === 'games' ? '#10B981' : '#9CA3AF' }}>Games</span>
+
+        {/* GAMES */}
+        <button
+          onClick={() => setMainTab('games')}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justify: 'center',
+            padding: '8px 2px 6px 2px',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            borderBottom: mainTab === 'games' ? '3px solid #10B981' : '3px solid transparent',
+            color: mainTab === 'games' ? '#10B981' : '#9CA3AF'
+          }}
+        >
+          <svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '4px' }}>
+            <rect x="2" y="6" width="20" height="12" rx="4" />
+            <line x1="6" y1="12" x2="10" y2="12" />
+            <line x1="8" y1="10" x2="8" y2="14" />
+            <circle cx="15" cy="11" r="0.8" fill="currentColor" />
+            <circle cx="18" cy="13" r="0.8" fill="currentColor" />
+          </svg>
+          <span style={{ fontSize: '11px', fontWeight: mainTab === 'games' ? '800' : '600' }}>Games</span>
         </button>
       </div>
 
