@@ -224,73 +224,29 @@ const ITEM_EMOJIS: Record<string, string> = {
 };
 
 const YUM_LOCATIONS = [
-  'Jack’s Circus Surplus',
+  'Evil Dead Burn',
+  'Stranger Things 5',
+  'Hellraiser',
+  'Sinners',
+  'Death Tank',
+  'Devilish Delights',
+  'Jack’s Surplus',
   'Oddfellow’s Menagerie',
-  'Devil Food Booth',
-  'WSQK',
+  'Crosshairs Coop',
   'Meetz Meats',
-  'Hellraiser Food Truck',
-  'Animal Actors'
+  'Dia de los Muertos',
+  'Dia de los Muertos Bar',
+  'Maloney’s',
+  'Parkside Fare',
+  'Beer Trailer',
+  'Music Plaza Fanta Bar'
 ];
 
 const ACCENT_COLORS = [
   '#FF5500', '#3B82F6', '#10B981', '#A855F7', '#F59E0B', '#EC4899', '#06B6D4', '#E11D48', '#8B5CF6'
 ];
 
-const MOCK_YUM_ITEMS: YumItem[] = [
-  {
-    id: 'jack-funnel-cake',
-    name: 'Carnival Terror Funnel Cake',
-    description: 'Crispy funnel cake topped with black sugar, crushed Oreo cookies, and red strawberry drizzle.',
-    location: 'Jack’s Circus Surplus',
-    price: '$9.99',
-    rawPrice: 9.99,
-    image: '/hhn-bg.jpg',
-    isFood: true,
-    isDrink: false,
-    isDessert: true,
-    isGlutenFree: false
-  },
-  {
-    id: 'meetz-speakeasy-burger',
-    name: 'Sour Bloody Mary Cocktail',
-    description: 'Vodka mixed with spiced tomato juice, lime, and served with a salted bacon rim.',
-    location: 'Meetz Meats',
-    price: '$14.50',
-    rawPrice: 14.50,
-    image: '/hhn-bg.jpg',
-    isFood: false,
-    isDrink: true,
-    isDessert: false,
-    isGlutenFree: true
-  },
-  {
-    id: 'hellraiser-fire-tacos',
-    name: 'Cenobite Fiery Tacos',
-    description: 'Spiced pulled pork served in gluten-free corn tortillas with habanero slaw.',
-    location: 'Hellraiser Food Truck',
-    price: '$11.49',
-    rawPrice: 11.49,
-    image: '/hhn-bg.jpg',
-    isFood: true,
-    isDrink: false,
-    isDessert: false,
-    isGlutenFree: true
-  },
-  {
-    id: 'devil-devilish-brownie',
-    name: 'Devilish Dark Chocolate Cake',
-    description: 'Rich dark chocolate lava cake infused with cayenne pepper and raspberry core.',
-    location: 'Devil Food Booth',
-    price: '$8.49',
-    rawPrice: 8.49,
-    image: '/hhn-bg.jpg',
-    isFood: true,
-    isDrink: false,
-    isDessert: true,
-    isGlutenFree: false
-  }
-];
+const MOCK_YUM_ITEMS: YumItem[] = [];
 
 const RAW_GAMES_LIST: GameItem[] = [
   {
@@ -593,11 +549,12 @@ export default function HorrorNightsTracker() {
   const [parkingLogs, setParkingLogs] = useState<ParkingLog[]>([]);
   const [parkingSaving, setParkingSaving] = useState<boolean>(false);
 
-  // Yum Tab Filter & Sorting States
+  // Yum Tab Filter, Search & Sorting States
   const [yumItems, setYumItems] = useState<YumItem[]>(MOCK_YUM_ITEMS);
   const [yumCategoryFilter, setYumCategoryFilter] = useState<'all' | 'food' | 'drink' | 'dessert' | 'gf'>('all');
   const [selectedYumLocation, setSelectedYumLocation] = useState<string>('All Locations');
   const [yumSortBy, setYumSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'name-asc' | 'location-asc'>('default');
+  const [yumSearchQuery, setYumSearchQuery] = useState<string>('');
   const [previewYumImage, setPreviewYumImage] = useState<string | null>(null);
 
   // Yum Comments Drawer State
@@ -1483,6 +1440,16 @@ export default function HorrorNightsTracker() {
 
   const filteredYumItems = useMemo(() => {
     let items = yumItems.filter(item => {
+      // 🔍 Instant search filter across item name, description, and multi-locations
+      if (yumSearchQuery.trim()) {
+        const query = yumSearchQuery.toLowerCase();
+        const nameMatch = item.name.toLowerCase().includes(query);
+        const descMatch = item.description ? item.description.toLowerCase().includes(query) : false;
+        const locMatch = item.location ? item.location.toLowerCase().includes(query) : false;
+        if (!nameMatch && !descMatch && !locMatch) return false;
+      }
+
+      // Location match using .includes() for multi-location booths (e.g. Phantom Punch)
       if (selectedYumLocation !== 'All Locations' && !item.location.includes(selectedYumLocation)) return false;
 
       if (yumCategoryFilter === 'food') return item.isFood;
@@ -1499,7 +1466,7 @@ export default function HorrorNightsTracker() {
     if (yumSortBy === 'location-asc') items.sort((a, b) => a.location.localeCompare(b.location));
 
     return items;
-  }, [yumItems, yumCategoryFilter, selectedYumLocation, yumSortBy]);
+  }, [yumItems, yumCategoryFilter, selectedYumLocation, yumSortBy, yumSearchQuery]);
 
   const openLiveActivityEdit = (act: Activity) => {
     setEditingLiveActivity(act);
@@ -2407,6 +2374,8 @@ export default function HorrorNightsTracker() {
           onAddComment={handleAddYumComment}
           setPreviewYumImage={setPreviewYumImage}
           familyMembers={FIXED_FAMILY_MEMBERS}
+          searchQuery={yumSearchQuery}
+          setSearchQuery={setYumSearchQuery}
         />
       )}
 
