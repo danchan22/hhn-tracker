@@ -1438,9 +1438,8 @@ export default function HorrorNightsTracker() {
     }
   };
 
-  const filteredYumItems = useMemo(() => {
+const filteredYumItems = useMemo(() => {
     let items = yumItems.filter(item => {
-      // 🔍 Instant search filter across item name, description, and multi-locations
       if (yumSearchQuery.trim()) {
         const query = yumSearchQuery.toLowerCase();
         const nameMatch = item.name.toLowerCase().includes(query);
@@ -1449,7 +1448,6 @@ export default function HorrorNightsTracker() {
         if (!nameMatch && !descMatch && !locMatch) return false;
       }
 
-      // Location match using .includes() for multi-location booths (e.g. Phantom Punch)
       if (selectedYumLocation !== 'All Locations' && !item.location.includes(selectedYumLocation)) return false;
 
       if (yumCategoryFilter === 'food') return item.isFood;
@@ -1460,10 +1458,12 @@ export default function HorrorNightsTracker() {
       return true;
     });
 
+    // Sorting
     if (yumSortBy === 'price-asc') items.sort((a, b) => a.rawPrice - b.rawPrice);
-    if (yumSortBy === 'price-desc') items.sort((a, b) => b.rawPrice - a.rawPrice);
-    if (yumSortBy === 'name-asc') items.sort((a, b) => a.name.localeCompare(b.name));
-    if (yumSortBy === 'location-asc') items.sort((a, b) => a.location.localeCompare(b.location));
+    else if (yumSortBy === 'price-desc') items.sort((a, b) => b.rawPrice - a.rawPrice);
+    else if (yumSortBy === 'name-asc') items.sort((a, b) => a.name.localeCompare(b.name));
+    else if (yumSortBy === 'location-asc') items.sort((a, b) => a.location.localeCompare(b.location));
+    else items.sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true })); // Default sort by ID
 
     return items;
   }, [yumItems, yumCategoryFilter, selectedYumLocation, yumSortBy, yumSearchQuery]);
