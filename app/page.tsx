@@ -597,20 +597,6 @@ const getHouseAverages = (houseName: string, ratings: HouseRating[], attendeeFil
 export default function HorrorNightsTracker() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [activeVisit, setActiveVisit] = useState<Visit | null>(null);
-
-// DYNAMICALLY EXTRACT UNIQUE BOOTH LOCATIONS FROM DATABASE ITEMS
-  const dynamicYumLocations = useMemo(() => {
-    const set = new Set<string>();
-    yumItems.forEach(item => {
-      if (item.location) {
-        item.location.split(',').forEach(loc => {
-          const trimmed = loc.trim();
-          if (trimmed) set.add(trimmed);
-        });
-      }
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [yumItems]);
   
   // Main Tabs
   const [mainTab, setMainTab] = useState<'tracker' | 'analytics' | 'map' | 'yum' | 'games'>('tracker');
@@ -647,6 +633,19 @@ export default function HorrorNightsTracker() {
   const [yumSortBy, setYumSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'name-asc' | 'location-asc'>('default');
   const [yumSearchQuery, setYumSearchQuery] = useState<string>('');
   const [previewYumImage, setPreviewYumImage] = useState<string | null>(null);
+
+  const dynamicYumLocations = useMemo(() => {
+    const set = new Set<string>();
+    yumItems.forEach(item => {
+      if (item.location) {
+        item.location.split(',').forEach(loc => {
+          const trimmed = loc.trim();
+          if (trimmed) set.add(trimmed);
+        });
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [yumItems]);
 
   // Yum Comments Drawer State
   const [openCommentsItemId, setOpenCommentsDrawerItemId] = useState<string | null>(null);
