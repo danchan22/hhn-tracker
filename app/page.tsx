@@ -2350,7 +2350,7 @@ export default function HorrorNightsTracker() {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justify: 'center',
+            justifyContent: 'center',
             padding: '8px 2px 6px 2px',
             border: 'none',
             background: 'none',
