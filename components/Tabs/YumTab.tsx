@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-interface YumItem {
+export interface YumItem {
   id: string;
   name: string;
   description: string;
@@ -16,7 +16,7 @@ interface YumItem {
   isGlutenFree: boolean;
 }
 
-interface YumComment {
+export interface YumComment {
   id: string;
   item_id: string;
   author_name: string;
@@ -73,11 +73,11 @@ export const YumTab: React.FC<YumTabProps> = ({
 }) => {
   return (
     <div>
-      {/* FILTER & SEARCH CARD */}
-      <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '14px', borderRadius: '20px', border: '1px solid #2A2A3C', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
+      {/* CATEGORY & LOCATION FILTERS & SORT */}
+      <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '12px', borderRadius: '18px', border: '1px solid #2A2A3C', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
         
         {/* 🔍 INSTANT SEARCH INPUT */}
-        <div style={{ position: 'relative', marginBottom: '12px' }}>
+        <div style={{ position: 'relative', marginBottom: '10px' }}>
           <input
             type="text"
             placeholder="🔍 Search food, drinks, locations..."
@@ -85,12 +85,12 @@ export const YumTab: React.FC<YumTabProps> = ({
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: '100%',
-              padding: '10px 36px 10px 14px',
-              borderRadius: '12px',
+              padding: '10px 32px 10px 12px',
+              borderRadius: '10px',
               border: searchQuery ? '1px solid #F59E0B' : '1px solid #2A2A3C',
               background: '#1A1A26',
               color: '#FFF',
-              fontSize: '13px',
+              fontSize: '12px',
               fontWeight: '600',
               outline: 'none',
               boxSizing: 'border-box'
@@ -107,10 +107,10 @@ export const YumTab: React.FC<YumTabProps> = ({
                 background: 'none',
                 border: 'none',
                 color: '#A0AEC0',
-                fontSize: '14px',
+                fontSize: '13px',
                 fontWeight: '800',
                 cursor: 'pointer',
-                padding: '4px'
+                padding: '2px'
               }}
             >
               ✕
@@ -118,94 +118,69 @@ export const YumTab: React.FC<YumTabProps> = ({
           )}
         </div>
 
-        {/* ACTIVE LOCATION CLEAR BADGE */}
-        {selectedYumLocation !== 'All Locations' && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2D2008', border: '1px solid #F59E0B', padding: '6px 10px', borderRadius: '10px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '11px', fontWeight: '800', color: '#F59E0B' }}>
-              📍 Location: <strong>{selectedYumLocation}</strong>
-            </span>
-            <button
-              onClick={() => setSelectedYumLocation('All Locations')}
-              style={{ background: '#F59E0B', color: '#000', border: 'none', borderRadius: '6px', fontSize: '10px', fontWeight: '900', padding: '3px 8px', cursor: 'pointer' }}
-            >
-              Show All Locations ✕
-            </button>
-          </div>
-        )}
-
-        {/* LOCATION & SORT DROPDOWNS */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
-          <div>
-            <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>LOCATION</label>
-            <select
-              value={selectedYumLocation}
-              onChange={(e) => setSelectedYumLocation(e.target.value)}
-              style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold' }}
-            >
-              <option value="All Locations">All Locations</option>
-              {yumLocations.map(loc => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>SORT BY</label>
-            <select
-              value={yumSortBy}
-              onChange={(e: any) => setYumSortBy(e.target.value)}
-              style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold' }}
-            >
-              <option value="default">Default (ID)</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-              <option value="name-asc">Name: A to Z</option>
-              <option value="location-asc">Location: A to Z</option>
-            </select>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', marginBottom: '10px' }}>
+          <button
+            onClick={() => toggleYumCategoryFilter('food')}
+            style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'food' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: yumCategoryFilter === 'food' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+          >
+            🍔 Food
+          </button>
+          <button
+            onClick={() => toggleYumCategoryFilter('drink')}
+            style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'drink' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: yumCategoryFilter === 'drink' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+          >
+            🍹 Drink
+          </button>
+          <button
+            onClick={() => toggleYumCategoryFilter('dessert')}
+            style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'dessert' ? '2px solid #F59E0B' : '1px solid #2A2A3C', background: yumCategoryFilter === 'dessert' ? '#F59E0B' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+          >
+            🍰 Dessert
+          </button>
+          <button
+            onClick={() => toggleYumCategoryFilter('gf')}
+            style={{ padding: '8px 2px', borderRadius: '8px', border: yumCategoryFilter === 'gf' ? '2px solid #22C55E' : '1px solid #2A2A3C', background: yumCategoryFilter === 'gf' ? '#22C55E' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: '800', cursor: 'pointer', textAlign: 'center' }}
+          >
+            🌾 GF
+          </button>
         </div>
 
-        {/* CATEGORY FILTER CHIPS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-          {[
-            { key: 'food', label: '🍔 Food' },
-            { key: 'drink', label: '🍸 Drink' },
-            { key: 'dessert', label: '🍰 Dessert' },
-            { key: 'gf', label: '🌾 GF' }
-          ].map(cat => {
-            const isActive = yumCategoryFilter === cat.key;
-            return (
-              <button
-                key={cat.key}
-                onClick={() => toggleYumCategoryFilter(cat.key as any)}
-                style={{
-                  padding: '7px 2px',
-                  borderRadius: '10px',
-                  border: isActive ? '2px solid #F59E0B' : '1px solid #2A2A3C',
-                  background: isActive ? '#F59E0B' : '#1A1A26',
-                  color: isActive ? '#000' : '#CBD5E0',
-                  fontSize: '11px',
-                  fontWeight: '800',
-                  cursor: 'pointer'
-                }}
-              >
-                {cat.label}
-              </button>
-            );
-          })}
+        {/* LOCATION FILTER & SORT DROPDOWNS */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <select
+            value={selectedYumLocation}
+            onChange={(e) => setSelectedYumLocation(e.target.value)}
+            style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: '700' }}
+          >
+            <option value="All Locations">All Locations</option>
+            {yumLocations.map(loc => (
+              <option key={loc} value={loc}>{loc}</option>
+            ))}
+          </select>
+
+          <select
+            value={yumSortBy}
+            onChange={(e: any) => setYumSortBy(e.target.value)}
+            style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: '700' }}
+          >
+            <option value="default">Sort: Default (ID)</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+            <option value="name-asc">Item Name (A-Z)</option>
+            <option value="location-asc">Location (A-Z)</option>
+          </select>
         </div>
       </div>
 
-      {/* YUM ITEMS LIST */}
-      {filteredYumItems.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '30px 10px', color: '#A0AEC0', fontStyle: 'italic' }}>
-          No food or drinks match your search filter.
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
-          {filteredYumItems.map(item => {
+      {/* YUM ITEM CARDS */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {filteredYumItems.length === 0 ? (
+          <p style={{ color: '#A0AEC0', textAlign: 'center', fontSize: '13px', fontStyle: 'italic', margin: '20px 0' }}>No menu items found for this filter.</p>
+        ) : (
+          filteredYumItems.map(item => {
             const comments = yumCommentsMap[item.id] || [];
             const isCommentsOpen = openCommentsItemId === item.id;
+            const hasComments = comments.length > 0;
 
             return (
               <div
@@ -214,109 +189,112 @@ export const YumTab: React.FC<YumTabProps> = ({
                   background: 'rgba(18, 18, 26, 0.85)',
                   borderRadius: '20px',
                   padding: '16px',
-                  border: '1px solid #2A2A3C',
-                  backdropFilter: 'blur(8px)',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+                  border: item.isGlutenFree ? '2px solid #22C55E' : '1px solid #2A2A3C',
+                  backdropFilter: 'blur(8px)'
                 }}
               >
-                {/* ITEM HEADER */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '8px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#FFF' }}>{item.name}</div>
-                    
-                    {/* CLICKABLE LOCATION WITH CLEAR FUNCTIONALITY */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedYumLocation(selectedYumLocation === item.location ? 'All Locations' : item.location)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        fontSize: '11px',
-                        fontWeight: '800',
-                        color: selectedYumLocation === item.location ? '#22C55E' : '#F59E0B',
-                        marginTop: '2px',
-                        cursor: 'pointer',
-                        textAlign: 'left'
-                      }}
-                    >
-                      📍 {item.location} {selectedYumLocation === item.location ? '(Clear ✕)' : ''}
-                    </button>
-                  </div>
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '10px' }}>
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    onClick={() => setPreviewYumImage(item.image)}
+                    onError={(e: any) => { e.target.src = '/hhn-bg.jpg'; }}
+                    style={{ width: '80px', height: '80px', borderRadius: '14px', objectFit: 'cover', border: '1px solid #2A2A3C', flexShrink: 0, cursor: 'pointer' }}
+                  />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#FFF' }}>{item.name}</h3>
 
-                  <div style={{ background: '#2D2008', color: '#F59E0B', border: '1px solid #F59E0B', padding: '4px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: '900', flexShrink: 0 }}>
-                    {item.price}
+                    {/* LOCATION CLICKABLE WITH TOGGLE UNFILTER */}
+                    <div
+                      onClick={() => setSelectedYumLocation(selectedYumLocation === item.location ? 'All Locations' : item.location)}
+                      style={{ fontSize: '11px', fontWeight: '800', color: selectedYumLocation === item.location ? '#22C55E' : '#F59E0B', marginTop: '2px', cursor: 'pointer', display: 'inline-block' }}
+                    >
+                      {item.location} {selectedYumLocation === item.location ? '(Clear ✕)' : ''}
+                    </div>
+
+                    <div style={{ fontSize: '14px', fontWeight: '900', color: '#22C55E', marginTop: '4px' }}>
+                      {item.price}
+                    </div>
                   </div>
                 </div>
 
-                {/* DESCRIPTION */}
-                <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#A0AEC0', lineHeight: '1.4' }}>
+                <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#CBD5E0', lineHeight: '1.4' }}>
                   {item.description}
                 </p>
 
-                {/* TAGS & COMMENTS TOGGLE */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #2A2A3C', paddingTop: '10px' }}>
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {item.isFood && <span style={{ background: '#1A1A26', color: '#CBD5E0', fontSize: '10px', padding: '2px 6px', borderRadius: '6px', border: '1px solid #2A2A3C' }}>Food</span>}
-                    {item.isDrink && <span style={{ background: '#1A1A26', color: '#60A5FA', fontSize: '10px', padding: '2px 6px', borderRadius: '6px', border: '1px solid #2A2A3C' }}>Drink</span>}
-                    {item.isDessert && <span style={{ background: '#1A1A26', color: '#EC4899', fontSize: '10px', padding: '2px 6px', borderRadius: '6px', border: '1px solid #2A2A3C' }}>Dessert</span>}
-                    {item.isGlutenFree && <span style={{ background: '#1A1A26', color: '#10B981', fontSize: '10px', padding: '2px 6px', borderRadius: '6px', border: '1px solid #2A2A3C' }}>GF</span>}
+                  <div>
+                    {item.isGlutenFree && (
+                      <span style={{ background: '#15803D', color: '#FFF', fontSize: '10px', fontWeight: '900', padding: '3px 8px', borderRadius: '6px' }}>
+                        🌾 GLUTEN-FREE
+                      </span>
+                    )}
                   </div>
 
                   <button
                     onClick={() => setOpenCommentsDrawerItemId(isCommentsOpen ? null : item.id)}
-                    style={{ background: 'none', border: 'none', color: '#F59E0B', fontSize: '12px', fontWeight: '800', cursor: 'pointer', padding: 0 }}
+                    style={{ background: '#1A1A26', border: '1px solid #2A2A3C', color: '#CBD5E0', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}
                   >
-                    💬 Reviews ({comments.length}) {isCommentsOpen ? '▲' : '▼'}
+                    Comments <span style={{ color: hasComments ? '#F59E0B' : '#A0AEC0', fontWeight: '900' }}>({comments.length})</span>
                   </button>
                 </div>
 
-                {/* COMMENTS DRAWER */}
+                {/* INLINE COMMENTS DRAWER */}
                 {isCommentsOpen && (
                   <div style={{ marginTop: '12px', background: '#12121A', padding: '12px', borderRadius: '14px', border: '1px solid #2A2A3C' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', marginBottom: '8px' }}>
+                      COMMENTS ({comments.length}):
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px', maxHeight: '150px', overflowY: 'auto' }}>
                       {comments.length === 0 ? (
-                        <div style={{ fontSize: '11px', color: '#718096', fontStyle: 'italic' }}>No reviews yet. Be the first to leave one!</div>
+                        <div style={{ fontSize: '11px', color: '#718096', fontStyle: 'italic' }}>No comments yet. Be the first!</div>
                       ) : (
                         comments.map(c => (
-                          <div key={c.id} style={{ background: '#1A1A26', padding: '8px 10px', borderRadius: '8px', border: '1px solid #2A2A3C' }}>
-                            <div style={{ fontSize: '10px', fontWeight: '800', color: '#F59E0B', marginBottom: '2px' }}>{c.author_name}</div>
-                            <div style={{ fontSize: '12px', color: '#FFF' }}>{c.comment_text}</div>
+                          <div key={c.id} style={{ background: '#1A1A26', padding: '6px 8px', borderRadius: '8px', border: '1px solid #2A2A3C', fontSize: '12px' }}>
+                            <strong style={{ color: '#FF5500' }}>{c.author_name}:</strong> <span style={{ color: '#CBD5E0' }}>{c.comment_text}</span>
                           </div>
                         ))
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    {/* ADD COMMENT FORM */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <select
                         value={commentAuthor}
                         onChange={(e) => setCommentAuthor(e.target.value)}
-                        style={{ padding: '6px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold' }}
+                        style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px' }}
                       >
-                        {familyMembers.map(m => <option key={m} value={m}>{m}</option>)}
+                        {familyMembers.map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
                       </select>
-                      <input
-                        type="text"
-                        placeholder="Add a review..."
-                        value={commentTextInput}
-                        onChange={(e) => setCommentTextInput(e.target.value)}
-                        style={{ flex: 1, padding: '6px 10px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px' }}
-                      />
-                      <button
-                        onClick={() => onAddComment(item.id)}
-                        disabled={submittingComment}
-                        style={{ padding: '6px 12px', background: '#F59E0B', color: '#000', border: 'none', borderRadius: '8px', fontWeight: '900', fontSize: '11px', cursor: 'pointer' }}
-                      >
-                        Post
-                      </button>
+
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <input
+                          type="text"
+                          placeholder="Leave a comment"
+                          value={commentTextInput}
+                          onChange={(e) => setCommentTextInput(e.target.value)}
+                          style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '16px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => onAddComment(item.id)}
+                          disabled={submittingComment}
+                          style={{ padding: '8px 12px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
+                        >
+                          Post
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             );
-          })}
-        </div>
-      )}
+          })
+        )}
+      </div>
     </div>
   );
 };
