@@ -1483,7 +1483,7 @@ export default function HorrorNightsTracker() {
 
   const filteredYumItems = useMemo(() => {
     let items = yumItems.filter(item => {
-      if (selectedYumLocation !== 'All Locations' && item.location !== selectedYumLocation) return false;
+      if (selectedYumLocation !== 'All Locations' && !item.location.includes(selectedYumLocation)) return false;
 
       if (yumCategoryFilter === 'food') return item.isFood;
       if (yumCategoryFilter === 'drink') return item.isDrink;
