@@ -76,16 +76,16 @@ export const YumTab: React.FC<YumTabProps> = ({
       {/* FILTER & SEARCH CARD */}
       <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '14px', borderRadius: '20px', border: '1px solid #2A2A3C', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
         
-        {/* 🔍 INSTANT SEARCH INPUT */}
+        {/* 🔍 SEARCH BAR */}
         <div style={{ position: 'relative', marginBottom: '12px' }}>
           <input
             type="text"
-            placeholder="🔍 Search food, drinks, locations..."
+            placeholder="🔍 Search food, drinks, or locations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: '100%',
-              padding: '10px 36px 10px 14px',
+              padding: '10px 36px 10px 12px',
               borderRadius: '12px',
               border: searchQuery ? '1px solid #F59E0B' : '1px solid #2A2A3C',
               background: '#1A1A26',
@@ -118,6 +118,21 @@ export const YumTab: React.FC<YumTabProps> = ({
           )}
         </div>
 
+        {/* ACTIVE LOCATION CLEAR BADGE */}
+        {selectedYumLocation !== 'All Locations' && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2D2008', border: '1px solid #F59E0B', padding: '6px 10px', borderRadius: '10px', marginBottom: '12px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#F59E0B' }}>
+              📍 Filtered by: <strong>{selectedYumLocation}</strong>
+            </span>
+            <button
+              onClick={() => setSelectedYumLocation('All Locations')}
+              style={{ background: '#F59E0B', color: '#000', border: 'none', borderRadius: '6px', fontSize: '10px', fontWeight: '900', padding: '3px 8px', cursor: 'pointer' }}
+            >
+              Show All Locations ✕
+            </button>
+          </div>
+        )}
+
         {/* LOCATION & SORT DROPDOWNS */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
           <div>
@@ -141,7 +156,7 @@ export const YumTab: React.FC<YumTabProps> = ({
               onChange={(e: any) => setYumSortBy(e.target.value)}
               style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold' }}
             >
-              <option value="default">Default</option>
+              <option value="default">Default (ID)</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
               <option value="name-asc">Name: A to Z</option>
@@ -183,8 +198,8 @@ export const YumTab: React.FC<YumTabProps> = ({
 
       {/* YUM ITEMS LIST */}
       {filteredYumItems.length === 0 ? (
-        <div style={{ textAlignment: 'center', padding: '30px 10px', color: '#A0AEC0', fontStyle: 'italic', textAlign: 'center' }}>
-          No food or drinks match your search filter.
+        <div style={{ textAlign: 'center', padding: '30px 10px', color: '#A0AEC0', fontStyle: 'italic' }}>
+          No food or drinks match your filter.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
@@ -208,8 +223,26 @@ export const YumTab: React.FC<YumTabProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '8px' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '16px', fontWeight: '900', color: '#FFF' }}>{item.name}</div>
-                    <div style={{ fontSize: '11px', fontWeight: '800', color: '#F59E0B', marginTop: '2px' }}>📍 {item.location}</div>
+                    
+                    {/* CLICKABLE LOCATION FILTER */}
+                    <button
+                      onClick={() => setSelectedYumLocation(item.location)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        fontSize: '11px',
+                        fontWeight: '800',
+                        color: '#F59E0B',
+                        marginTop: '2px',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                    >
+                      📍 {item.location}
+                    </button>
                   </div>
+
                   <div style={{ background: '#2D2008', color: '#F59E0B', border: '1px solid #F59E0B', padding: '4px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: '900', flexShrink: 0 }}>
                     {item.price}
                   </div>
@@ -220,7 +253,7 @@ export const YumTab: React.FC<YumTabProps> = ({
                   {item.description}
                 </p>
 
-                {/* TAGS & COMMENTS TOGGLE */}
+                {/* TAGS & REVIEWS TOGGLE */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #2A2A3C', paddingTop: '10px' }}>
                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                     {item.isFood && <span style={{ background: '#1A1A26', color: '#CBD5E0', fontSize: '10px', padding: '2px 6px', borderRadius: '6px', border: '1px solid #2A2A3C' }}>Food</span>}
@@ -237,7 +270,7 @@ export const YumTab: React.FC<YumTabProps> = ({
                   </button>
                 </div>
 
-                {/* COMMENTS DRAWER */}
+                {/* REVIEWS DRAWER */}
                 {isCommentsOpen && (
                   <div style={{ marginTop: '12px', background: '#12121A', padding: '12px', borderRadius: '14px', border: '1px solid #2A2A3C' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
