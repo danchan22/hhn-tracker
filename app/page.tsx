@@ -2197,24 +2197,24 @@ const filteredYumItems = useMemo(() => {
         </div>
       )}
 
-            {/* 1. MAIN HEADER MENU */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '16px', border: '1px solid #27273A', padding: '6px', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
-        <button onClick={() => setMainTab('tracker')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'tracker' ? '3px solid #FF5500' : '3px solid transparent' }}>
-          <span style={{ fontSize: '11px', fontWeight: mainTab === 'tracker' ? '800' : '600', color: mainTab === 'tracker' ? '#FF5500' : '#9CA3AF' }}>Tracker</span>
-        </button>
-        <button onClick={() => setMainTab('analytics')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'analytics' ? '3px solid #DC2626' : '3px solid transparent' }}>
-          <span style={{ fontSize: '11px', fontWeight: mainTab === 'analytics' ? '800' : '600', color: mainTab === 'analytics' ? '#DC2626' : '#9CA3AF' }}>Analytics</span>
-        </button>
-        <button onClick={() => setMainTab('map')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'map' ? '3px solid #3B82F6' : '3px solid transparent' }}>
-          <span style={{ fontSize: '11px', fontWeight: mainTab === 'map' ? '800' : '600', color: mainTab === 'map' ? '#3B82F6' : '#9CA3AF' }}>Map</span>
-        </button>
-        <button onClick={() => setMainTab('yum')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'yum' ? '3px solid #F59E0B' : '3px solid transparent' }}>
-          <span style={{ fontSize: '11px', fontWeight: mainTab === 'yum' ? '800' : '600', color: mainTab === 'yum' ? '#F59E0B' : '#9CA3AF' }}>Yum</span>
-        </button>
-        <button onClick={() => setMainTab('games')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'games' ? '3px solid #10B981' : '3px solid transparent' }}>
-          <span style={{ fontSize: '11px', fontWeight: mainTab === 'games' ? '800' : '600', color: mainTab === 'games' ? '#10B981' : '#9CA3AF' }}>Games</span>
-        </button>
-      </div>
+{/* 1. MAIN HEADER MENU */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '16px', border: '1px solid #27273A', padding: '6px', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
+        <button onClick={() => setMainTab('tracker')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'tracker' ? '3px solid #FF5500' : '3px solid transparent' }}>
+          <span style={{ fontSize: '11px', fontWeight: mainTab === 'tracker' ? '800' : '600', color: mainTab === 'tracker' ? '#FF5500' : '#9CA3AF' }}>Tracker</span>
+        </button>
+        <button onClick={() => setMainTab('analytics')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'analytics' ? '3px solid #DC2626' : '3px solid transparent' }}>
+          <span style={{ fontSize: '11px', fontWeight: mainTab === 'analytics' ? '800' : '600', color: mainTab === 'analytics' ? '#DC2626' : '#9CA3AF' }}>Analytics</span>
+        </button>
+        <button onClick={() => setMainTab('map')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'map' ? '3px solid #3B82F6' : '3px solid transparent' }}>
+          <span style={{ fontSize: '11px', fontWeight: mainTab === 'map' ? '800' : '600', color: mainTab === 'map' ? '#3B82F6' : '#9CA3AF' }}>Map</span>
+        </button>
+        <button onClick={() => setMainTab('yum')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'yum' ? '3px solid #F59E0B' : '3px solid transparent' }}>
+          <span style={{ fontSize: '11px', fontWeight: mainTab === 'yum' ? '800' : '600', color: mainTab === 'yum' ? '#F59E0B' : '#9CA3AF' }}>Yum</span>
+        </button>
+        <button onClick={() => setMainTab('games')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'games' ? '3px solid #10B981' : '3px solid transparent' }}>
+          <span style={{ fontSize: '11px', fontWeight: mainTab === 'games' ? '800' : '600', color: mainTab === 'games' ? '#10B981' : '#9CA3AF' }}>Games</span>
+        </button>
+      </div>
 
       {/* 2. TRACKER SUBHEADER NAVS */}
       {mainTab === 'tracker' && (
