@@ -945,7 +945,7 @@ export default function HorrorNightsTracker() {
     }
   }, [mainTab, isMapFullscreen]);
 
-  useEffect(() => {
+useEffect(() => {
     if (mainTab !== 'map' || !mapContainerRef.current) return;
 
     if (!document.getElementById('leaflet-css')) {
@@ -1036,7 +1036,7 @@ export default function HorrorNightsTracker() {
           iconAnchor: anchorPos
         });
 
-const popupContent = `
+        const popupContent = `
           <div style="color: #000; font-family: sans-serif; padding: 4px; text-align: center;">
             <strong style="font-size: 14px; color: #FF5500; display: block; margin-bottom: 4px;">${poi.name}</strong>
             ${waitMins !== null ? `<div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">⏱️ Current Wait: <span style="color: #FF5500;">${waitMins} mins</span></div>` : ''}
@@ -1051,7 +1051,7 @@ const popupContent = `
           </div>
         `;
 
-const marker = L.marker([poi.lat, poi.lng], { icon: customIcon }).addTo(map).bindPopup(popupContent);
+        const marker = L.marker([poi.lat, poi.lng], { icon: customIcon }).addTo(map).bindPopup(popupContent);
         
         marker.on('click', () => {
           marker.setZIndexOffset(1000);
@@ -1059,6 +1059,7 @@ const marker = L.marker([poi.lat, poi.lng], { icon: customIcon }).addTo(map).bin
 
         poiMarkersRef.current.push(marker);
       });
+    };
 
     if ((window as any).L) {
       initOrUpdateMap();
