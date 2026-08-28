@@ -516,21 +516,23 @@ const HHN_MAP_LOCATIONS = [
 const EVENING_HOURS = [18, 19, 20, 21, 22, 23];
 
 const INITIAL_MOCK_WAITS: Record<string, number> = {
-  'Sinners': 25,
-  'Hellraiser': 40,
-  'Ozzy Osbourne': 55,
-  'Stranger Things 5': 75,
-  'Evil Dead Burn': 95,
-  'Jack & Oddfellow': 30,
-  'H.R. Bloodengutz': 45,
-  'Cybergoria': 20,
-  'Madlands: Caged Cannibals': 65,
-  'INVASION: Alien Abduction': 35,
-  'Men in Black: Alien Attack': 15,
-  'Transformers: The Ride-3D': 25,
-  'Harry Potter and the Escape from Gringotts': 50,
-  'Revenge of the Mummy': 35
+  'Sinners': 67,
+  'Hellraiser': 67,
+  'Ozzy Osbourne': 67,
+  'Stranger Things 5': 67,
+  'Evil Dead Burn': 67,
+  'Jack & Oddfellow': 67,
+  'H.R. Bloodengutz': 67,
+  'Cybergoria': 67,
+  'Madlands: Caged Cannibals': 67,
+  'INVASION: Alien Abduction': 67,
+  'Men in Black: Alien Attack': 67,
+  'Transformers: The Ride-3D': 67,
+  'Harry Potter and the Escape from Gringotts': 67,
+  'Revenge of the Mummy': 67
 };
+
+const normalizeStr = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 const parseAttendees = (raw: string | string[] | undefined): string[] => {
   if (!raw) return [];
