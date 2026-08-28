@@ -1734,44 +1734,7 @@ const getWaitBoxStyle = (minutes: number) => {
     return v.endTime || '';
   };
 
-  const getWaitBoxStyle = (minutes: number) => {
-    if (minutes <= 30) {
-      return {
-        bg: '#15803D',
-        border: '#22C55E',
-        titleColor: '#FFFFFF',
-        numColor: '#FFFFFF'
-      };
-    } else if (minutes <= 45) {
-      return {
-        bg: 'rgba(26, 26, 38, 0.85)',
-        border: '#2A2A3C',
-        titleColor: '#A0AEC0',
-        numColor: '#22C55E'
-      };
-    } else if (minutes <= 60) {
-      return {
-        bg: 'rgba(26, 26, 38, 0.85)',
-        border: '#2A2A3C',
-        titleColor: '#A0AEC0',
-        numColor: '#EAB308'
-      };
-    } else if (minutes <= 90) {
-      return {
-        bg: 'rgba(26, 26, 38, 0.85)',
-        border: '#2A2A3C',
-        titleColor: '#A0AEC0',
-        numColor: '#F97316'
-      };
-    } else {
-      return {
-        bg: 'rgba(26, 26, 38, 0.85)',
-        border: '#2A2A3C',
-        titleColor: '#A0AEC0',
-        numColor: '#EF4444'
-      };
-    }
-  };
+
 
   const allCompletedActivities = useMemo(() => {
     return visits.flatMap(v => v.activities.map(a => ({ ...a, visitDate: v.visitDate })));
