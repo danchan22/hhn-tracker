@@ -1092,34 +1092,90 @@ useEffect(() => {
     }
   };
 
-  const fetchThemeParkWaitTimes = async () => {
-    setWaitsSyncing(true);
-    try {
-      const res = await fetch('https://api.themeparks.wiki/v1/entity/eb3f4560-2383-4a36-9152-6b3e5ed6bc57/live');
-      if (res.ok) {
-        const data = await res.json();
-        const liveList = data?.liveData || [];
-        const updated: Record<string, number> = { ...liveWaitTimes };
+const fetchThemeParkWaitTimes = async () => {
+  setWaitsSyncing(true);
+  try {
+    const res = await fetch('https://api.themeparks.wiki/v1/entity/eb3f4560-2383-4a36-9152-6b3e5ed6bc57/live');
+    if (res.ok) {
+      const data = await res.json();
+      const liveList = data?.liveData || [];
+      const updated: Record<string, number> = { ...liveWaitTimes };
 
-        liveList.forEach((item: any) => {
-          const name = item.name;
-          const wait = item.queue?.STANDBY?.waitTime ?? item.waitTime ?? 0;
-          if (name) {
-            Object.keys(INITIAL_MOCK_WAITS).forEach(key => {
-              if (name.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(name.toLowerCase())) {
-                updated[key] = wait;
-              }
-            });
-          }
-        });
-        setLiveWaitTimes(updated);
-      }
-    } catch (e) {
-      console.warn("ThemeParks API sync error, keeping current wait times:", e);
-    } finally {
-      setWaitsSyncing(false);
+      liveList.forEach((item: any) => {
+        const name = item.name;
+        const standby = item.queue?.STANDBY;
+        const isOpen = item.status === 'OPERATING' && standby?.isOpen !== false;
+        const wait = standby?.waitTime ?? item.waitTime ?? 0;
+        
+        // Use -1 to represent Closed
+        const finalValue = isOpen ? wait : -1;
+
+        if (name) {
+          const normName = normalizeStr(name);
+          Object.keys(INITIAL_MOCK_WAITS).forEach(key => {
+            const normKey = normalizeStr(key);
+            if (normName.includes(normKey) || normKey.includes(normName)) {
+              updated[key] = finalValue;
+            }
+          });
+        }
+      });
+      setLiveWaitTimes(updated);
     }
-  };
+  } catch (e) {
+    console.warn("ThemeParks API sync error, keeping current wait times:", e);
+  } finally {
+    setWaitsSyncing(false);
+  }
+};
+
+const getWaitBoxStyle = (minutes: number) => {
+  // 🚫 CLOSED ATTRACTION STYLE (Navy Blue)
+  if (minutes < 0) {
+    return {
+      bg: 'rgba(15, 23, 42, 0.9)',
+      border: '#3B82F6',
+      titleColor: '#94A3B8',
+      numColor: '#60A5FA'
+    };
+  }
+  if (minutes <= 30) {
+    return {
+      bg: '#15803D',
+      border: '#22C55E',
+      titleColor: '#FFFFFF',
+      numColor: '#FFFFFF'
+    };
+  } else if (minutes <= 45) {
+    return {
+      bg: 'rgba(26, 26, 38, 0.85)',
+      border: '#2A2A3C',
+      titleColor: '#A0AEC0',
+      numColor: '#22C55E'
+    };
+  } else if (minutes <= 60) {
+    return {
+      bg: 'rgba(26, 26, 38, 0.85)',
+      border: '#2A2A3C',
+      titleColor: '#A0AEC0',
+      numColor: '#EAB308'
+    };
+  } else if (minutes <= 90) {
+    return {
+      bg: 'rgba(26, 26, 38, 0.85)',
+      border: '#2A2A3C',
+      titleColor: '#A0AEC0',
+      numColor: '#F97316'
+    };
+  } else {
+    return {
+      bg: 'rgba(26, 26, 38, 0.85)',
+      border: '#2A2A3C',
+      titleColor: '#A0AEC0',
+      numColor: '#EF4444'
+    };
+  }
+};
 
   const fetchLiveWeather = async () => {
     setWeatherLoading(true);
