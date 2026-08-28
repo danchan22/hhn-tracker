@@ -465,7 +465,7 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
                     return (
                       <div
                         key={item.name}
-                        onClick={() => { setRideName(item.apiKey); setPostedWaitTime(waitMins.toString()); }}
+                        onClick={() => { setRideName(item.apiKey); if (waitMins >= 0) setPostedWaitTime(waitMins.toString()); }}
                         style={{
                           background: style.bg,
                           border: `1px solid ${style.border}`,
@@ -476,7 +476,7 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
                         }}
                       >
                         <div style={{ fontSize: '18px', fontWeight: '800', color: style.numColor }}>
-                          {waitMins}<span style={{ fontSize: '11px', fontWeight: '700' }}>m</span>
+                          {waitMins < 0 ? 'CLOSED' : `${waitMins}m`}
                         </div>
                         <div style={{ fontSize: '10px', fontWeight: '800', color: style.titleColor, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.name}
@@ -498,7 +498,7 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
                     return (
                       <div
                         key={item.name}
-                        onClick={() => { setRideName(item.apiKey); setPostedWaitTime(waitMins.toString()); }}
+                        onClick={() => { setRideName(item.apiKey); if (waitMins >= 0) setPostedWaitTime(waitMins.toString()); }}
                         style={{
                           background: style.bg,
                           border: `1px solid ${style.border}`,
@@ -509,7 +509,7 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
                         }}
                       >
                         <div style={{ fontSize: '18px', fontWeight: '800', color: style.numColor }}>
-                          {waitMins}<span style={{ fontSize: '11px', fontWeight: '700' }}>m</span>
+                          {waitMins < 0 ? 'CLOSED' : `${waitMins}m`}
                         </div>
                         <div style={{ fontSize: '10px', fontWeight: '800', color: style.titleColor, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.name}
@@ -529,7 +529,7 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
               </div>
               <div style={{ background: '#1A1A26', padding: '10px 12px', borderRadius: '12px', border: '1px solid #2A2A3C' }}>
                 <div style={{ fontSize: '12px', fontWeight: '800', color: '#3B82F6', marginBottom: '4px' }}>🌊 Stranger Things (Lagoon Show)</div>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: '#F3F4F6' }}>10:00 • 11:00 • 12:00</div>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#F3F4F6' }}>9:00 • 9:45 • 10:30 • 11:15 • 12:00 • 12:45</div>
               </div>
             </div>
           </div>
