@@ -34,6 +34,17 @@ const parseAttendees = (raw: string | string[] | undefined): string[] => {
   return attendeesPart.split(',').map(s => s.trim()).filter(Boolean);
 };
 
+const parseMemberStartTimes = (raw: any, notes?: string): Record<string, string> => {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.includes('|STARTTIMES:')) {
+    try {
+      const part = raw.split('|STARTTIMES:')[1].split('|ENDTIMES:')[0];
+      return JSON.parse(part);
+    } catch (e) {}
+  }
+  return {};
+};
+
 const parseMemberEndTimes = (raw: any, notes?: string): Record<string, string> => {
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw;
   if (typeof raw === 'string') {
@@ -794,10 +805,11 @@ export default function HorrorNightsTracker() {
   const [editNotes, setEditNotes] = useState('');
   const [editRiders, setEditRiders] = useState<string[]>([]);
 
-  // Edit Entire Visit Log State
+  // Edit Entire Visit Log State (Individual Arrivals & Departures)
   const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
   const [editVisitStartTime, setEditVisitStartTime] = useState('');
   const [editVisitEndTime, setEditVisitEndTime] = useState('');
+  const [editVisitMemberStartTimes, setEditVisitMemberStartTimes] = useState<Record<string, string>>({});
   const [editVisitMemberEndTimes, setEditVisitMemberEndTimes] = useState<Record<string, string>>({});
 
   // Checkout Modal State
@@ -2165,10 +2177,19 @@ export default function HorrorNightsTracker() {
     setEditVisitStartTime(format12Hour(v.startTime || ''));
     setEditVisitEndTime(format12Hour(v.endTime || ''));
     
+    const formattedStartTimes: Record<string, string> = {};
+    const rawStartTimes = parseMemberStartTimes(v.attendees, v.notes);
+    const attendeesList = parseAttendees(v.attendees);
+
+    attendeesList.forEach(m => {
+      formattedStartTimes[m] = format12Hour(rawStartTimes[m] || v.startTime);
+    });
+    setEditVisitMemberStartTimes(formattedStartTimes);
+
     const formattedEndTimes: Record<string, string> = {};
     const rawEndTimes = v.memberEndTimes || {};
-    Object.keys(rawEndTimes).forEach(m => {
-      formattedEndTimes[m] = format12Hour(rawEndTimes[m]);
+    attendeesList.forEach(m => {
+      formattedEndTimes[m] = format12Hour(rawEndTimes[m] || v.endTime);
     });
     setEditVisitMemberEndTimes(formattedEndTimes);
   };
@@ -2176,8 +2197,10 @@ export default function HorrorNightsTracker() {
   const handleSaveVisitEdit = async () => {
     if (!editingVisit) return;
     const rawAttendeesStr = parseAttendees(editingVisit.attendees).join(', ');
+    const jsonStartTimesStr = JSON.stringify(editVisitMemberStartTimes);
     const jsonEndTimesStr = JSON.stringify(editVisitMemberEndTimes);
-    const attendeesWithEndTimes = `${rawAttendeesStr}|ENDTIMES:${jsonEndTimesStr}`;
+    
+    const attendeesSerialized = `${rawAttendeesStr}|STARTTIMES:${jsonStartTimesStr}|ENDTIMES:${jsonEndTimesStr}`;
 
     const supabase = getSupabase();
     const { error } = await supabase
@@ -2185,7 +2208,7 @@ export default function HorrorNightsTracker() {
       .update({
         starttime: editVisitStartTime,
         endtime: editVisitEndTime,
-        attendees: attendeesWithEndTimes,
+        attendees: attendeesSerialized,
         notes: jsonEndTimesStr
       })
       .eq('id', editingVisit.id);
@@ -2425,7 +2448,7 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
-  {/* 3. TRACKER TAB VIEW */}
+      {/* 3. TRACKER TAB VIEW */}
       {mainTab === 'tracker' && (
         <TrackerTab
           weatherLoading={weatherLoading}
@@ -2646,6 +2669,8 @@ export default function HorrorNightsTracker() {
         setEditVisitStartTime={setEditVisitStartTime}
         editVisitEndTime={editVisitEndTime}
         setEditVisitEndTime={setEditVisitEndTime}
+        editVisitMemberStartTimes={editVisitMemberStartTimes}
+        setEditVisitMemberStartTimes={setEditVisitMemberStartTimes}
         editVisitMemberEndTimes={editVisitMemberEndTimes}
         setEditVisitMemberEndTimes={setEditVisitMemberEndTimes}
         handleSaveVisitEdit={handleSaveVisitEdit}
