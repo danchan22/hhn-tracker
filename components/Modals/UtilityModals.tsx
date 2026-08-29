@@ -122,7 +122,7 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
       {/* 🔮 HORROR MOVIE TRIVIA MODAL */}
       {showAiTriviaModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
-          <div style={{ background: '#12121A', border: '1px solid #10B981', borderRadius: '24px', padding: '20px', width: '100%', maxWidth: '440px', maxHeight: '90vh', overflowY: 'auto', color: '#FFF' }}>
+          <div style={{ background: '#12121A', border: `1px solid ${activeLearnMoreColor}`, borderRadius: '24px', padding: '20px', width: '100%', maxWidth: '400px', maxHeight: '85vh', overflowY: 'auto', color: '#FFF' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#10B981' }}>🔮 Horror Movie Trivia</h2>
               <button onClick={() => setShowAiTriviaModal(false)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '18px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
