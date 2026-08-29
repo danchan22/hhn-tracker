@@ -3,7 +3,9 @@
 import React from 'react';
 import { PretzelTracker } from '../Shared/PretzelTracker';
 
-interface TrackerTabProps {
+export interface TrackerTabProps {
+  weatherLoading: boolean;
+  hourlyForecast: Array<{ hourLabel: string; temp: number; pop: number }>;
   trackerSubTab: 'Tonight' | 'History' | 'Parking';
   activeVisit: any;
   activePartyList: string[];
@@ -54,9 +56,6 @@ interface TrackerTabProps {
   avgDurationPerVisit: number;
   avgWaitPerActivity: number;
   itemEmojis: Record<string, string>;
-  regularPretzels: number;
-  cinnamonPretzels: number;
-  updatePretzelCount: (type: 'regular' | 'cinnamon', delta: number) => void;
   visits: any[];
   loading: boolean;
   getPersonEndTime: (v: any, person: string) => string;
@@ -92,12 +91,12 @@ interface TrackerTabProps {
   hhnShows: string[];
   parseAttendees: (raw: any) => string[];
   getElapsedQueueTimeString: () => string;
-  weatherLoading: boolean;
-  hourlyForecast: Array<{ hourLabel: string; temp: number; pop: number }>;
   setShowAddPartyModal: (v: boolean) => void;
 }
 
 export const TrackerTab: React.FC<TrackerTabProps> = ({
+  weatherLoading,
+  hourlyForecast,
   trackerSubTab,
   activeVisit,
   activePartyList,
@@ -148,9 +147,6 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
   avgDurationPerVisit,
   avgWaitPerActivity,
   itemEmojis,
-  regularPretzels,
-  cinnamonPretzels,
-  updatePretzelCount,
   visits,
   loading,
   getPersonEndTime,
@@ -186,8 +182,6 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
   hhnShows,
   parseAttendees,
   getElapsedQueueTimeString,
-  weatherLoading,
-  hourlyForecast,
   setShowAddPartyModal
 }) => {
   return (
@@ -323,7 +317,7 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
                         Time in line: {getElapsedQueueTimeString()}
                       </div>
                       <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                        <button type="button" onClick={() => { setQueueStartTimestamp(null); setQueueStartTimeStr(null); }} style={{ flex: 1, padding: '10px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
+                        <button type="button" onClick={() => { setQueueStartTimestamp(null); setQueueStartTimeStr(null); localStorage.removeItem('hhn_queue_start_ts'); localStorage.removeItem('hhn_queue_start_str'); localStorage.removeItem('hhn_queue_locked_wait'); }} style={{ flex: 1, padding: '10px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
                           Cancel
                         </button>
                         <button type="button" onClick={handleEndQueueTimer} style={{ flex: 2, padding: '10px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
@@ -626,11 +620,7 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
 
           </div>
 
-          <PretzelTracker
-            regularPretzels={regularPretzels}
-            cinnamonPretzels={cinnamonPretzels}
-            updatePretzelCount={updatePretzelCount}
-          />
+          <PretzelTracker familyMembers={familyMembers} />
         </div>
       )}
 
