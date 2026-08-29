@@ -44,6 +44,8 @@ export interface UtilityModalsProps {
   setEditVisitStartTime: (t: string) => void;
   editVisitEndTime: string;
   setEditVisitEndTime: (t: string) => void;
+  editVisitMemberStartTimes: Record<string, string>;
+  setEditVisitMemberStartTimes: (val: Record<string, string>) => void;
   editVisitMemberEndTimes: Record<string, string>;
   setEditVisitMemberEndTimes: (val: Record<string, string>) => void;
   handleSaveVisitEdit: () => void;
@@ -102,6 +104,8 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
   setEditVisitStartTime,
   editVisitEndTime,
   setEditVisitEndTime,
+  editVisitMemberStartTimes,
+  setEditVisitMemberStartTimes,
   editVisitMemberEndTimes,
   setEditVisitMemberEndTimes,
   handleSaveVisitEdit,
@@ -277,39 +281,63 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
 
       {/* ✏️ EDIT VISIT HOURS MODAL */}
       {editingVisit && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
-          <div style={{ background: '#12121A', border: '1px solid #FF5500', borderRadius: '20px', padding: '20px', width: '100%', maxWidth: '380px', color: '#FFF' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '900', color: '#FF5500' }}>Edit Visit Hours ({formatDisplayDate(editingVisit.visitDate)})</h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
+          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '440px', width: '100%', border: '2px solid #FF5500', boxShadow: '0 10px 30px rgba(255, 85, 0, 0.3)', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>✏️ Edit Visit Hours</h3>
+              <button onClick={() => setEditingVisit(null)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '20px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ fontSize: '13px', fontWeight: '800', color: '#CBD5E0', marginBottom: '12px' }}>
+              📅 {formatDisplayDate(editingVisit.visitDate)}
+            </div>
+
+            {/* GLOBAL DEFAULTS */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
               <div>
-                <label style={{ fontSize: '10px', color: '#A0AEC0', fontWeight: 'bold' }}>START TIME</label>
-                <input type="text" value={editVisitStartTime} onChange={(e) => setEditVisitStartTime(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>DEFAULT START TIME</label>
+                <input type="text" value={editVisitStartTime} onChange={(e) => setEditVisitStartTime(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ fontSize: '10px', color: '#A0AEC0', fontWeight: 'bold' }}>END TIME</label>
-                <input type="text" value={editVisitEndTime} onChange={(e) => setEditVisitEndTime(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>DEFAULT END TIME</label>
+                <input type="text" value={editVisitEndTime} onChange={(e) => setEditVisitEndTime(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold', boxSizing: 'border-box' }} />
               </div>
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '10px', color: '#A0AEC0', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>INDIVIDUAL DEPARTURES</label>
-              {parseAttendees(editingVisit.attendees).map(m => (
-                <div key={m} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '11px' }}>{m}:</span>
-                  <input
-                    type="text"
-                    value={editVisitMemberEndTimes[m] || editVisitEndTime}
-                    onChange={(e) => setEditVisitMemberEndTimes({ ...editVisitMemberEndTimes, [m]: e.target.value })}
-                    style={{ width: '100px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', textAlign: 'right' }}
-                  />
-                </div>
-              ))}
+            {/* INDIVIDUAL ARRIVALS & DEPARTURES GRID */}
+            <div style={{ borderTop: '1px solid #2A2A3C', paddingTop: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', fontSize: '10px', fontWeight: '900', color: '#FF5500', marginBottom: '8px' }}>
+                <span>MEMBER</span>
+                <span style={{ textAlign: 'center' }}>ARRIVAL</span>
+                <span style={{ textAlign: 'center' }}>DEPARTURE</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                {parseAttendees(editingVisit.attendees).map(m => (
+                  <div key={m} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#CBD5E0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m}</span>
+                    <input
+                      type="text"
+                      value={editVisitMemberStartTimes[m] ?? editVisitStartTime}
+                      onChange={(e) => setEditVisitMemberStartTimes({ ...editVisitMemberStartTimes, [m]: e.target.value })}
+                      placeholder={editVisitStartTime || '5:30 PM'}
+                      style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', textAlign: 'center', boxSizing: 'border-box' }}
+                    />
+                    <input
+                      type="text"
+                      value={editVisitMemberEndTimes[m] ?? editVisitEndTime}
+                      onChange={(e) => setEditVisitMemberEndTimes({ ...editVisitMemberEndTimes, [m]: e.target.value })}
+                      placeholder={editVisitEndTime || '10:30 PM'}
+                      style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', textAlign: 'center', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setEditingVisit(null)} style={{ flex: 1, padding: '8px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSaveVisitEdit} style={{ flex: 1, padding: '8px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Save</button>
+              <button onClick={() => setEditingVisit(null)} style={{ flex: 1, padding: '10px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSaveVisitEdit} style={{ flex: 1, padding: '10px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Save Hours</button>
             </div>
           </div>
         </div>
