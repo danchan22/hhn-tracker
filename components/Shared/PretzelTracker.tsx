@@ -13,31 +13,24 @@ interface PretzelTrackerProps {
   familyMembers: string[];
 }
 
-interface PretzelLog {
-  id: string;
-  member_name: string;
-  pretzel_type: 'regular' | 'cinnamon';
-  amount: number;
-}
-
 export const PretzelTracker: React.FC<PretzelTrackerProps> = ({ familyMembers }) => {
   const [memberLogs, setMemberLogs] = useState<Record<string, { regular: number; cinnamon: number }>>({});
   const [selectedMember, setSelectedMember] = useState<string>(familyMembers[0] || 'Dan');
+  const [selectedType, setSelectedType] = useState<'regular' | 'cinnamon'>('regular');
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Fetch individual pretzel consumption logs
   const fetchPretzelLogs = async () => {
     try {
       const supabase = getSupabase();
       const { data, error } = await supabase.from('pretzel_logs').select('*');
       if (!error && data) {
         const counts: Record<string, { regular: number; cinnamon: number }> = {};
-        familyMembers.forEach(m => counts[m] = { regular: 0, cinnamon: 0 });
+        familyMembers.forEach(m => (counts[m] = { regular: 0, cinnamon: 0 }));
 
         data.forEach((log: any) => {
           if (!counts[log.member_name]) counts[log.member_name] = { regular: 0, cinnamon: 0 };
-          if (log.pretzel_type === 'regular') counts[log.member_name].regular += Number(log.amount);
-          if (log.pretzel_type === 'cinnamon') counts[log.member_name].cinnamon += Number(log.amount);
+          if (log.pretzel_type === 'regular') counts[log.member_name].regular = Number(log.amount) || 0;
+          if (log.pretzel_type === 'cinnamon') counts[log.member_name].cinnamon = Number(log.amount) || 0;
         });
         setMemberLogs(counts);
       }
@@ -50,17 +43,17 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = ({ familyMembers })
     fetchPretzelLogs();
   }, []);
 
-  const handleUpdatePretzel = async (type: 'regular' | 'cinnamon', delta: number) => {
+  const handleUpdatePretzel = async (delta: number) => {
     setLoading(true);
     const current = memberLogs[selectedMember] || { regular: 0, cinnamon: 0 };
-    const newAmount = Math.max(0, current[type] + delta);
+    const newAmount = Math.max(0, current[selectedType] + delta);
 
     try {
       const supabase = getSupabase();
       await supabase.from('pretzel_logs').upsert({
-        id: `${selectedMember}_${type}`,
+        id: `${selectedMember}_${selectedType}`,
         member_name: selectedMember,
-        pretzel_type: type,
+        pretzel_type: selectedType,
         amount: newAmount,
         updated_at: new Date().toISOString()
       });
@@ -69,7 +62,7 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = ({ familyMembers })
         ...prev,
         [selectedMember]: {
           ...current,
-          [type]: newAmount
+          [selectedType]: newAmount
         }
       }));
     } catch (e) {
@@ -79,9 +72,10 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = ({ familyMembers })
     }
   };
 
-  // Totals
+  // Running Totals
   const totalRegular = Object.values(memberLogs).reduce((s, m) => s + (m.regular || 0), 0);
   const totalCinnamon = Object.values(memberLogs).reduce((s, m) => s + (m.cinnamon || 0), 0);
+  const grandTotal = totalRegular + totalCinnamon;
 
   // Leaderboard Sorted Descending
   const leaderboard = Object.entries(memberLogs)
@@ -94,105 +88,221 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = ({ familyMembers })
     .sort((a, b) => b.total - a.total);
 
   return (
-    <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', marginBottom: '25px' }}>
-      <h3 style={{ fontSize: '14px', fontWeight: '900', color: '#F59E0B', margin: '0 0 12px 0', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-        🥨 Pretzel Tracker
-      </h3>
-
-      {/* TOTAL CONSUMPTION DISPLAY */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
-        <div style={{ background: '#1A1A26', padding: '10px', borderRadius: '12px', border: '1px solid #2A2A3C', textAlign: 'center' }}>
-          <div style={{ fontSize: '20px', fontWeight: '900', color: '#F59E0B' }}>{totalRegular}</div>
-          <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0' }}>REGULAR PRETZELS</div>
-        </div>
-        <div style={{ background: '#1A1A26', padding: '10px', borderRadius: '12px', border: '1px solid #2A2A3C', textAlign: 'center' }}>
-          <div style={{ fontSize: '20px', fontWeight: '900', color: '#EC4899' }}>{totalCinnamon}</div>
-          <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0' }}>CINNAMON PRETZELS</div>
+    <div
+      style={{
+        background: '#0022AB',
+        border: '3px solid #FFB800',
+        borderRadius: '28px',
+        padding: '24px 20px',
+        marginBottom: '25px',
+        boxShadow: '0 8px 24px rgba(0, 34, 171, 0.4)',
+        textAlign: 'center',
+        color: '#FFFFFF'
+      }}
+    >
+      {/* AUNTIE ANNE'S LOGO & HEADER */}
+      <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <img
+          src="/auntie-annes.png"
+          alt="Auntie Anne's"
+          onError={(e: any) => {
+            e.target.style.display = 'none';
+          }}
+          style={{ height: '42px', objectFit: 'contain', marginBottom: '6px' }}
+        />
+        <div style={{ fontSize: '13px', fontWeight: '900', color: '#FFB800', letterSpacing: '2px', textTransform: 'uppercase' }}>
+          PRETZEL TRACKER
         </div>
       </div>
 
-      {/* MEMBER TRACKING CONTROLS */}
-      <div style={{ background: '#12121A', padding: '12px', borderRadius: '14px', border: '1px solid #2A2A3C', marginBottom: '16px' }}>
-        <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>WHO'S EATING?</label>
-        <select
-          value={selectedMember}
-          onChange={(e) => setSelectedMember(e.target.value)}
-          style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px', fontWeight: 'bold', marginBottom: '10px' }}
+      {/* GRAND TOTAL BOX */}
+      <div
+        style={{
+          background: 'rgba(0, 18, 90, 0.65)',
+          border: '1px solid rgba(255, 184, 0, 0.3)',
+          borderRadius: '20px',
+          padding: '16px 10px',
+          marginBottom: '16px'
+        }}
+      >
+        <div style={{ fontSize: '48px', fontWeight: '900', color: '#FFB800', lineHeight: '1' }}>
+          {grandTotal}
+        </div>
+        <div style={{ fontSize: '11px', fontWeight: '900', color: '#FFFFFF', letterSpacing: '1.5px', marginTop: '6px', textTransform: 'uppercase' }}>
+          TOTAL PRETZELS CONSUMED
+        </div>
+      </div>
+
+      {/* TWO BREAKDOWN BOXES */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+        <div
+          style={{
+            background: '#FFFFFF',
+            borderRadius: '20px',
+            padding: '14px 8px',
+            color: '#0022AB',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}
         >
-          {familyMembers.map(m => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
-
-        {/* REGULAR CONTROLS */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ fontSize: '12px', fontWeight: '800', color: '#CBD5E0' }}>🥨 Regular:</span>
-          <div style={{ display: 'flex', gap: '4px' }}>
-            {[-1, -0.5, 0.5, 1].map(delta => (
-              <button
-                key={delta}
-                onClick={() => handleUpdatePretzel('regular', delta)}
-                disabled={loading}
-                style={{
-                  background: delta > 0 ? '#F59E0B' : '#2A2A3C',
-                  color: delta > 0 ? '#000' : '#FFF',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  fontSize: '11px',
-                  fontWeight: '900',
-                  cursor: 'pointer'
-                }}
-              >
-                {delta > 0 ? `+${delta}` : delta}
-              </button>
-            ))}
+          <div style={{ fontSize: '28px', fontWeight: '900', color: '#0022AB', lineHeight: '1' }}>
+            {totalRegular}
+          </div>
+          <div style={{ fontSize: '11px', fontWeight: '900', color: '#0022AB', letterSpacing: '1px', marginTop: '4px', textTransform: 'uppercase' }}>
+            REGULAR
           </div>
         </div>
 
-        {/* CINNAMON CONTROLS */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '12px', fontWeight: '800', color: '#CBD5E0' }}>🍩 Cinnamon:</span>
-          <div style={{ display: 'flex', gap: '4px' }}>
-            {[-1, -0.5, 0.5, 1].map(delta => (
-              <button
-                key={delta}
-                onClick={() => handleUpdatePretzel('cinnamon', delta)}
-                disabled={loading}
-                style={{
-                  background: delta > 0 ? '#EC4899' : '#2A2A3C',
-                  color: '#FFF',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  fontSize: '11px',
-                  fontWeight: '900',
-                  cursor: 'pointer'
-                }}
-              >
-                {delta > 0 ? `+${delta}` : delta}
-              </button>
-            ))}
+        <div
+          style={{
+            background: '#FFFFFF',
+            borderRadius: '20px',
+            padding: '14px 8px',
+            color: '#0022AB',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}
+        >
+          <div style={{ fontSize: '28px', fontWeight: '900', color: '#0022AB', lineHeight: '1' }}>
+            {totalCinnamon}
+          </div>
+          <div style={{ fontSize: '11px', fontWeight: '900', color: '#0022AB', letterSpacing: '1px', marginTop: '4px', textTransform: 'uppercase' }}>
+            CINNAMON
           </div>
         </div>
       </div>
 
-      {/* INDIVIDUAL LEADERBOARD */}
-      <h4 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: '0 0 8px 0', letterSpacing: '0.5px' }}>LEADERBOARD</h4>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        {leaderboard.map((item, rank) => (
-          <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1A1A26', padding: '8px 12px', borderRadius: '10px', border: '1px solid #2A2A3C', fontSize: '12px' }}>
-            <div>
-              <strong style={{ color: rank === 0 ? '#F59E0B' : '#FFF' }}>#{rank + 1} {item.name}</strong>
-              <div style={{ fontSize: '10px', color: '#A0AEC0' }}>
-                Reg: {item.regular} | Cin: {item.cinnamon}
+      {/* SINGLE LOGGER CONTROLS */}
+      <div
+        style={{
+          background: 'rgba(0, 18, 90, 0.5)',
+          border: '1px solid rgba(255, 184, 0, 0.25)',
+          borderRadius: '20px',
+          padding: '14px',
+          marginBottom: '20px'
+        }}
+      >
+        <div style={{ fontSize: '10px', fontWeight: '900', color: '#FFB800', letterSpacing: '1px', marginBottom: '8px', textAlign: 'left', textTransform: 'uppercase' }}>
+          LOG A PRETZEL
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+          <select
+            value={selectedMember}
+            onChange={(e) => setSelectedMember(e.target.value)}
+            style={{
+              padding: '10px',
+              borderRadius: '10px',
+              border: 'none',
+              background: '#FFFFFF',
+              color: '#0022AB',
+              fontSize: '13px',
+              fontWeight: '900',
+              outline: 'none'
+            }}
+          >
+            {familyMembers.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+
+          <select
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value as 'regular' | 'cinnamon')}
+            style={{
+              padding: '10px',
+              borderRadius: '10px',
+              border: 'none',
+              background: '#FFFFFF',
+              color: '#0022AB',
+              fontSize: '13px',
+              fontWeight: '900',
+              outline: 'none'
+            }}
+          >
+            <option value="regular">Regular</option>
+            <option value="cinnamon">Cinnamon</option>
+          </select>
+        </div>
+
+        {/* STEP CONTROLS (-0.5 / +0.5) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => handleUpdatePretzel(-0.5)}
+            disabled={loading}
+            style={{
+              padding: '12px',
+              background: '#001375',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '20px',
+              fontWeight: '900',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            -
+          </button>
+          <button
+            type="button"
+            onClick={() => handleUpdatePretzel(0.5)}
+            disabled={loading}
+            style={{
+              padding: '12px',
+              background: '#FFB800',
+              color: '#0022AB',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '20px',
+              fontWeight: '900',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      {/* INSIDE CARD LEADERBOARD */}
+      <div style={{ borderTop: '1px solid rgba(255, 184, 0, 0.3)', paddingTop: '14px' }}>
+        <div style={{ fontSize: '11px', fontWeight: '900', color: '#FFB800', letterSpacing: '1.5px', marginBottom: '10px', textTransform: 'uppercase', textAlign: 'left' }}>
+          🏆 LEADERBOARD
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {leaderboard.map((item, rank) => (
+            <div
+              key={item.name}
+              style={{
+                display: 'flex',
+                justify: 'space-between',
+                alignItems: 'center',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '12px',
+                padding: '8px 12px',
+                fontSize: '12px',
+                fontWeight: '800'
+              }}
+            >
+              <div style={{ textAlign: 'left' }}>
+                <span style={{ color: rank === 0 ? '#FFB800' : '#FFFFFF' }}>
+                  #{rank + 1} {item.name}
+                </span>
+                <span style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.7)', marginLeft: '8px' }}>
+                  (Reg: {item.regular} | Cin: {item.cinnamon})
+                </span>
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: '900', color: '#FFB800' }}>
+                {item.total} 🥨
               </div>
             </div>
-            <div style={{ fontSize: '14px', fontWeight: '900', color: '#F59E0B' }}>
-              {item.total} 🥨
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
