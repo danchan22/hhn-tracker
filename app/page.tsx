@@ -2425,7 +2425,7 @@ export default function HorrorNightsTracker() {
         </div>
       )}
 
-      {/* 3. TRACKER TAB VIEW */}
+  {/* 3. TRACKER TAB VIEW */}
       {mainTab === 'tracker' && (
         <TrackerTab
           weatherLoading={weatherLoading}
