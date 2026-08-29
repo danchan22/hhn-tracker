@@ -10,7 +10,7 @@ const getSupabase = () => {
 };
 
 const PRETZEL_MEMBERS = [
-  'Dandie', 'Elijah', 'Jasmine', 'Kimbo', 'Sophia', 'Violette', 'Zach'
+  'Dandie', 'Elijah', 'Kimbo', 'Sophia', 'Violette', 'Zach'
 ];
 
 interface PretzelTrackerProps {
@@ -27,7 +27,6 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
   const [selectedType, setSelectedType] = useState<'regular' | 'cinnamon'>('regular');
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Fetch pretzel data from Supabase global_trackers table
   const fetchPretzelLogs = async () => {
     try {
       const supabase = getSupabase();
@@ -37,22 +36,24 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
         .eq('id', 'hhn_pretzels')
         .single();
 
-      if (!error && data && data.member_logs) {
+      if (!error && data) {
         let parsedLogs = data.member_logs;
         if (typeof parsedLogs === 'string') {
           try {
             parsedLogs = JSON.parse(parsedLogs);
           } catch (e) {}
         }
-        
-        const counts: Record<string, { regular: number; cinnamon: number }> = {};
-        PRETZEL_MEMBERS.forEach(m => {
-          counts[m] = {
-            regular: Number(parsedLogs[m]?.regular) || 0,
-            cinnamon: Number(parsedLogs[m]?.cinnamon) || 0
-          };
-        });
-        setMemberLogs(counts);
+
+        if (parsedLogs && typeof parsedLogs === 'object') {
+          const counts: Record<string, { regular: number; cinnamon: number }> = {};
+          PRETZEL_MEMBERS.forEach(m => {
+            counts[m] = {
+              regular: Number(parsedLogs[m]?.regular) || 0,
+              cinnamon: Number(parsedLogs[m]?.cinnamon) || 0
+            };
+          });
+          setMemberLogs(counts);
+        }
       }
     } catch (e) {
       console.warn("Pretzel fetch error:", e);
@@ -78,24 +79,30 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
       }
     };
 
-    // Calculate updated grand totals for global backwards-compatibility
     const totalReg = Object.values(updatedLogs).reduce((s, m) => s + (m.regular || 0), 0);
     const totalCin = Object.values(updatedLogs).reduce((s, m) => s + (m.cinnamon || 0), 0);
 
-    // Optimistic UI Update
+    // Optimistic state update
     setMemberLogs(updatedLogs);
 
     try {
       const supabase = getSupabase();
-      await supabase
+      const { error } = await supabase
         .from('global_trackers')
-        .upsert({
-          id: 'hhn_pretzels',
-          regular_pretzels: totalReg,
-          cinnamon_pretzels: totalCin,
-          member_logs: updatedLogs,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(
+          {
+            id: 'hhn_pretzels',
+            regular_pretzels: totalReg,
+            cinnamon_pretzels: totalCin,
+            member_logs: updatedLogs,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'id' }
+        );
+
+      if (error) {
+        console.error("Supabase pretzel save error:", error.message);
+      }
     } catch (e) {
       console.error("Error saving pretzel log to database:", e);
     } finally {
@@ -273,14 +280,14 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  {type === 'regular' ? '🥨 Regular' : '🍩 Cinnamon'}
+                  {type === 'regular' ? '🥨 Regular' : '🥨 Cinnamon'}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* + HALF / + FULL STEP BUTTONS */}
+        {/* STEP BUTTONS */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '6px' }}>
           <button
             type="button"
