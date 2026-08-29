@@ -10,7 +10,7 @@ const getSupabase = () => {
 };
 
 const PRETZEL_MEMBERS = [
-  'Dandie', 'Elijah', 'Jasmine', 'Kimbo', 'Violette', 'Zach'
+  'Dandie', 'Elijah', 'Jasmine', 'Kimbo', 'Sophia', 'Violette', 'Zach'
 ];
 
 interface PretzelTrackerProps {
@@ -18,23 +18,39 @@ interface PretzelTrackerProps {
 }
 
 export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
-  const [memberLogs, setMemberLogs] = useState<Record<string, { regular: number; cinnamon: number }>>({});
+  const [memberLogs, setMemberLogs] = useState<Record<string, { regular: number; cinnamon: number }>>(() => {
+    const initial: Record<string, { regular: number; cinnamon: number }> = {};
+    PRETZEL_MEMBERS.forEach(m => (initial[m] = { regular: 0, cinnamon: 0 }));
+    return initial;
+  });
   const [selectedMember, setSelectedMember] = useState<string>(PRETZEL_MEMBERS[0]);
   const [selectedType, setSelectedType] = useState<'regular' | 'cinnamon'>('regular');
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Fetch pretzel data from Supabase global_trackers table
   const fetchPretzelLogs = async () => {
     try {
       const supabase = getSupabase();
-      const { data, error } = await supabase.from('pretzel_logs').select('*');
-      if (!error && data) {
-        const counts: Record<string, { regular: number; cinnamon: number }> = {};
-        PRETZEL_MEMBERS.forEach(m => (counts[m] = { regular: 0, cinnamon: 0 }));
+      const { data, error } = await supabase
+        .from('global_trackers')
+        .select('*')
+        .eq('id', 'hhn_pretzels')
+        .single();
 
-        data.forEach((log: any) => {
-          if (!counts[log.member_name]) counts[log.member_name] = { regular: 0, cinnamon: 0 };
-          if (log.pretzel_type === 'regular') counts[log.member_name].regular = Number(log.amount) || 0;
-          if (log.pretzel_type === 'cinnamon') counts[log.member_name].cinnamon = Number(log.amount) || 0;
+      if (!error && data && data.member_logs) {
+        let parsedLogs = data.member_logs;
+        if (typeof parsedLogs === 'string') {
+          try {
+            parsedLogs = JSON.parse(parsedLogs);
+          } catch (e) {}
+        }
+        
+        const counts: Record<string, { regular: number; cinnamon: number }> = {};
+        PRETZEL_MEMBERS.forEach(m => {
+          counts[m] = {
+            regular: Number(parsedLogs[m]?.regular) || 0,
+            cinnamon: Number(parsedLogs[m]?.cinnamon) || 0
+          };
         });
         setMemberLogs(counts);
       }
@@ -48,29 +64,40 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
   }, []);
 
   const handleUpdatePretzel = async (delta: number) => {
+    if (loading) return;
     setLoading(true);
+
     const current = memberLogs[selectedMember] || { regular: 0, cinnamon: 0 };
     const newAmount = Math.max(0, current[selectedType] + delta);
 
+    const updatedLogs = {
+      ...memberLogs,
+      [selectedMember]: {
+        ...current,
+        [selectedType]: newAmount
+      }
+    };
+
+    // Calculate updated grand totals for global backwards-compatibility
+    const totalReg = Object.values(updatedLogs).reduce((s, m) => s + (m.regular || 0), 0);
+    const totalCin = Object.values(updatedLogs).reduce((s, m) => s + (m.cinnamon || 0), 0);
+
+    // Optimistic UI Update
+    setMemberLogs(updatedLogs);
+
     try {
       const supabase = getSupabase();
-      await supabase.from('pretzel_logs').upsert({
-        id: `${selectedMember}_${selectedType}`,
-        member_name: selectedMember,
-        pretzel_type: selectedType,
-        amount: newAmount,
-        updated_at: new Date().toISOString()
-      });
-
-      setMemberLogs(prev => ({
-        ...prev,
-        [selectedMember]: {
-          ...current,
-          [selectedType]: newAmount
-        }
-      }));
+      await supabase
+        .from('global_trackers')
+        .upsert({
+          id: 'hhn_pretzels',
+          regular_pretzels: totalReg,
+          cinnamon_pretzels: totalCin,
+          member_logs: updatedLogs,
+          updated_at: new Date().toISOString()
+        });
     } catch (e) {
-      console.error("Error logging pretzel:", e);
+      console.error("Error saving pretzel log to database:", e);
     } finally {
       setLoading(false);
     }
@@ -180,94 +207,148 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
           background: 'rgba(0, 18, 90, 0.5)',
           border: '1px solid rgba(255, 184, 0, 0.25)',
           borderRadius: '20px',
-          padding: '14px',
+          padding: '16px 14px',
           marginBottom: '20px'
         }}
       >
-        <div style={{ fontSize: '10px', fontWeight: '900', color: '#FFB800', letterSpacing: '1px', marginBottom: '8px', textAlign: 'left', textTransform: 'uppercase' }}>
+        <div style={{ fontSize: '10px', fontWeight: '900', color: '#FFB800', letterSpacing: '1px', marginBottom: '10px', textAlign: 'left', textTransform: 'uppercase' }}>
           LOG A PRETZEL
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
-          <select
-            value={selectedMember}
-            onChange={(e) => setSelectedMember(e.target.value)}
-            style={{
-              padding: '10px',
-              borderRadius: '10px',
-              border: 'none',
-              background: '#FFFFFF',
-              color: '#0022AB',
-              fontSize: '13px',
-              fontWeight: '900',
-              outline: 'none'
-            }}
-          >
-            {PRETZEL_MEMBERS.map(m => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value as 'regular' | 'cinnamon')}
-            style={{
-              padding: '10px',
-              borderRadius: '10px',
-              border: 'none',
-              background: '#FFFFFF',
-              color: '#0022AB',
-              fontSize: '13px',
-              fontWeight: '900',
-              outline: 'none'
-            }}
-          >
-            <option value="regular">Regular</option>
-            <option value="cinnamon">Cinnamon</option>
-          </select>
+        {/* TAP PILL BOXES: WHO'S EATING */}
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255, 255, 255, 0.7)', textAlign: 'left', marginBottom: '6px' }}>
+            WHO'S EATING?
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {PRETZEL_MEMBERS.map(name => {
+              const isSelected = selectedMember === name;
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setSelectedMember(name)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '12px',
+                    border: isSelected ? '2px solid #FFB800' : '1px solid rgba(255,255,255,0.2)',
+                    background: isSelected ? '#FFB800' : 'rgba(255,255,255,0.1)',
+                    color: isSelected ? '#0022AB' : '#FFFFFF',
+                    fontSize: '12px',
+                    fontWeight: '900',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {name}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* STEP CONTROLS (-0.5 / +0.5) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        {/* TAP PILL BOXES: PRETZEL TYPE */}
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255, 255, 255, 0.7)', textAlign: 'left', marginBottom: '6px' }}>
+            PRETZEL FLAVOR
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            {(['regular', 'cinnamon'] as const).map(type => {
+              const isSelected = selectedType === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setSelectedType(type)}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '12px',
+                    border: isSelected ? '2px solid #FFB800' : '1px solid rgba(255,255,255,0.2)',
+                    background: isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.1)',
+                    color: isSelected ? '#0022AB' : '#FFFFFF',
+                    fontSize: '13px',
+                    fontWeight: '900',
+                    cursor: 'pointer',
+                    textTransform: 'capitalize',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {type === 'regular' ? '🥨 Regular' : '🍩 Cinnamon'}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* + HALF / + FULL STEP BUTTONS */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '6px' }}>
+          <button
+            type="button"
+            onClick={() => handleUpdatePretzel(-1)}
+            disabled={loading}
+            style={{
+              padding: '10px 4px',
+              background: '#001375',
+              color: '#FFFFFF',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '10px',
+              fontSize: '11px',
+              fontWeight: '900',
+              cursor: 'pointer'
+            }}
+          >
+            - Full
+          </button>
           <button
             type="button"
             onClick={() => handleUpdatePretzel(-0.5)}
             disabled={loading}
             style={{
-              padding: '12px',
+              padding: '10px 4px',
               background: '#001375',
               color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: '20px',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '10px',
+              fontSize: '11px',
               fontWeight: '900',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              cursor: 'pointer'
             }}
           >
-            -
+            - Half
           </button>
           <button
             type="button"
             onClick={() => handleUpdatePretzel(0.5)}
             disabled={loading}
             style={{
-              padding: '12px',
+              padding: '10px 4px',
               background: '#FFB800',
               color: '#0022AB',
               border: 'none',
-              borderRadius: '12px',
-              fontSize: '20px',
+              borderRadius: '10px',
+              fontSize: '11px',
               fontWeight: '900',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              cursor: 'pointer'
             }}
           >
-            +
+            + Half
+          </button>
+          <button
+            type="button"
+            onClick={() => handleUpdatePretzel(1)}
+            disabled={loading}
+            style={{
+              padding: '10px 4px',
+              background: '#FFB800',
+              color: '#0022AB',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '11px',
+              fontWeight: '900',
+              cursor: 'pointer'
+            }}
+          >
+            + Full
           </button>
         </div>
       </div>
