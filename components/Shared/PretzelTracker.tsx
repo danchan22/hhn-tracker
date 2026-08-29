@@ -9,13 +9,17 @@ const getSupabase = () => {
   return createClient(supabaseUrl, supabaseAnonKey);
 };
 
+const PRETZEL_MEMBERS = [
+  'Dandie', 'Elijah', 'Jasmine', 'Kimbo', 'Violette', 'Zach'
+];
+
 interface PretzelTrackerProps {
-  familyMembers: string[];
+  familyMembers?: string[];
 }
 
-export const PretzelTracker: React.FC<PretzelTrackerProps> = ({ familyMembers }) => {
+export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
   const [memberLogs, setMemberLogs] = useState<Record<string, { regular: number; cinnamon: number }>>({});
-  const [selectedMember, setSelectedMember] = useState<string>(familyMembers[0] || 'Dan');
+  const [selectedMember, setSelectedMember] = useState<string>(PRETZEL_MEMBERS[0]);
   const [selectedType, setSelectedType] = useState<'regular' | 'cinnamon'>('regular');
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -25,7 +29,7 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = ({ familyMembers })
       const { data, error } = await supabase.from('pretzel_logs').select('*');
       if (!error && data) {
         const counts: Record<string, { regular: number; cinnamon: number }> = {};
-        familyMembers.forEach(m => (counts[m] = { regular: 0, cinnamon: 0 }));
+        PRETZEL_MEMBERS.forEach(m => (counts[m] = { regular: 0, cinnamon: 0 }));
 
         data.forEach((log: any) => {
           if (!counts[log.member_name]) counts[log.member_name] = { regular: 0, cinnamon: 0 };
@@ -199,7 +203,7 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = ({ familyMembers })
               outline: 'none'
             }}
           >
-            {familyMembers.map(m => (
+            {PRETZEL_MEMBERS.map(m => (
               <option key={m} value={m}>{m}</option>
             ))}
           </select>
@@ -280,7 +284,7 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = ({ familyMembers })
               key={item.name}
               style={{
                 display: 'flex',
-                justify: 'space-between',
+                justifyContent: 'space-between',
                 alignItems: 'center',
                 background: 'rgba(255, 255, 255, 0.1)',
                 borderRadius: '12px',
