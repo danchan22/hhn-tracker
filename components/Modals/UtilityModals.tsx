@@ -61,6 +61,8 @@ export interface UtilityModalsProps {
 }
 
 export const UtilityModals: React.FC<UtilityModalsProps> = ({
+  weatherLoading,
+  hourlyForecast,
   showAiTriviaModal,
   setShowAiTriviaModal,
   triviaDifficulty,
@@ -89,6 +91,7 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
   setPreviewYumImage,
   showCheckoutModal,
   setShowCheckoutModal,
+  activeVisit,
   activePartyList,
   departingMembers,
   toggleDepartingMember,
@@ -108,117 +111,110 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
   showAddPartyModal,
   setShowAddPartyModal,
   availableToJoin,
-  lateArrivalMember,
-  setLateArrivalMember,
+  selectedLateMembers,
+  toggleLateArrivalMember,
   lateArrivalTime,
   setLateArrivalTime,
-  handleAddLateArrival
+  handleAddLateArrivals
 }) => {
   return (
     <div>
       {/* 🔮 HORROR MOVIE TRIVIA MODAL */}
       {showAiTriviaModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '440px', width: '100%', border: '2px solid #10B981', boxShadow: '0 10px 30px rgba(16, 185, 129, 0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#10B981' }}>🔮 Horror Trivia</h3>
-              <button onClick={() => setShowAiTriviaModal(false)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '20px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
+          <div style={{ background: '#12121A', border: '1px solid #10B981', borderRadius: '24px', padding: '20px', width: '100%', maxWidth: '440px', maxHeight: '90vh', overflowY: 'auto', color: '#FFF' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#10B981' }}>🔮 Horror Movie Trivia</h2>
+              <button onClick={() => setShowAiTriviaModal(false)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '18px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
             </div>
 
-            <div style={{ background: '#1A1A26', padding: '10px 12px', borderRadius: '12px', border: '1px solid #2A2A3C', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0' }}>RECORD ({triviaDifficulty}):</div>
-                <div style={{ fontSize: '12px', fontWeight: '900', color: '#F59E0B' }}>🏆 {allTimeRecordHolder}: {allTimeHighScore}</div>
+            {/* STREAK BADGE */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ flex: 1, background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0' }}>STREAK</div>
+                <div style={{ fontSize: '18px', fontWeight: '900', color: '#10B981' }}>{currentStreak} 🔥</div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0' }}>STREAK:</div>
-                <div style={{ fontSize: '14px', fontWeight: '900', color: '#10B981' }}>🔥 {currentStreak}</div>
+              <div style={{ flex: 1, background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0' }}>RECORD ({triviaDifficulty})</div>
+                <div style={{ fontSize: '14px', fontWeight: '900', color: '#F59E0B' }}>{allTimeHighScore} ({allTimeRecordHolder})</div>
               </div>
             </div>
 
+            {/* FILTERS */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
-              <div>
-                <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>CATEGORY</label>
-                <select value={triviaCategory} onChange={(e) => handleTriviaFilterChange(e.target.value, undefined)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold' }}>
-                  <option value="All">All Categories</option>
-                  {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>DIFFICULTY</label>
-                <select value={triviaDifficulty} onChange={(e) => handleTriviaFilterChange(undefined, e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold' }}>
-                  <option value="All">All Difficulties</option>
-                  {availableDifficulties.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
+              <select value={triviaCategory} onChange={(e) => handleTriviaFilterChange(e.target.value, undefined)} style={{ background: '#1A1A26', border: '1px solid #2A2A3C', color: '#FFF', borderRadius: '8px', padding: '6px', fontSize: '11px', fontWeight: 'bold' }}>
+                <option value="All">All Categories</option>
+                {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select value={triviaDifficulty} onChange={(e) => handleTriviaFilterChange(undefined, e.target.value)} style={{ background: '#1A1A26', border: '1px solid #2A2A3C', color: '#FFF', borderRadius: '8px', padding: '6px', fontSize: '11px', fontWeight: 'bold' }}>
+                <option value="All">All Difficulties</option>
+                {availableDifficulties.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
 
-            {newHighScorePending && (
-              <div style={{ background: '#2D1B00', border: '1px solid #F59E0B', borderRadius: '12px', padding: '10px', marginBottom: '14px', textAlign: 'center' }}>
-                <div style={{ fontSize: '12px', fontWeight: '900', color: '#F59E0B' }}>🎉 NEW ALL-TIME RECORD! ({allTimeHighScore})</div>
-                <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                  <select value={recordClaimName} onChange={(e) => setRecordClaimName(e.target.value)} style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px' }}>
-                    {familyMembers.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                  <button onClick={saveNewHighScoreRecord} style={{ background: '#F59E0B', color: '#000', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: '900', cursor: 'pointer' }}>Claim</button>
-                </div>
-              </div>
-            )}
-
-            {triviaError ? (
-              <div style={{ color: '#EF4444', textAlign: 'center', fontSize: '13px', padding: '20px 0' }}>{triviaError}</div>
-            ) : triviaLoading ? (
-              <div style={{ color: '#A0AEC0', textAlign: 'center', fontSize: '13px', padding: '20px 0' }}>🔮 Shuffling questions...</div>
+            {/* QUESTION DISPLAY */}
+            {triviaLoading ? (
+              <p style={{ textAlign: 'center', color: '#A0AEC0', fontStyle: 'italic', margin: '20px 0' }}>Loading question...</p>
+            ) : triviaError ? (
+              <p style={{ textAlign: 'center', color: '#EF4444', fontStyle: 'italic', margin: '20px 0' }}>{triviaError}</p>
             ) : currentQuestion ? (
               <div>
-                <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '14px', padding: '14px', marginBottom: '14px' }}>
-                  <div style={{ fontSize: '10px', fontWeight: '800', color: '#10B981', marginBottom: '4px' }}>
-                    {currentQuestion.category} • <span style={{ color: '#A0AEC0' }}>{currentQuestion.difficulty}</span>
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#FFF', lineHeight: '1.4' }}>
-                    {currentQuestion.question}
-                  </div>
+                <div style={{ background: '#1A1A26', padding: '14px', borderRadius: '14px', border: '1px solid #2A2A3C', fontSize: '13px', fontWeight: '700', lineHeight: '1.4', marginBottom: '12px' }}>
+                  {currentQuestion.question}
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
                   {[
-                    { key: 'A', text: currentQuestion.option_a },
-                    { key: 'B', text: currentQuestion.option_b },
-                    { key: 'C', text: currentQuestion.option_c },
-                    { key: 'D', text: currentQuestion.option_d }
-                  ].map(opt => {
-                    if (!opt.text) return null;
-                    const isSelected = selectedOption === opt.text;
+                    { label: 'A', text: currentQuestion.option_a },
+                    { label: 'B', text: currentQuestion.option_b },
+                    { label: 'C', text: currentQuestion.option_c },
+                    { label: 'D', text: currentQuestion.option_d }
+                  ].filter(o => Boolean(o.text)).map(opt => {
+                    const isSelected = selectedOption === opt.text || selectedOption === opt.label;
                     const correctVal = currentQuestion.correct_answer?.trim()?.toUpperCase();
-                    const isCorrectOpt = opt.key === correctVal || opt.text === currentQuestion.correct_answer;
+                    const isCorrectOpt = opt.label === correctVal || opt.text === currentQuestion.correct_answer;
 
                     let bg = '#1A1A26';
-                    let border = '1px solid #2A2A3C';
-                    let color = '#CBD5E0';
+                    let border = '#2A2A3C';
 
-                    if (selectedOption !== null) {
+                    if (selectedOption) {
                       if (isCorrectOpt) {
                         bg = '#064E3B';
-                        border = '1px solid #10B981';
-                        color = '#FFF';
+                        border = '#10B981';
                       } else if (isSelected) {
                         bg = '#7F1D1D';
-                        border = '1px solid #EF4444';
-                        color = '#FFF';
+                        border = '#EF4444';
                       }
                     }
 
                     return (
-                      <button key={opt.key} onClick={() => handleTriviaAnswerSelection(opt.text)} disabled={selectedOption !== null} style={{ background: bg, border, color, borderRadius: '10px', padding: '10px 12px', textAlign: 'left', fontSize: '12px', fontWeight: '700', cursor: selectedOption === null ? 'pointer' : 'default', transition: 'all 0.15s ease' }}>
-                        {opt.key}. {opt.text}
+                      <button
+                        key={opt.label}
+                        onClick={() => handleTriviaAnswerSelection(opt.text)}
+                        disabled={selectedOption !== null}
+                        style={{ background: bg, border: `1px solid ${border}`, color: '#FFF', padding: '10px 12px', borderRadius: '10px', textAlign: 'left', fontSize: '12px', fontWeight: '700', cursor: selectedOption ? 'default' : 'pointer' }}
+                      >
+                        <strong>{opt.label}.</strong> {opt.text}
                       </button>
                     );
                   })}
                 </div>
 
-                {selectedOption !== null && (
-                  <button onClick={handleNextTriviaQuestion} style={{ width: '100%', padding: '12px', background: '#10B981', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: '900', fontSize: '14px', cursor: 'pointer' }}>
+                {/* NEW HIGH SCORE CLAIM */}
+                {newHighScorePending && (
+                  <div style={{ background: '#2B1408', border: '1px solid #F59E0B', padding: '10px', borderRadius: '10px', marginBottom: '12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '900', color: '#F59E0B', marginBottom: '6px' }}>🎉 NEW HIGH SCORE RECORD!</div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <select value={recordClaimName} onChange={(e) => setRecordClaimName(e.target.value)} style={{ flex: 1, padding: '6px', borderRadius: '6px', background: '#1A1A26', color: '#FFF', border: '1px solid #2A2A3C', fontSize: '12px' }}>
+                        {familyMembers.map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                      <button onClick={saveNewHighScoreRecord} style={{ padding: '6px 12px', background: '#F59E0B', color: '#000', border: 'none', borderRadius: '6px', fontWeight: '900', fontSize: '11px', cursor: 'pointer' }}>Claim</button>
+                    </div>
+                  </div>
+                )}
+
+                {selectedOption && (
+                  <button onClick={handleNextTriviaQuestion} style={{ width: '100%', padding: '12px', background: '#10B981', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
                     Next Question ➔
                   </button>
                 )}
@@ -228,155 +224,52 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
         </div>
       )}
 
-      {/* 📖 LEARN MORE GAME MODAL */}
- {activeLearnMoreGame && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '420px', width: '100%', border: `2px solid ${activeLearnMoreColor}`, boxShadow: `0 10px 30px ${activeLearnMoreColor}44`, maxHeight: '85vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: activeLearnMoreColor }}>{activeLearnMoreGame.name}</h3>
-              <button onClick={() => setActiveLearnMoreGame(null)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '20px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
+      {/* 📖 GAME LEARN MORE MODAL */}
+      {activeLearnMoreGame && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
+          <div style={{ background: '#12121A', border: `1px solid ${activeLearnMoreColor}`, borderRadius: '24px', padding: '20px', width: '100%', maxWidth: '400px', maxH: '85vh', overflowY: 'auto', color: '#FFF' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: activeLearnMoreColor }}>{activeLearnMoreGame.name}</h3>
+              <button onClick={() => setActiveLearnMoreGame(null)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '18px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
             </div>
-
-            <div style={{ fontSize: '12px', fontWeight: '800', color: '#A0AEC0', marginBottom: '12px' }}>
-              👥 PLAYERS: <span style={{ color: '#FFF' }}>{activeLearnMoreGame.players}</span>
-            </div>
-
-            <div style={{ fontSize: '13px', color: '#CBD5E0', lineHeight: '1.5', whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
+            <p style={{ fontSize: '12px', color: '#CBD5E0', lineHeight: '1.5', whiteSpace: 'pre-line', margin: '0 0 16px 0' }}>
               {activeLearnMoreGame.description}
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {activeLearnMoreGame.externalLink && (
-                <a href={activeLearnMoreGame.externalLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', padding: '10px', background: activeLearnMoreColor, color: '#FFF', borderRadius: '10px', textDecoration: 'none', fontWeight: '900', fontSize: '13px' }}>
-                  Open Web Game ↗
-                </a>
-              )}
-
-              {activeLearnMoreGame.iosLink && (
-                <a href={activeLearnMoreGame.iosLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', padding: '10px', background: '#1A1A26', color: '#FFF', border: '1px solid #2A2A3C', borderRadius: '10px', textDecoration: 'none', fontWeight: '900', fontSize: '13px' }}>
-                   Download on App Store ↗
-                </a>
-              )}
-
-              {activeLearnMoreGame.androidLink && (
-                <a href={activeLearnMoreGame.androidLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', padding: '10px', background: '#1A1A26', color: '#FFF', border: '1px solid #2A2A3C', borderRadius: '10px', textDecoration: 'none', fontWeight: '900', fontSize: '13px' }}>
-                  🤖 Get it on Google Play ↗
-                </a>
-              )}
-            </div>
+            </p>
+            {activeLearnMoreGame.externalLink && (
+              <a href={activeLearnMoreGame.externalLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', background: activeLearnMoreColor, color: '#FFF', textDecoration: 'none', padding: '10px', borderRadius: '10px', fontWeight: 'bold', fontSize: '12px' }}>
+                Open Game Link ↗
+              </a>
+            )}
           </div>
         </div>
       )}
 
-      {/* 📷 YUM IMAGE PREVIEW MODAL */}
+      {/* 🖼️ YUM IMAGE PREVIEW MODAL */}
       {previewYumImage && (
-        <div onClick={() => setPreviewYumImage(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px' }}>
-          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '80vh' }}>
-            <img src={previewYumImage} alt="Yum Preview" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '16px', border: '2px solid #F59E0B' }} />
-            <button onClick={() => setPreviewYumImage(null)} style={{ position: 'absolute', top: '-12px', right: '-12px', background: '#F59E0B', color: '#000', border: 'none', borderRadius: '50%', width: '32px', height: '32px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
-          </div>
+        <div onClick={() => setPreviewYumImage(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px', cursor: 'pointer' }}>
+          <img src={previewYumImage} alt="Preview" style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '16px', border: '2px solid #2A2A3C', objectFit: 'contain' }} />
         </div>
       )}
 
-      {/* 🚪 DEPARTURE / CHECKOUT MODAL */}
-      {showCheckoutModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '400px', width: '100%', border: '2px solid #DC2626', boxShadow: '0 10px 30px rgba(220, 38, 38, 0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ marginBottom: '14px' }}>
-              <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#FF5500' }}>Leaving Park</h2>
-              <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#A0AEC0', fontWeight: '600' }}>Who is departing the park right now?</p>
-            </div>
-
-            {/* MEMBER TOGGLE LIST */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-              {activePartyList.map(member => {
-                const isLeaving = departingMembers.includes(member);
+      {/* 🚪 CHECKOUT MODAL */}
+      {showCheckoutModal && activeVisit && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
+          <div style={{ background: '#12121A', border: '1px solid #DC2626', borderRadius: '20px', padding: '20px', width: '100%', maxWidth: '380px', color: '#FFF' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '900', color: '#DC2626' }}>Who is Leaving the Park?</h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+              {activePartyList.map(m => {
+                const isLeaving = departingMembers.includes(m);
                 return (
-                  <button
-                    key={member}
-                    type="button"
-                    onClick={() => toggleDepartingMember(member)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      borderRadius: '16px',
-                      border: isLeaving ? '2px solid #DC2626' : '1px solid #2A2A3C',
-                      background: isLeaving ? '#2A0B0D' : '#1A1A26',
-                      color: isLeaving ? '#FF8888' : '#A0AEC0',
-                      fontSize: '14px',
-                      fontWeight: '800',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isLeaving ? '#FFF' : '#CBD5E0' }}>
-                      👤 {member}
-                    </span>
-                    <span>
-                      {isLeaving ? '🚪 Leaving' : '🎃 Staying'}
-                    </span>
+                  <button key={m} onClick={() => toggleDepartingMember(m)} style={{ padding: '6px 12px', borderRadius: '8px', border: isLeaving ? '1px solid #DC2626' : '1px solid #2A2A3C', background: isLeaving ? '#DC2626' : '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                    {m}
                   </button>
                 );
               })}
             </div>
-
-            {/* ACTION BUTTONS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => processCheckout('selected')}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  background: '#DC2626',
-                  color: '#FFF',
-                  border: 'none',
-                  borderRadius: '14px',
-                  fontSize: '15px',
-                  fontWeight: '900',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)'
-                }}
-              >
-                Check Out Selected ({departingMembers.length})
-              </button>
-
-              <button
-                type="button"
-                onClick={() => processCheckout('everyone')}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  background: '#1A1A26',
-                  color: '#CBD5E0',
-                  border: '1px solid #2A2A3C',
-                  borderRadius: '14px',
-                  fontSize: '14px',
-                  fontWeight: '800',
-                  cursor: 'pointer'
-                }}
-              >
-                Check Out Everyone
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowCheckoutModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#A0AEC0',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  padding: '6px 0',
-                  textAlign: 'center'
-                }}
-              >
-                Cancel
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button onClick={() => processCheckout('selected')} style={{ padding: '10px', background: '#DC2626', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Checkout Selected ({departingMembers.length})</button>
+              <button onClick={() => processCheckout('everyone')} style={{ padding: '10px', background: '#991B1B', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Checkout Everyone ({activePartyList.length})</button>
+              <button onClick={() => setShowCheckoutModal(false)} style={{ padding: '8px', background: 'none', color: '#A0AEC0', border: 'none', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
         </div>
@@ -384,57 +277,48 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
 
       {/* ✏️ EDIT VISIT HOURS MODAL */}
       {editingVisit && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '400px', width: '100%', border: '2px solid #FF5500', boxShadow: '0 10px 30px rgba(255, 85, 0, 0.3)', maxHeight: '85vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>✏️ Edit Visit Hours</h3>
-              <button onClick={() => setEditingVisit(null)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '20px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
-            </div>
-
-            <div style={{ fontSize: '13px', fontWeight: '800', color: '#CBD5E0', marginBottom: '12px' }}>
-              📅 {formatDisplayDate(editingVisit.visitDate)}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
+          <div style={{ background: '#12121A', border: '1px solid #FF5500', borderRadius: '20px', padding: '20px', width: '100%', maxWidth: '380px', color: '#FFF' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '900', color: '#FF5500' }}>Edit Visit Hours ({formatDisplayDate(editingVisit.visitDate)})</h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
               <div>
-                <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>ARRIVAL TIME</label>
-                <input type="text" value={editVisitStartTime} onChange={(e) => setEditVisitStartTime(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '10px', color: '#A0AEC0', fontWeight: 'bold' }}>START TIME</label>
+                <input type="text" value={editVisitStartTime} onChange={(e) => setEditVisitStartTime(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>FINAL DEPARTURE</label>
-                <input type="text" value={editVisitEndTime} onChange={(e) => setEditVisitEndTime(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', fontWeight: 'bold', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '10px', color: '#A0AEC0', fontWeight: 'bold' }}>END TIME</label>
+                <input type="text" value={editVisitEndTime} onChange={(e) => setEditVisitEndTime(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px', boxSizing: 'border-box' }} />
               </div>
             </div>
 
-            <div style={{ borderTop: '1px solid #2A2A3C', paddingTop: '10px', marginBottom: '16px' }}>
-              <label style={{ fontSize: '11px', fontWeight: '800', color: '#FF5500', display: 'block', marginBottom: '8px' }}>INDIVIDUAL DEPARTURES:</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {parseAttendees(editingVisit.attendees).map(m => (
-                  <div key={m} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#CBD5E0' }}>{m}</span>
-                    <input
-                      type="text"
-                      value={editVisitMemberEndTimes[m] || ''}
-                      onChange={(e) => setEditVisitMemberEndTimes({ ...editVisitMemberEndTimes, [m]: e.target.value })}
-                      placeholder={editVisitEndTime || '12:00 AM'}
-                      style={{ width: '110px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '12px' }}
-                    />
-                  </div>
-                ))}
-              </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ fontSize: '10px', color: '#A0AEC0', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>INDIVIDUAL DEPARTURES</label>
+              {parseAttendees(editingVisit.attendees).map(m => (
+                <div key={m} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '11px' }}>{m}:</span>
+                  <input
+                    type="text"
+                    value={editVisitMemberEndTimes[m] || editVisitEndTime}
+                    onChange={(e) => setEditVisitMemberEndTimes({ ...editVisitMemberEndTimes, [m]: e.target.value })}
+                    style={{ width: '100px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '11px', textAlign: 'right' }}
+                  />
+                </div>
+              ))}
             </div>
 
-            <button onClick={handleSaveVisitEdit} style={{ width: '100%', padding: '12px', background: '#FF5500', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: '900', fontSize: '13px', cursor: 'pointer' }}>
-              Save Visit Hours
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setEditingVisit(null)} style={{ flex: 1, padding: '8px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSaveVisitEdit} style={{ flex: 1, padding: '8px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Save</button>
+            </div>
           </div>
         </div>
       )}
 
-{/* ADD LATE ARRIVALS MODAL */}
+      {/* 👥 ADD LATE ARRIVALS MODAL */}
       {showAddPartyModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div style={{ background: '#12121A', border: '1px solid #2A2A3C', borderRadius: '20px', padding: '20px', width: '100%', maxWidth: '400px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
+          <div style={{ background: '#12121A', border: '1px solid #2A2A3C', borderRadius: '20px', padding: '20px', width: '100%', maxWidth: '400px', color: '#FFF' }}>
             <h3 style={{ margin: '0 0 14px 0', fontSize: '16px', fontWeight: '900', color: '#FF5500' }}>Add People to Party</h3>
 
             <div style={{ marginBottom: '16px' }}>
@@ -476,4 +360,6 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
           </div>
         </div>
       )}
+    </div>
+  );
 };
