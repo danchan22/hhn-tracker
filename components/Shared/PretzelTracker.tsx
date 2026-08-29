@@ -27,6 +27,18 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
   const [selectedType, setSelectedType] = useState<'regular' | 'cinnamon'>('regular');
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Restore from LocalStorage first, then fetch cloud data
+  useEffect(() => {
+    const local = localStorage.getItem('hhn_pretzel_member_logs');
+    if (local) {
+      try {
+        const parsed = JSON.parse(local);
+        setMemberLogs(prev => ({ ...prev, ...parsed }));
+      } catch (e) {}
+    }
+    fetchPretzelLogs();
+  }, []);
+
   const fetchPretzelLogs = async () => {
     try {
       const supabase = getSupabase();
@@ -34,7 +46,7 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
         .from('global_trackers')
         .select('*')
         .eq('id', 'hhn_pretzels')
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
         let parsedLogs = data.member_logs;
@@ -53,16 +65,13 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
             };
           });
           setMemberLogs(counts);
+          localStorage.setItem('hhn_pretzel_member_logs', JSON.stringify(counts));
         }
       }
     } catch (e) {
       console.warn("Pretzel fetch error:", e);
     }
   };
-
-  useEffect(() => {
-    fetchPretzelLogs();
-  }, []);
 
   const handleUpdatePretzel = async (delta: number) => {
     if (loading) return;
@@ -82,12 +91,14 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
     const totalReg = Object.values(updatedLogs).reduce((s, m) => s + (m.regular || 0), 0);
     const totalCin = Object.values(updatedLogs).reduce((s, m) => s + (m.cinnamon || 0), 0);
 
-    // Optimistic state update
+    // 1. Instant local UI update & LocalStorage persistence
     setMemberLogs(updatedLogs);
+    localStorage.setItem('hhn_pretzel_member_logs', JSON.stringify(updatedLogs));
 
+    // 2. Supabase Cloud Sync
     try {
       const supabase = getSupabase();
-      const { error } = await supabase
+      await supabase
         .from('global_trackers')
         .upsert(
           {
@@ -99,10 +110,6 @@ export const PretzelTracker: React.FC<PretzelTrackerProps> = () => {
           },
           { onConflict: 'id' }
         );
-
-      if (error) {
-        console.error("Supabase pretzel save error:", error.message);
-      }
     } catch (e) {
       console.error("Error saving pretzel log to database:", e);
     } finally {
