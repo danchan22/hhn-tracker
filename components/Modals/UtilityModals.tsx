@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-interface UtilityModalsProps {
+export interface UtilityModalsProps {
   weatherLoading: boolean;
   hourlyForecast: Array<{ hourLabel: string; temp: number; pop: number }>;
   showAiTriviaModal: boolean;
@@ -18,12 +18,12 @@ interface UtilityModalsProps {
   newHighScorePending: boolean;
   recordClaimName: string;
   setRecordClaimName: (name: string) => void;
-  saveNewHighScoreRecord: () => Promise<void>;
+  saveNewHighScoreRecord: () => void;
   triviaError: string | null;
   triviaLoading: boolean;
   currentQuestion: any;
   selectedOption: string | null;
-  handleTriviaAnswerSelection: (option: string) => void;
+  handleTriviaAnswerSelection: (opt: string) => void;
   handleNextTriviaQuestion: () => void;
   triviaDeck: any[];
   activeLearnMoreGame: any;
@@ -37,7 +37,7 @@ interface UtilityModalsProps {
   activePartyList: string[];
   departingMembers: string[];
   toggleDepartingMember: (name: string) => void;
-  processCheckout: (type: 'selected' | 'everyone') => Promise<void>;
+  processCheckout: (type: 'selected' | 'everyone') => void;
   editingVisit: any;
   setEditingVisit: (v: any) => void;
   editVisitStartTime: string;
@@ -46,18 +46,18 @@ interface UtilityModalsProps {
   setEditVisitEndTime: (t: string) => void;
   editVisitMemberEndTimes: Record<string, string>;
   setEditVisitMemberEndTimes: (val: Record<string, string>) => void;
-  handleSaveVisitEdit: () => Promise<void>;
+  handleSaveVisitEdit: () => void;
   formatDisplayDate: (d: string) => string;
   parseAttendees: (raw: any) => string[];
   familyMembers: string[];
   showAddPartyModal: boolean;
   setShowAddPartyModal: (v: boolean) => void;
   availableToJoin: string[];
-  lateArrivalMember: string;
-  setLateArrivalMember: (m: string) => void;
+  selectedLateMembers: string[];
+  toggleLateArrivalMember: (name: string) => void;
   lateArrivalTime: string;
   setLateArrivalTime: (t: string) => void;
-  handleAddLateArrival: () => Promise<void>;
+  handleAddLateArrivals: () => void;
 }
 
 export const UtilityModals: React.FC<UtilityModalsProps> = ({
@@ -431,45 +431,49 @@ export const UtilityModals: React.FC<UtilityModalsProps> = ({
         </div>
       )}
 
-      {/* ➕ ADD LATE ARRIVAL MODAL */}
+{/* ADD LATE ARRIVALS MODAL */}
       {showAddPartyModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '16px' }}>
-          <div style={{ background: '#12121A', borderRadius: '24px', padding: '22px', maxWidth: '380px', width: '100%', border: '2px solid #FF5500', boxShadow: '0 10px 30px rgba(255, 85, 0, 0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>➕ Someone Arrived Late?</h3>
-              <button onClick={() => setShowAddPartyModal(false)} style={{ background: 'none', border: 'none', color: '#A0AEC0', fontSize: '20px', fontWeight: '900', cursor: 'pointer' }}>✕</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+          <div style={{ background: '#12121A', border: '1px solid #2A2A3C', borderRadius: '20px', padding: '20px', width: '100%', maxWidth: '400px' }}>
+            <h3 style={{ margin: '0 0 14px 0', fontSize: '16px', fontWeight: '900', color: '#FF5500' }}>Add People to Party</h3>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '8px' }}>WHO'S JOINING?</label>
+              {availableToJoin.length === 0 ? (
+                <p style={{ fontSize: '12px', color: '#718096', fontStyle: 'italic' }}>Everyone in your group is already checked in!</p>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                  {availableToJoin.map(name => {
+                    const isSelected = selectedLateMembers.includes(name);
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => toggleLateArrivalMember(name)}
+                        style={{
+                          padding: '8px 4px',
+                          borderRadius: '8px',
+                          border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C',
+                          background: isSelected ? '#FF5500' : '#1A1A26',
+                          color: '#FFF',
+                          fontSize: '12px',
+                          fontWeight: '800',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {availableToJoin.length === 0 ? (
-              <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', textAlign: 'center', margin: '20px 0' }}>Everyone in the family is already in the park!</p>
-            ) : (
-              <>
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>WHO ARRIVED?</label>
-                  <select value={lateArrivalMember} onChange={(e) => setLateArrivalMember(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px', fontWeight: 'bold' }}>
-                    {availableToJoin.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-
-                <div style={{ marginBottom: '18px' }}>
-                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>ARRIVAL TIME</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 8:15 PM"
-                    value={lateArrivalTime}
-                    onChange={(e) => setLateArrivalTime(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px', fontWeight: 'bold', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <button onClick={handleAddLateArrival} style={{ width: '100%', padding: '12px', background: '#FF5500', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: '900', fontSize: '14px', cursor: 'pointer' }}>
-                  Add to Active Party
-                </button>
-              </>
-            )}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setShowAddPartyModal(false)} style={{ flex: 1, padding: '10px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleAddLateArrivals} disabled={selectedLateMembers.length === 0} style={{ flex: 1, padding: '10px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: selectedLateMembers.length === 0 ? 'not-allowed' : 'pointer', opacity: selectedLateMembers.length === 0 ? 0.5 : 1 }}>Add Selected</button>
+            </div>
           </div>
         </div>
       )}
-    </div>
-  );
 };
