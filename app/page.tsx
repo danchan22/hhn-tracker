@@ -24,6 +24,118 @@ const getSupabase = () => {
   return supabaseInstance;
 };
 
+// --- HELPER FUNCTIONS ---
+const normalizeStr = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const parseAttendees = (raw: string | string[] | undefined): string[] => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map(s => s.trim()).filter(Boolean);
+  const attendeesPart = raw.split('|ENDTIMES:')[0].split('|STARTTIMES:')[0];
+  return attendeesPart.split(',').map(s => s.trim()).filter(Boolean);
+};
+
+const parseMemberEndTimes = (raw: any, notes?: string): Record<string, string> => {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    if (raw.includes('|ENDTIMES:')) {
+      try {
+        const jsonStr = raw.split('|ENDTIMES:')[1];
+        return JSON.parse(jsonStr);
+      } catch (e) {}
+    }
+    if (raw.trim().startsWith('{')) {
+      try { return JSON.parse(raw); } catch (e) {}
+    }
+  }
+  if (notes && typeof notes === 'string' && notes.trim().startsWith('{')) {
+    try { return JSON.parse(notes); } catch (e) {}
+  }
+  return {};
+};
+
+const parsePostedWait = (notes?: string): number | null => {
+  if (!notes) return null;
+  const match = notes.match(/Posted:\s*(\d+)m/i);
+  return match ? parseInt(match[1], 10) : null;
+};
+
+const getRecent6AMCutoffISO = () => {
+  const now = new Date();
+  const cutoff = new Date(now);
+  if (now.getHours() < 6) {
+    cutoff.setDate(cutoff.getDate() - 1);
+  }
+  cutoff.setHours(6, 0, 0, 0);
+  return cutoff.toISOString();
+};
+
+const getHouseAverages = (houseName: string, ratings: HouseRating[], attendeeFilter: string) => {
+  let houseRatings = ratings.filter(r => r.house_name === houseName);
+  if (attendeeFilter !== 'Everyone') {
+    houseRatings = houseRatings.filter(r => r.author_name === attendeeFilter);
+  }
+
+  if (houseRatings.length === 0) return null;
+
+  const overallAvg = houseRatings.reduce((s, r) => s + Number(r.overall_rating), 0) / houseRatings.length;
+  const scareAvg = houseRatings.reduce((s, r) => s + Number(r.scare_rating), 0) / houseRatings.length;
+  const coolAvg = houseRatings.reduce((s, r) => s + Number(r.cool_rating), 0) / houseRatings.length;
+
+  return {
+    count: houseRatings.length,
+    overall: overallAvg.toFixed(1),
+    scare: scareAvg.toFixed(1),
+    cool: coolAvg.toFixed(1)
+  };
+};
+
+const getWaitBoxStyle = (minutes: number) => {
+  if (minutes < 0) {
+    return {
+      bg: 'rgba(15, 23, 42, 0.9)',
+      border: '#3B82F6',
+      titleColor: '#94A3B8',
+      numColor: '#60A5FA'
+    };
+  }
+  if (minutes <= 30) {
+    return {
+      bg: '#15803D',
+      border: '#22C55E',
+      titleColor: '#FFFFFF',
+      numColor: '#FFFFFF'
+    };
+  } else if (minutes <= 45) {
+    return {
+      bg: 'rgba(26, 26, 38, 0.85)',
+      border: '#2A2A3C',
+      titleColor: '#A0AEC0',
+      numColor: '#22C55E'
+    };
+  } else if (minutes <= 60) {
+    return {
+      bg: 'rgba(26, 26, 38, 0.85)',
+      border: '#2A2A3C',
+      titleColor: '#A0AEC0',
+      numColor: '#EAB308'
+    };
+  } else if (minutes <= 90) {
+    return {
+      bg: 'rgba(26, 26, 38, 0.85)',
+      border: '#2A2A3C',
+      titleColor: '#A0AEC0',
+      numColor: '#F97316'
+    };
+  } else {
+    return {
+      bg: 'rgba(26, 26, 38, 0.85)',
+      border: '#2A2A3C',
+      titleColor: '#A0AEC0',
+      numColor: '#EF4444'
+    };
+  }
+};
+
 interface Activity {
   id: string;
   visit_id: string;
@@ -188,7 +300,7 @@ const HOUSE_GRID_LAYOUT = [
   [
     { name: 'Oddfellow', apiKey: 'Jack & Oddfellow' },
     { name: 'Bloodengutz', apiKey: 'H.R. Bloodengutz' },
-    { name: 'Cannibals', apiKey: 'Madlands: Caged Cannibals' }
+    { name: 'Madlands', apiKey: 'Madlands: Caged Cannibals' }
   ]
 ];
 
@@ -222,16 +334,6 @@ const ITEM_EMOJIS: Record<string, string> = {
   'Nightmare Fuel: Blood Noir': '🔥',
   'Stranger Things (Lagoon Show)': '🌊'
 };
-
-const YUM_LOCATIONS = [
-  'Jack’s Circus Surplus',
-  'Oddfellow’s Menagerie',
-  'Devil Food Booth',
-  'WSQK',
-  'Meetz Meats',
-  'Hellraiser Food Truck',
-  'Animal Actors'
-];
 
 const ACCENT_COLORS = [
   '#FF5500', '#3B82F6', '#10B981', '#A855F7', '#F59E0B', '#EC4899', '#06B6D4', '#E11D48', '#8B5CF6'
@@ -487,7 +589,7 @@ const HHN_MAP_LOCATIONS = [
   { id: 'water-6', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.47998, lng: -81.46766 },
   { id: 'water-7', name: 'Water Station', shortName: '💧', category: 'water', lat: 28.48017, lng: -81.46787 },
 
-// FOOD & BEVERAGE BOOTHS
+  // FOOD & BEVERAGE BOOTHS
   { id: 'schwabs', name: 'Schwab’s', shortName: 'Schwab’s', category: 'food', yumLocation: 'Schwab', lat: 28.47562532024065, lng: -81.46747333515259 },
   { id: 'maloneys-food', name: 'Maloney’s', shortName: 'Maloney’s', category: 'food', yumLocation: 'Maloney', lat: 28.476897079538272, lng: -81.4681881076738 },
   { id: 'sinners-food', name: 'Sinners Food Booth', shortName: 'Sinners Food', category: 'food', yumLocation: 'Sinners', lat: 28.477272843772493, lng: -81.4676205821814 },
@@ -516,84 +618,20 @@ const HHN_MAP_LOCATIONS = [
 const EVENING_HOURS = [18, 19, 20, 21, 22, 23];
 
 const INITIAL_MOCK_WAITS: Record<string, number> = {
-  'Sinners': 67,
-  'Hellraiser': 67,
-  'Ozzy Osbourne': 67,
-  'Stranger Things 5': 67,
-  'Evil Dead Burn': 67,
-  'Jack & Oddfellow': 67,
-  'H.R. Bloodengutz': 67,
-  'Cybergoria': 67,
-  'Madlands: Caged Cannibals': 67,
-  'INVASION: Alien Abduction': 67,
-  'Men in Black: Alien Attack': 67,
-  'Transformers: The Ride-3D': 67,
-  'Harry Potter and the Escape from Gringotts': 67,
-  'Revenge of the Mummy': 67
-};
-
-const normalizeStr = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
-const parseAttendees = (raw: string | string[] | undefined): string[] => {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw.map(s => s.trim()).filter(Boolean);
-  const attendeesPart = raw.split('|ENDTIMES:')[0];
-  return attendeesPart.split(',').map(s => s.trim()).filter(Boolean);
-};
-
-const parseMemberEndTimes = (raw: any, notes?: string): Record<string, string> => {
-  if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw;
-  if (typeof raw === 'string') {
-    if (raw.includes('|ENDTIMES:')) {
-      try {
-        const jsonStr = raw.split('|ENDTIMES:')[1];
-        return JSON.parse(jsonStr);
-      } catch (e) {}
-    }
-    if (raw.trim().startsWith('{')) {
-      try { return JSON.parse(raw); } catch (e) {}
-    }
-  }
-  if (notes && typeof notes === 'string' && notes.trim().startsWith('{')) {
-    try { return JSON.parse(notes); } catch (e) {}
-  }
-  return {};
-};
-
-const parsePostedWait = (notes?: string): number | null => {
-  if (!notes) return null;
-  const match = notes.match(/Posted:\s*(\d+)m/i);
-  return match ? parseInt(match[1], 10) : null;
-};
-
-const getRecent6AMCutoffISO = () => {
-  const now = new Date();
-  const cutoff = new Date(now);
-  if (now.getHours() < 6) {
-    cutoff.setDate(cutoff.getDate() - 1);
-  }
-  cutoff.setHours(6, 0, 0, 0);
-  return cutoff.toISOString();
-};
-
-const getHouseAverages = (houseName: string, ratings: HouseRating[], attendeeFilter: string) => {
-  let houseRatings = ratings.filter(r => r.house_name === houseName);
-  if (attendeeFilter !== 'Everyone') {
-    houseRatings = houseRatings.filter(r => r.author_name === attendeeFilter);
-  }
-
-  if (houseRatings.length === 0) return null;
-
-  const overallAvg = houseRatings.reduce((s, r) => s + Number(r.overall_rating), 0) / houseRatings.length;
-  const scareAvg = houseRatings.reduce((s, r) => s + Number(r.scare_rating), 0) / houseRatings.length;
-  const coolAvg = houseRatings.reduce((s, r) => s + Number(r.cool_rating), 0) / houseRatings.length;
-
-  return {
-    count: houseRatings.length,
-    overall: overallAvg.toFixed(1),
-    scare: scareAvg.toFixed(1),
-    cool: coolAvg.toFixed(1)
-  };
+  'Sinners': 25,
+  'Hellraiser': 40,
+  'Ozzy Osbourne': 55,
+  'Stranger Things 5': 75,
+  'Evil Dead Burn': 95,
+  'Jack & Oddfellow': 30,
+  'H.R. Bloodengutz': 45,
+  'Cybergoria': 20,
+  'Madlands: Caged Cannibals': 65,
+  'INVASION: Alien Abduction': 35,
+  'Men in Black: Alien Attack': 15,
+  'Transformers: The Ride-3D': 25,
+  'Harry Potter and the Escape from Gringotts': 50,
+  'Revenge of the Mummy': 35
 };
 
 export default function HorrorNightsTracker() {
@@ -613,14 +651,6 @@ export default function HorrorNightsTracker() {
   const [hasCenteredUserMap, setHasCenteredUserMap] = useState<boolean>(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState<boolean>(false);
 
-// GLOBAL MAP TO YUM NAVIGATION HELPER
-  useEffect(() => {
-    (window as any).navigateToYumLocation = (locationName: string) => {
-      setSelectedYumLocation(locationName);
-      setMainTab('yum');
-    };
-  }, []);
-  
   // Parking Form States
   const [parkingAttendees, setParkingAttendees] = useState<string[]>([]);
   const [parkingGarage, setParkingGarage] = useState<string>(PARKING_GARAGES[0].name);
@@ -635,6 +665,14 @@ export default function HorrorNightsTracker() {
   const [yumSortBy, setYumSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'name-asc' | 'location-asc'>('default');
   const [yumSearchQuery, setYumSearchQuery] = useState<string>('');
   const [previewYumImage, setPreviewYumImage] = useState<string | null>(null);
+
+  // GLOBAL MAP TO YUM NAVIGATION HELPER
+  useEffect(() => {
+    (window as any).navigateToYumLocation = (locationName: string) => {
+      setSelectedYumLocation(locationName);
+      setMainTab('yum');
+    };
+  }, []);
 
   const dynamicYumLocations = useMemo(() => {
     const set = new Set<string>();
@@ -655,11 +693,6 @@ export default function HorrorNightsTracker() {
   const [commentAuthor, setCommentAuthor] = useState<string>('Dan');
   const [commentTextInput, setCommentTextInput] = useState<string>('');
   const [submittingComment, setSubmittingComment] = useState<boolean>(false);
-
-  // Pretzel Tracker States
-  const [regularPretzels, setRegularPretzels] = useState<number>(0);
-  const [cinnamonPretzels, setCinnamonPretzels] = useState<number>(0);
-  const [pretzelsSyncing, setPretzelsSyncing] = useState<boolean>(false);
 
   // Analytics Sort States
   const [analyticsSortKey, setAnalyticsSortKey] = useState<AnalyticsSortKey>('visits');
@@ -702,7 +735,7 @@ export default function HorrorNightsTracker() {
 
   // Late Arrival State
   const [showAddPartyModal, setShowAddPartyModal] = useState<boolean>(false);
-  const [lateArrivalMember, setLateArrivalMember] = useState<string>('');
+  const [selectedLateMembers, setSelectedLateMembers] = useState<string[]>([]);
   const [lateArrivalTime, setLateArrivalTime] = useState<string>('');
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -722,6 +755,7 @@ export default function HorrorNightsTracker() {
   // Track Activity States
   const [rideName, setRideName] = useState(HHN_HOUSES[0]);
   const [postedWaitTime, setPostedWaitTime] = useState('');
+  const [lockedPostedWaitTime, setLockedPostedWaitTime] = useState<string | null>(null);
   const [waitTime, setWaitTime] = useState('');
   const [selectedRiders, setSelectedRiders] = useState<string[]>([]);
 
@@ -732,7 +766,7 @@ export default function HorrorNightsTracker() {
   const [editLivePostedWait, setEditLivePostedWait] = useState<string>('');
   const [editLiveActualWait, setEditLiveActualWait] = useState<string>('');
 
-  // Timer State
+  // Timer State with LocalStorage Crash Resilience
   const [queueStartTimestamp, setQueueStartTimestamp] = useState<number | null>(null);
   const [queueStartTimeStr, setQueueStartTimeStr] = useState<string | null>(null);
   const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now());
@@ -777,40 +811,41 @@ export default function HorrorNightsTracker() {
   }, [activeVisit]);
 
   useEffect(() => {
-    if (availableToJoin.length > 0) {
-      setLateArrivalMember(availableToJoin[0]);
-    }
-  }, [availableToJoin]);
-
-  useEffect(() => {
     if (showAddPartyModal) {
       const now = new Date();
       setLateArrivalTime(now.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' }));
     }
   }, [showAddPartyModal]);
 
-  const handleAddLateArrival = async () => {
-    if (!activeVisit || !lateArrivalMember) return;
+  const toggleLateArrivalMember = (name: string) => {
+    if (selectedLateMembers.includes(name)) {
+      setSelectedLateMembers(selectedLateMembers.filter(m => m !== name));
+    } else {
+      setSelectedLateMembers([...selectedLateMembers, name]);
+    }
+  };
+
+  const handleAddLateArrivals = async () => {
+    if (!activeVisit || selectedLateMembers.length === 0) return;
 
     const currentAttendees = parseAttendees(activeVisit.attendees);
-    if (currentAttendees.includes(lateArrivalMember)) return;
-
-    const updatedAttendees = [...currentAttendees, lateArrivalMember].join(', ');
+    const newAttendeesList = Array.from(new Set([...currentAttendees, ...selectedLateMembers]));
 
     const supabase = getSupabase();
     const { error } = await supabase
       .from('visits')
       .update({
-        attendees: updatedAttendees
+        attendees: newAttendeesList.join(', ')
       })
       .eq('id', activeVisit.id);
 
     if (error) {
-      alert("Error adding late arrival: " + error.message);
+      alert("Error adding late arrivals: " + error.message);
       return;
     }
 
     setShowAddPartyModal(false);
+    setSelectedLateMembers([]);
     await fetchCloudVisits();
   };
 
@@ -907,6 +942,18 @@ export default function HorrorNightsTracker() {
     }
   }, [activeVisit, activePartyList.length]);
 
+  // RESTORE LIVE TIMER FROM LOCAL STORAGE IF SIGNAL WAS LOST / REFRESHED
+  useEffect(() => {
+    const savedStart = localStorage.getItem('hhn_queue_start_ts');
+    const savedStr = localStorage.getItem('hhn_queue_start_str');
+    const savedLockedWait = localStorage.getItem('hhn_queue_locked_wait');
+    if (savedStart && savedStr) {
+      setQueueStartTimestamp(Number(savedStart));
+      setQueueStartTimeStr(savedStr);
+      if (savedLockedWait) setLockedPostedWaitTime(savedLockedWait);
+    }
+  }, []);
+
   useEffect(() => {
     let interval: any;
     if (queueStartTimestamp) {
@@ -922,7 +969,6 @@ export default function HorrorNightsTracker() {
     fetchLiveWeather();
     fetchThemeParkWaitTimes();
     fetchYumComments();
-    fetchPretzelCounts();
     fetchParkingLogs(); 
     fetchHouseRatings();
     fetchYumItems();
@@ -940,10 +986,12 @@ export default function HorrorNightsTracker() {
   }, []);
 
   useEffect(() => {
-    if (rideName && liveWaitTimes[rideName] !== undefined) {
-      setPostedWaitTime(liveWaitTimes[rideName].toString());
+    // DO NOT OVERWRITE POSTED WAIT TIME IF LOCKED IN LINE
+    if (!queueStartTimestamp && rideName && liveWaitTimes[rideName] !== undefined) {
+      const waitVal = liveWaitTimes[rideName];
+      setPostedWaitTime(waitVal >= 0 ? waitVal.toString() : '');
     }
-  }, [rideName, liveWaitTimes]);
+  }, [rideName, liveWaitTimes, queueStartTimestamp]);
 
   useEffect(() => {
     if (mainTab === 'map' && leafletMapRef.current) {
@@ -960,7 +1008,7 @@ export default function HorrorNightsTracker() {
     }
   }, [mainTab, isMapFullscreen]);
 
-useEffect(() => {
+  useEffect(() => {
     if (mainTab !== 'map' || !mapContainerRef.current) return;
 
     if (!document.getElementById('leaflet-css')) {
@@ -1054,7 +1102,7 @@ useEffect(() => {
         const popupContent = `
           <div style="color: #000; font-family: sans-serif; padding: 4px; text-align: center;">
             <strong style="font-size: 14px; color: #FF5500; display: block; margin-bottom: 4px;">${poi.name}</strong>
-            ${waitMins !== null ? `<div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">⏱️ Current Wait: <span style="color: #FF5500;">${waitMins} mins</span></div>` : ''}
+            ${waitMins !== null ? `<div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">⏱️ Current Wait: <span style="color: #FF5500;">${waitMins < 0 ? 'Closed' : `${waitMins} mins`}</span></div>` : ''}
             ${poi.category === 'food' ? `
               <button
                 onclick="window.navigateToYumLocation('${poi.yumLocation || poi.name}')"
@@ -1094,90 +1142,41 @@ useEffect(() => {
     }
   };
 
-const fetchThemeParkWaitTimes = async () => {
-  setWaitsSyncing(true);
-  try {
-    const res = await fetch('https://api.themeparks.wiki/v1/entity/eb3f4560-2383-4a36-9152-6b3e5ed6bc57/live');
-    if (res.ok) {
-      const data = await res.json();
-      const liveList = data?.liveData || [];
-      const updated: Record<string, number> = { ...liveWaitTimes };
+  const fetchThemeParkWaitTimes = async () => {
+    setWaitsSyncing(true);
+    try {
+      const res = await fetch('https://api.themeparks.wiki/v1/entity/eb3f4560-2383-4a36-9152-6b3e5ed6bc57/live');
+      if (res.ok) {
+        const data = await res.json();
+        const liveList = data?.liveData || [];
+        const updated: Record<string, number> = { ...liveWaitTimes };
 
-      liveList.forEach((item: any) => {
-        const name = item.name;
-        const standby = item.queue?.STANDBY;
-        const isOpen = item.status === 'OPERATING' && standby?.isOpen !== false;
-        const wait = standby?.waitTime ?? item.waitTime ?? 0;
-        
-        // Use -1 to represent Closed
-        const finalValue = isOpen ? wait : -1;
+        liveList.forEach((item: any) => {
+          const name = item.name;
+          const standby = item.queue?.STANDBY;
+          const isOpen = item.status === 'OPERATING' && standby?.isOpen !== false;
+          const wait = standby?.waitTime ?? item.waitTime ?? 0;
+          
+          const finalValue = isOpen ? wait : -1;
 
-        if (name) {
-          const normName = normalizeStr(name);
-          Object.keys(INITIAL_MOCK_WAITS).forEach(key => {
-            const normKey = normalizeStr(key);
-            if (normName.includes(normKey) || normKey.includes(normName)) {
-              updated[key] = finalValue;
-            }
-          });
-        }
-      });
-      setLiveWaitTimes(updated);
+          if (name) {
+            const normName = normalizeStr(name);
+            Object.keys(INITIAL_MOCK_WAITS).forEach(key => {
+              const normKey = normalizeStr(key);
+              if (normName.includes(normKey) || normKey.includes(normName)) {
+                updated[key] = finalValue;
+              }
+            });
+          }
+        });
+        setLiveWaitTimes(updated);
+      }
+    } catch (e) {
+      console.warn("ThemeParks API sync error, keeping current wait times:", e);
+    } finally {
+      setWaitsSyncing(false);
     }
-  } catch (e) {
-    console.warn("ThemeParks API sync error, keeping current wait times:", e);
-  } finally {
-    setWaitsSyncing(false);
-  }
-};
-
-const getWaitBoxStyle = (minutes: number) => {
-  // 🚫 CLOSED ATTRACTION STYLE (Navy Blue)
-  if (minutes < 0) {
-    return {
-      bg: 'rgba(15, 23, 42, 0.9)',
-      border: '#3B82F6',
-      titleColor: '#94A3B8',
-      numColor: '#60A5FA'
-    };
-  }
-  if (minutes <= 30) {
-    return {
-      bg: '#15803D',
-      border: '#22C55E',
-      titleColor: '#FFFFFF',
-      numColor: '#FFFFFF'
-    };
-  } else if (minutes <= 45) {
-    return {
-      bg: 'rgba(26, 26, 38, 0.85)',
-      border: '#2A2A3C',
-      titleColor: '#A0AEC0',
-      numColor: '#22C55E'
-    };
-  } else if (minutes <= 60) {
-    return {
-      bg: 'rgba(26, 26, 38, 0.85)',
-      border: '#2A2A3C',
-      titleColor: '#A0AEC0',
-      numColor: '#EAB308'
-    };
-  } else if (minutes <= 90) {
-    return {
-      bg: 'rgba(26, 26, 38, 0.85)',
-      border: '#2A2A3C',
-      titleColor: '#A0AEC0',
-      numColor: '#F97316'
-    };
-  } else {
-    return {
-      bg: 'rgba(26, 26, 38, 0.85)',
-      border: '#2A2A3C',
-      titleColor: '#A0AEC0',
-      numColor: '#EF4444'
-    };
-  }
-};
+  };
 
   const fetchLiveWeather = async () => {
     setWeatherLoading(true);
@@ -1254,7 +1253,6 @@ const getWaitBoxStyle = (minutes: number) => {
           };
         });
 
-        // Always sort newest visits at the top cleanly
         formattedVisits.sort((a, b) => {
           const timeA = parseTimeToMinutes(a.startTime);
           const timeB = parseTimeToMinutes(b.startTime);
@@ -1315,7 +1313,7 @@ const getWaitBoxStyle = (minutes: number) => {
     }
 
     setParkingSaving(true);
-    const parkedByStr = parkingAttendees.length > 0 ? parkingAttendees.join(', ') : 'Just Me';
+    const parkedByStr = parkingAttendees.length > 0 ? parkingAttendees.join(', ') : 'Dan';
 
     try {
       const supabase = getSupabase();
@@ -1348,49 +1346,6 @@ const getWaitBoxStyle = (minutes: number) => {
       setParkingAttendees(parkingAttendees.filter(a => a !== name));
     } else {
       setParkingAttendees([...parkingAttendees, name]);
-    }
-  };
-
-  const fetchPretzelCounts = async () => {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from('global_trackers')
-        .select('*')
-        .eq('id', 'hhn_pretzels')
-        .single();
-
-      if (!error && data) {
-        setRegularPretzels(data.regular_pretzels || 0);
-        setCinnamonPretzels(data.cinnamon_pretzels || 0);
-      }
-    } catch (e) {}
-  };
-
-  const updatePretzelCount = async (type: 'regular' | 'cinnamon', delta: number) => {
-    if (pretzelsSyncing) return;
-
-    const newReg = type === 'regular' ? Math.max(0, regularPretzels + delta) : regularPretzels;
-    const newCin = type === 'cinnamon' ? Math.max(0, cinnamonPretzels + delta) : cinnamonPretzels;
-
-    setRegularPretzels(newReg);
-    setCinnamonPretzels(newCin);
-    setPretzelsSyncing(true);
-
-    try {
-      const supabase = getSupabase();
-      await supabase
-        .from('global_trackers')
-        .upsert({
-          id: 'hhn_pretzels',
-          regular_pretzels: newReg,
-          cinnamon_pretzels: newCin,
-          updated_at: new Date().toISOString()
-        });
-    } catch (e) {
-      console.warn("Pretzel sync error:", e);
-    } finally {
-      setPretzelsSyncing(false);
     }
   };
 
@@ -1596,7 +1551,6 @@ const getWaitBoxStyle = (minutes: number) => {
 
   const filteredYumItems = useMemo(() => {
     let items = yumItems.filter(item => {
-      // Search Input Filter
       if (yumSearchQuery.trim()) {
         const q = yumSearchQuery.toLowerCase();
         const nameMatch = (item.name || '').toLowerCase().includes(q);
@@ -1605,7 +1559,6 @@ const getWaitBoxStyle = (minutes: number) => {
         if (!nameMatch && !descMatch && !locMatch) return false;
       }
 
-      // Location Filter with Multi-booth string check
       if (selectedYumLocation !== 'All Locations' && !(item.location || '').includes(selectedYumLocation)) return false;
 
       if (yumCategoryFilter === 'food') return item.isFood;
@@ -1620,7 +1573,7 @@ const getWaitBoxStyle = (minutes: number) => {
     else if (yumSortBy === 'price-desc') items.sort((a, b) => b.rawPrice - a.rawPrice);
     else if (yumSortBy === 'name-asc') items.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     else if (yumSortBy === 'location-asc') items.sort((a, b) => (a.location || '').localeCompare(b.location || ''));
-    else items.sort((a, b) => String(a.id || '').localeCompare(String(b.id || ''), undefined, { numeric: true })); // Default sort by ID
+    else items.sort((a, b) => String(a.id || '').localeCompare(String(b.id || ''), undefined, { numeric: true }));
 
     return items;
   }, [yumItems, yumCategoryFilter, selectedYumLocation, yumSortBy, yumSearchQuery]);
@@ -1735,8 +1688,6 @@ const getWaitBoxStyle = (minutes: number) => {
     }
     return v.endTime || '';
   };
-
-
 
   const allCompletedActivities = useMemo(() => {
     return visits.flatMap(v => v.activities.map(a => ({ ...a, visitDate: v.visitDate })));
@@ -2001,7 +1952,7 @@ const getWaitBoxStyle = (minutes: number) => {
     const localDate = now.toLocaleDateString('en-CA');
     const localTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
 
-    const newAttendeesList = selectedAttendees.length > 0 ? selectedAttendees : ['Just Me'];
+    const newAttendeesList = selectedAttendees.length > 0 ? selectedAttendees : ['Dan'];
     const attendeesDbStr = newAttendeesList.join(', ');
 
     const supabase = getSupabase();
@@ -2078,11 +2029,25 @@ const getWaitBoxStyle = (minutes: number) => {
     setPostedWaitTime('');
   };
 
+  // LOCK IN POSTED WAIT TIME & PERSIST TIMER TO LOCAL STORAGE
   const handleStartQueueTimer = () => {
     const now = new Date();
     const timeString = now.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' });
-    setQueueStartTimestamp(now.getTime());
+    const ts = now.getTime();
+
+    setQueueStartTimestamp(ts);
     setQueueStartTimeStr(timeString);
+    setLockedPostedWaitTime(postedWaitTime);
+
+    localStorage.setItem('hhn_queue_start_ts', ts.toString());
+    localStorage.setItem('hhn_queue_start_str', timeString);
+    localStorage.setItem('hhn_queue_locked_wait', postedWaitTime);
+  };
+
+  const clearQueueTimerStorage = () => {
+    localStorage.removeItem('hhn_queue_start_ts');
+    localStorage.removeItem('hhn_queue_start_str');
+    localStorage.removeItem('hhn_queue_locked_wait');
   };
 
   const handleEndQueueTimer = async () => {
@@ -2092,7 +2057,9 @@ const getWaitBoxStyle = (minutes: number) => {
     let calculatedWait = Math.round(diffMs / 60000);
     if (calculatedWait <= 0) calculatedWait = 1;
 
-    const notesVal = postedWaitTime ? `Posted: ${postedWaitTime}m` : undefined;
+    // USE LOCKED POSTED WAIT TIME
+    const finalPosted = lockedPostedWaitTime || postedWaitTime;
+    const notesVal = finalPosted ? `Posted: ${finalPosted}m` : undefined;
     const ridersStr = selectedRiders.join(', ');
 
     const supabase = getSupabase();
@@ -2125,6 +2092,8 @@ const getWaitBoxStyle = (minutes: number) => {
     setActiveVisit({ ...activeVisit, activities: [...activeVisit.activities, newActivity] });
     setQueueStartTimestamp(null);
     setQueueStartTimeStr(null);
+    setLockedPostedWaitTime(null);
+    clearQueueTimerStorage();
     setWaitTime('');
     setPostedWaitTime('');
   };
@@ -2272,6 +2241,8 @@ const getWaitBoxStyle = (minutes: number) => {
     await fetchCloudVisits();
     setQueueStartTimestamp(null);
     setQueueStartTimeStr(null);
+    setLockedPostedWaitTime(null);
+    clearQueueTimerStorage();
   };
 
   const deleteVisit = async (id: string) => {
@@ -2317,7 +2288,7 @@ const getWaitBoxStyle = (minutes: number) => {
         </div>
       )}
 
-{/* 1. MAIN HEADER MENU */}
+      {/* 1. MAIN HEADER MENU */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '16px', border: '1px solid #27273A', padding: '6px', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
         {/* TRACKER */}
         <button
@@ -2509,9 +2480,6 @@ const getWaitBoxStyle = (minutes: number) => {
           avgDurationPerVisit={avgDurationPerVisit}
           avgWaitPerActivity={avgWaitPerActivity}
           itemEmojis={ITEM_EMOJIS}
-          regularPretzels={regularPretzels}
-          cinnamonPretzels={cinnamonPretzels}
-          updatePretzelCount={updatePretzelCount}
           visits={visits}
           loading={loading}
           getPersonEndTime={getPersonEndTime}
@@ -2581,7 +2549,7 @@ const getWaitBoxStyle = (minutes: number) => {
         />
       )}
 
- {/* 5. YUM TAB VIEW */}
+      {/* 5. YUM TAB VIEW */}
       {mainTab === 'yum' && (
         <YumTab
           yumCategoryFilter={yumCategoryFilter}
@@ -2687,11 +2655,11 @@ const getWaitBoxStyle = (minutes: number) => {
         showAddPartyModal={showAddPartyModal}
         setShowAddPartyModal={setShowAddPartyModal}
         availableToJoin={availableToJoin}
-        lateArrivalMember={lateArrivalMember}
-        setLateArrivalMember={setLateArrivalMember}
+        selectedLateMembers={selectedLateMembers}
+        toggleLateArrivalMember={toggleLateArrivalMember}
         lateArrivalTime={lateArrivalTime}
         setLateArrivalTime={setLateArrivalTime}
-        handleAddLateArrival={handleAddLateArrival}
+        handleAddLateArrivals={handleAddLateArrivals}
       />
 
       {/* ⭐ HOUSE RATING MODAL */}
@@ -2713,6 +2681,71 @@ const getWaitBoxStyle = (minutes: number) => {
         familyMembers={FIXED_FAMILY_MEMBERS}
         houses={HHN_HOUSES}
       />
+
+      {/* ✏️ LIVE ACTIVITY EDIT MODAL */}
+      {editingLiveActivity && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+          <div style={{ background: '#12121A', border: '1px solid #2A2A3C', borderRadius: '20px', padding: '20px', width: '100%', maxWidth: '400px' }}>
+            <h3 style={{ margin: '0 0 14px 0', fontSize: '16px', fontWeight: '900', color: '#FF5500' }}>Edit Live Entry</h3>
+            
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>ATTRACTION</label>
+              <select value={editLiveRideName} onChange={(e) => setEditLiveRideName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px' }}>
+                <optgroup label="Houses">
+                  {HHN_HOUSES.map((h) => <option key={h} value={h}>{h}</option>)}
+                </optgroup>
+                <optgroup label="Rides">
+                  {HHN_RIDES.map((r) => <option key={r} value={r}>{r}</option>)}
+                </optgroup>
+                <optgroup label="Shows">
+                  {HHN_SHOWS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </optgroup>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>WHO PARTICIPATED?</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {parseAttendees(activeVisit?.attendees).map((m) => {
+                  const isChecked = editLiveRiders.includes(m);
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => {
+                        if (isChecked) {
+                          if (editLiveRiders.length > 1) setEditLiveRiders(editLiveRiders.filter(r => r !== m));
+                        } else {
+                          setEditLiveRiders([...editLiveRiders, m]);
+                        }
+                      }}
+                      style={{ padding: '6px 10px', borderRadius: '6px', border: isChecked ? '1px solid #FF5500' : '1px solid #2A2A3C', background: isChecked ? '#FF5500' : '#1A1A26', color: '#FFF', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      {m}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>POSTED WAIT (MINS)</label>
+                <input type="number" value={editLivePostedWait} onChange={(e) => setEditLivePostedWait(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '4px' }}>ACTUAL WAIT (MINS)</label>
+                <input type="number" value={editLiveActualWait} onChange={(e) => setEditLiveActualWait(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '14px', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setEditingLiveActivity(null)} style={{ flex: 1, padding: '10px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSaveLiveActivityEdit} style={{ flex: 1, padding: '10px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
