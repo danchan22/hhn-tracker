@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 
-interface AnalyticsTabProps {
+export interface AnalyticsTabProps {
   analyticsSubTab: 'Houses' | 'Rides' | 'Attendees';
   setAnalyticsSubTab: (tab: 'Houses' | 'Rides' | 'Attendees') => void;
   selectedAttendeeFilter: string;
-  setSelectedAttendeeFilter: (val: string) => void;
-  toggleAttendeeFilter: (name: string) => void;
+  setSelectedAttendeeFilter: (attendee: string) => void;
+  toggleAttendeeFilter: (attendee: string) => void;
   analyticsSortKey: string;
   analyticsSortOrder: 'asc' | 'desc';
   handleAnalyticsSortClick: (key: any) => void;
@@ -15,19 +15,46 @@ interface AnalyticsTabProps {
   rideAnalyticsStats: any[];
   houseBanners: Record<string, string>;
   rideBanners: Record<string, string>;
-  getHouseAverages: (name: string, ratings: any[], filter: string) => any;
+  getHouseAverages: (houseName: string, ratings: any[], attendeeFilter: string) => any;
   allHouseRatings: any[];
   formatMinutes: (m: number) => string;
   longestHouseWaits: any[];
   shortestHouseWaits: any[];
   longestRideWaits: any[];
   shortestRideWaits: any[];
-  attendeeChecklistData: { houseList: any[]; rideList: any[]; showList: any[] };
+  attendeeChecklistData: {
+    houseList: any[];
+    rideList: any[];
+    showList: any[];
+  };
   itemEmojis: Record<string, string>;
   formatDisplayDate: (d: string) => string;
   parseAttendees: (raw: any) => string[];
   familyMembers: string[];
 }
+
+const getRankColor = (rank: number) => {
+  if (rank === 1) return '#FFD700'; // Gold
+  if (rank === 2) return '#C0C0C0'; // Silver
+  if (rank === 3) return '#CD7F32'; // Bronze
+  if (rank >= 10) return '#EF4444'; // Red
+  
+  const colors = [
+    '#EAB308', // #4 Yellow
+    '#10B981', // #5 Emerald Green
+    '#06B6D4', // #6 Cyan
+    '#3B82F6', // #7 Blue
+    '#F97316', // #8 Orange
+    '#F43F5E'  // #9 Coral-Red
+  ];
+  return colors[rank - 4] || '#A0AEC0';
+};
+
+const RankBadge = ({ rank }: { rank: number }) => (
+  <div style={{ fontSize: '10px', fontWeight: '900', color: getRankColor(rank), marginTop: '3px' }}>
+    #{rank}
+  </div>
+);
 
 export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   analyticsSubTab,
@@ -55,36 +82,71 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   parseAttendees,
   familyMembers
 }) => {
+  // Pre-calculate ranks across all 10 houses for house cards
+  const houseRanksMap = useMemo(() => {
+    const ranks: Record<string, Record<string, number>> = {};
+
+    const calcRankMap = (key: string, isDesc: boolean) => {
+      const sorted = [...houseAnalyticsStats].sort((a, b) => {
+        const valA = Number(a[key]) || 0;
+        const valB = Number(b[key]) || 0;
+        return isDesc ? valB - valA : valA - valB;
+      });
+
+      sorted.forEach((item, index) => {
+        if (!ranks[item.name]) ranks[item.name] = {};
+        ranks[item.name][key] = index + 1;
+      });
+    };
+
+    // Rating / Visits / Total Wait: Higher is #1
+    calcRankMap('ratingOverall', true);
+    calcRankMap('ratingScare', true);
+    calcRankMap('ratingCool', true);
+    calcRankMap('visits', true);
+    calcRankMap('totalWait', true);
+
+    // Avg Wait / Avg Posted / Diff: Lower/Shortest is #1
+    calcRankMap('avgWait', false);
+    calcRankMap('avgExpected', false);
+    calcRankMap('diff', false);
+
+    return ranks;
+  }, [houseAnalyticsStats]);
+
   return (
     <div>
-      {/* SUBHEADER NAVS (Houses | Rides | Attendees) */}
-      <div style={{ display: 'flex', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '12px', border: '1px solid #27273A', padding: '3px', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
-        <button onClick={() => setAnalyticsSubTab('Houses')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Houses' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Houses' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
-          Houses
-        </button>
-        <button onClick={() => setAnalyticsSubTab('Rides')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Rides' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Rides' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
-          Rides
-        </button>
-        <button onClick={() => setAnalyticsSubTab('Attendees')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Attendees' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Attendees' ? '#FFF' : '#9CA3AF', transition: 'all 0.2s ease' }}>
-          Attendees
-        </button>
+      {/* SUBTAB NAVIGATION */}
+      <div style={{ display: 'flex', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '12px', border: '1px solid #27273A', padding: '3px', marginBottom: '12px' }}>
+        <button onClick={() => setAnalyticsSubTab('Houses')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Houses' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Houses' ? '#FFF' : '#9CA3AF' }}>Houses</button>
+        <button onClick={() => setAnalyticsSubTab('Rides')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Rides' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Rides' ? '#FFF' : '#9CA3AF' }}>Rides</button>
+        <button onClick={() => setAnalyticsSubTab('Attendees')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '9px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', background: analyticsSubTab === 'Attendees' ? '#DC2626' : 'transparent', color: analyticsSubTab === 'Attendees' ? '#FFF' : '#9CA3AF' }}>Attendees</button>
       </div>
 
-      {/* SHARED ATTENDEE FILTER SELECTOR */}
-      <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '12px 14px', borderRadius: '18px', border: '1px solid #2A2A3C', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0' }}>FILTER BY ATTENDEE:</label>
-          {selectedAttendeeFilter !== 'Everyone' && (
-            <button onClick={() => setSelectedAttendeeFilter('Everyone')} style={{ background: 'none', border: 'none', color: '#FF5500', fontSize: '11px', fontWeight: '800', cursor: 'pointer', padding: 0 }}>
-              Reset to Everyone ✕
-            </button>
-          )}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-          {familyMembers.map(name => {
+      {/* ATTENDEE FILTER PILLS */}
+      <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '12px', borderRadius: '16px', border: '1px solid #2A2A3C', marginBottom: '16px' }}>
+        <label style={{ fontSize: '10px', fontWeight: '900', color: '#A0AEC0', display: 'block', marginBottom: '8px', letterSpacing: '0.8px' }}>
+          FILTER ANALYTICS BY MEMBER
+        </label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          {['Everyone', ...familyMembers].map((name) => {
             const isSelected = selectedAttendeeFilter === name;
             return (
-              <button key={name} onClick={() => toggleAttendeeFilter(name)} style={{ padding: '8px 2px', borderRadius: '10px', border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C', background: isSelected ? '#FF5500' : '#1A1A26', color: isSelected ? '#FFF' : '#CBD5E0', fontSize: '11px', fontWeight: '800', cursor: 'pointer' }}>
+              <button
+                key={name}
+                type="button"
+                onClick={() => toggleAttendeeFilter(name)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: isSelected ? '2px solid #DC2626' : '1px solid #2A2A3C',
+                  background: isSelected ? '#DC2626' : '#1A1A26',
+                  color: isSelected ? '#FFF' : '#CBD5E0',
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  cursor: 'pointer'
+                }}
+              >
                 {name}
               </button>
             );
@@ -92,328 +154,180 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         </div>
       </div>
 
-      {/* TWO-ROW SORT BAR (HOUSES & RIDES) */}
-      {(analyticsSubTab === 'Houses' || analyticsSubTab === 'Rides') && (
-        <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '10px 12px', borderRadius: '14px', border: '1px solid #2A2A3C', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
-          <div style={{ fontSize: '10px', fontWeight: '800', color: '#A0AEC0', marginBottom: '6px' }}>SORT:</div>
+      {/* SORT CONTROLS HEADER BAR */}
+      {analyticsSubTab !== 'Attendees' && (
+        <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '10px 12px', borderRadius: '14px', border: '1px solid #2A2A3C', marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+          <span style={{ fontSize: '10px', fontWeight: '900', color: '#A0AEC0', letterSpacing: '0.5px' }}>SORT BY:</span>
           
-          {/* ROW 1: LOG METRICS */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', marginBottom: analyticsSubTab === 'Houses' ? '6px' : '0px' }}>
-            {[
-              { key: 'visits', label: 'Visits' },
-              { key: 'avgWait', label: 'Avg Wait' },
-              { key: 'totalWait', label: 'Total Wait' },
-              { key: 'avgExpected', label: 'Posted' },
-              { key: 'diff', label: '+/-' }
-            ].map(item => {
-              const isActive = analyticsSortKey === item.key;
-              const arrow = isActive ? (analyticsSortOrder === 'desc' ? ' ▼' : ' ▲') : '';
-              return (
-                <button key={item.key} onClick={() => handleAnalyticsSortClick(item.key)} style={{ padding: '6px 2px', borderRadius: '8px', border: isActive ? '1px solid #DC2626' : '1px solid #2A2A3C', background: isActive ? '#DC2626' : '#1A1A26', color: isActive ? '#FFF' : '#A0AEC0', fontSize: '10px', fontWeight: '800', cursor: 'pointer' }}>
-                  {item.label}{arrow}
-                </button>
-              );
-            })}
-          </div>
+          <button type="button" onClick={() => handleAnalyticsSortClick('visits')} style={{ background: 'none', border: 'none', color: analyticsSortKey === 'visits' ? '#FF5500' : '#A0AEC0', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+            Visits {analyticsSortKey === 'visits' ? (analyticsSortOrder === 'asc' ? '▲' : '▼') : ''}
+          </button>
 
-          {/* ROW 2: RATINGS METRICS (HOUSES ONLY) */}
+          <button type="button" onClick={() => handleAnalyticsSortClick('avgWait')} style={{ background: 'none', border: 'none', color: analyticsSortKey === 'avgWait' ? '#FF5500' : '#A0AEC0', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+            Avg Wait {analyticsSortKey === 'avgWait' ? (analyticsSortOrder === 'asc' ? '▲' : '▼') : ''}
+          </button>
+
+          <button type="button" onClick={() => handleAnalyticsSortClick('totalWait')} style={{ background: 'none', border: 'none', color: analyticsSortKey === 'totalWait' ? '#FF5500' : '#A0AEC0', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+            Total Wait {analyticsSortKey === 'totalWait' ? (analyticsSortOrder === 'asc' ? '▲' : '▼') : ''}
+          </button>
+
           {analyticsSubTab === 'Houses' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
-              {[
-                { key: 'ratingOverall', label: '⭐ Overall' },
-                { key: 'ratingScare', label: '😱 Scare' },
-                { key: 'ratingCool', label: '😎 Vibe' }
-              ].map(item => {
-                const isActive = analyticsSortKey === item.key;
-                const arrow = isActive ? (analyticsSortOrder === 'desc' ? ' ▼' : ' ▲') : '';
-                return (
-                  <button key={item.key} onClick={() => handleAnalyticsSortClick(item.key)} style={{ padding: '6px 2px', borderRadius: '8px', border: isActive ? '1px solid #FDA30C' : '1px solid #2A2A3C', background: isActive ? '#FDA30C' : '#1A1A26', color: isActive ? '#000' : '#FDA30C', fontSize: '10px', fontWeight: '800', cursor: 'pointer' }}>
-                    {item.label}{arrow}
-                  </button>
-                );
-              })}
-            </div>
+            <>
+              <button type="button" onClick={() => handleAnalyticsSortClick('ratingOverall')} style={{ background: 'none', border: 'none', color: analyticsSortKey === 'ratingOverall' ? '#FF5500' : '#A0AEC0', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                Overall ⭐ {analyticsSortKey === 'ratingOverall' ? (analyticsSortOrder === 'asc' ? '▲' : '▼') : ''}
+              </button>
+
+              <button type="button" onClick={() => handleAnalyticsSortClick('ratingScare')} style={{ background: 'none', border: 'none', color: analyticsSortKey === 'ratingScare' ? '#FF5500' : '#A0AEC0', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                Scare 😱 {analyticsSortKey === 'ratingScare' ? (analyticsSortOrder === 'asc' ? '▲' : '▼') : ''}
+              </button>
+
+              <button type="button" onClick={() => handleAnalyticsSortClick('ratingCool')} style={{ background: 'none', border: 'none', color: analyticsSortKey === 'ratingCool' ? '#FF5500' : '#A0AEC0', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                Cool ❄️ {analyticsSortKey === 'ratingCool' ? (analyticsSortOrder === 'asc' ? '▲' : '▼') : ''}
+              </button>
+            </>
           )}
         </div>
       )}
 
-      {/* HOUSES ANALYTICS SUBTAB */}
+      {/* HOUSES ANALYTICS TAB */}
       {analyticsSubTab === 'Houses' && (
-        <div>
-          {/* HOUSE CARDS GRID */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
-            {houseAnalyticsStats.map(stat => {
-              const bannerPath = houseBanners[stat.name];
-              const avgRatings = getHouseAverages(stat.name, allHouseRatings, selectedAttendeeFilter);
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {houseAnalyticsStats.map((item) => {
+            const avgRatings = getHouseAverages(item.name, allHouseRatings, selectedAttendeeFilter);
+            const ranks = houseRanksMap[item.name] || {};
 
-              return (
-                <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', overflow: 'hidden' }}>
-                  {bannerPath && (
-                    <div style={{ margin: '-14px -16px 12px -16px', height: '110px', overflow: 'hidden', borderBottom: '1px solid #2A2A3C' }}>
-                      <img src={bannerPath} alt={stat.name} onError={(e: any) => { e.target.parentNode.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            return (
+              <div key={item.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '20px', border: '1px solid #2A2A3C', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
+                {houseBanners[item.name] && (
+                  <div style={{ height: '110px', width: '100%', position: 'relative', overflow: 'hidden' }}>
+                    <img src={houseBanners[item.name]} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(18, 18, 26, 1) 0%, transparent 100%)' }}></div>
+                    <div style={{ position: 'absolute', bottom: '10px', left: '14px', fontSize: '18px', fontWeight: '900', color: '#FFF', textShadow: '0 2px 8px #000' }}>
+                      {itemEmojis[item.name] || '🏚️'} {item.name}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  <div style={{ fontSize: '16px', fontWeight: '900', color: '#FF5500', marginBottom: '10px' }}>{stat.name}</div>
-
-                  <div style={{ background: '#12121A', padding: '8px 10px', borderRadius: '10px', border: '1px solid #2A2A3C', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    {avgRatings ? (
-                      <>
-                        <div style={{ fontSize: '11px', fontWeight: '800', color: '#FDA30C' }}>⭐ Overall: <span style={{ color: '#FFF' }}>{avgRatings.overall}</span></div>
-                        <div style={{ fontSize: '11px', fontWeight: '800', color: '#EF4444' }}>😱 Scare: <span style={{ color: '#FFF' }}>{avgRatings.scare}</span></div>
-                        <div style={{ fontSize: '11px', fontWeight: '800', color: '#3B82F6' }}>😎 Vibe: <span style={{ color: '#FFF' }}>{avgRatings.cool}</span></div>
-                      </>
-                    ) : (
-                      <div style={{ fontSize: '11px', color: '#718096', fontStyle: 'italic', textAlign: 'center', width: '100%' }}>No ratings logged yet</div>
-                    )}
+                <div style={{ padding: '14px' }}>
+                  {/* RATINGS WITH RANK BADGES */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#FDA30C' }}>{avgRatings ? avgRatings.overall : '—'}</div>
+                      <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>OVERALL ⭐</div>
+                      <RankBadge rank={ranks.ratingOverall || 10} />
+                    </div>
+                    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#EF4444' }}>{avgRatings ? avgRatings.scare : '—'}</div>
+                      <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>SCARE 😱</div>
+                      <RankBadge rank={ranks.ratingScare || 10} />
+                    </div>
+                    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#3B82F6' }}>{avgRatings ? avgRatings.cool : '—'}</div>
+                      <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>COOL ❄️</div>
+                      <RankBadge rank={ranks.ratingCool || 10} />
+                    </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#FFF' }}>{stat.visits}</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL<br />VISITS</div>
+                  {/* VISITS & WAIT STATS WITH RANK BADGES */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '8px' }}>
+                    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#FF5500' }}>{item.visits}</div>
+                      <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>VISITS</div>
+                      <RankBadge rank={ranks.visits || 10} />
                     </div>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG<br />WAIT</div>
+                    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#FFF' }}>{item.avgWait}m</div>
+                      <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG WAIT</div>
+                      <RankBadge rank={ranks.avgWait || 10} />
                     </div>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL<br />WAIT</div>
+                    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#A855F7' }}>{formatMinutes(item.totalWait)}</div>
+                      <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL WAIT</div>
+                      <RankBadge rank={ranks.totalWait || 10} />
                     </div>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG<br />POSTED</div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#CBD5E0' }}>{item.avgExpected}m</div>
+                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG POSTED</div>
+                      <RankBadge rank={ranks.avgExpected || 10} />
                     </div>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
-                        {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
+                    <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '900', color: item.diff <= 0 ? '#22C55E' : '#EF4444' }}>
+                        {item.diff > 0 ? `+${item.diff}m` : `${item.diff}m`}
                       </div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/-<br />POSTED</div>
+                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/- POSTED</div>
+                      <RankBadge rank={ranks.diff || 10} />
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
-          {/* LONGEST INDIVIDUAL WAIT TIMES (HOUSES) */}
-          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#DC2626', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              🔥 Longest Individual Wait Times
-            </h3>
-            {longestHouseWaits.length === 0 ? (
-              <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No house visits logged yet.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {longestHouseWaits.map((act, index) => (
-                  <div key={act.id + index} style={{ background: '#1C1215', border: '1px solid #7F1D1D', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#DC2626', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {index + 1}
-                      </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {itemEmojis[act.rideName] || '🏚️'} {act.rideName}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                          {formatDisplayDate(act.visitDate)} <br />
-                          {parseAttendees(act.riders).join(', ')}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ background: '#991B1B', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
-                      {act.waitTimeMinutes}m
-                    </div>
-                  </div>
-                ))}
               </div>
-            )}
-          </div>
-
-          {/* SHORTEST INDIVIDUAL WAIT TIMES (HOUSES) */}
-          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#22C55E', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              ⚡ Shortest Individual Wait Times
-            </h3>
-            {shortestHouseWaits.length === 0 ? (
-              <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No house visits logged yet.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {shortestHouseWaits.map((act, index) => (
-                  <div key={act.id + index} style={{ background: '#0B231A', border: '1px solid #15803D', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {index + 1}
-                      </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {itemEmojis[act.rideName] || '🏚️'} {act.rideName}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                          {formatDisplayDate(act.visitDate)} <br />
-                          {parseAttendees(act.riders).join(', ')}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
-                      {act.waitTimeMinutes}m
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            );
+          })}
         </div>
       )}
 
-      {/* RIDES ANALYTICS SUBTAB */}
+      {/* RIDES ANALYTICS TAB */}
       {analyticsSubTab === 'Rides' && (
-        <div>
-          {/* RIDE CARDS GRID */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
-            {rideAnalyticsStats.map(stat => {
-              const bannerPath = rideBanners[stat.name];
-              return (
-                <div key={stat.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '18px', padding: '14px 16px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', overflow: 'hidden' }}>
-                  {bannerPath && (
-                    <div style={{ margin: '-14px -16px 12px -16px', height: '110px', overflow: 'hidden', background: '#000000', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #2A2A3C' }}>
-                      <img src={bannerPath} alt={stat.name} onError={(e: any) => { e.target.parentNode.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} />
-                    </div>
-                  )}
-                  <div style={{ fontSize: '16px', fontWeight: '900', color: '#3B82F6', marginBottom: '10px' }}>{stat.name}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#FFF' }}>{stat.visits}</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL<br />VISITS</div>
-                    </div>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG<br />WAIT</div>
-                    </div>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL<br />WAIT</div>
-                    </div>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG<br />POSTED</div>
-                    </div>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
-                        {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
-                      </div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/-<br />POSTED</div>
-                    </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {rideAnalyticsStats.map((item) => (
+            <div key={item.name} style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '20px', border: '1px solid #2A2A3C', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
+              {rideBanners[item.name] && (
+                <div style={{ height: '110px', width: '100%', position: 'relative', overflow: 'hidden' }}>
+                  <img src={rideBanners[item.name]} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(18, 18, 26, 1) 0%, transparent 100%)' }}></div>
+                  <div style={{ position: 'absolute', bottom: '10px', left: '14px', fontSize: '18px', fontWeight: '900', color: '#FFF', textShadow: '0 2px 8px #000' }}>
+                    {itemEmojis[item.name] || '🎢'} {item.name}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              )}
 
-          {/* LONGEST INDIVIDUAL WAIT TIMES (RIDES) */}
-          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#3B82F6', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              🔥 Longest Individual Wait Times
-            </h3>
-            {longestRideWaits.length === 0 ? (
-              <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No ride visits logged yet.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {longestRideWaits.map((act, index) => (
-                  <div key={act.id + index} style={{ background: '#0D1726', border: '1px solid #1E40AF', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#3B82F6', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {index + 1}
-                      </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {itemEmojis[act.rideName] || '🎢'} {act.rideName}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                          {formatDisplayDate(act.visitDate)} <br />
-                          {parseAttendees(act.riders).join(', ')}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ background: '#1E40AF', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
-                      {act.waitTimeMinutes}m
-                    </div>
+              <div style={{ padding: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '8px' }}>
+                  <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#3B82F6' }}>{item.visits}</div>
+                    <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>VISITS</div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#FFF' }}>{item.avgWait}m</div>
+                    <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG WAIT</div>
+                  </div>
+                  <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#A855F7' }}>{formatMinutes(item.totalWait)}</div>
+                    <div style={{ fontSize: '9px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL WAIT</div>
+                  </div>
+                </div>
 
-          {/* SHORTEST INDIVIDUAL WAIT TIMES (RIDES) */}
-          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#22C55E', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              ⚡ Shortest Individual Wait Times
-            </h3>
-            {shortestRideWaits.length === 0 ? (
-              <p style={{ color: '#A0AEC0', fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No ride visits logged yet.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {shortestRideWaits.map((act, index) => (
-                  <div key={act.id + index} style={{ background: '#0B231A', border: '1px solid #15803D', borderRadius: '16px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
-                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {index + 1}
-                      </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: '800', fontSize: '14px', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {itemEmojis[act.rideName] || '🎢'} {act.rideName}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                          {formatDisplayDate(act.visitDate)} <br />
-                          {parseAttendees(act.riders).join(', ')}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ background: '#15803D', color: '#FFF', fontWeight: '900', fontSize: '14px', padding: '6px 12px', borderRadius: '12px', flexShrink: 0 }}>
-                      {act.waitTimeMinutes}m
-                    </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '900', color: '#CBD5E0' }}>{item.avgExpected}m</div>
+                    <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG POSTED</div>
                   </div>
-                ))}
+                  <div style={{ background: '#1A1A26', border: '1px solid #2A2A3C', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '900', color: item.diff <= 0 ? '#22C55E' : '#EF4444' }}>
+                      {item.diff > 0 ? `+${item.diff}m` : `${item.diff}m`}
+                    </div>
+                    <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/- POSTED</div>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* ATTENDEES ANALYTICS SUBTAB */}
+      {/* ATTENDEES TAB */}
       {analyticsSubTab === 'Attendees' && (
-        <div>
-          <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: '900', color: '#FF5500', margin: '0 0 12px 0' }}>🏚️ HOUSES ({selectedAttendeeFilter})</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-              {attendeeChecklistData.houseList.map(item => (
-                <div key={item.name} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{itemEmojis[item.name] || '🏚️'} {item.name}</div>
-                    <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                      Avg Wait: <strong>{item.avgWait}m</strong> &nbsp;•&nbsp; Total Wait: <strong>{formatMinutes(item.totalWait)}</strong>
-                    </div>
-                  </div>
-                  <div style={{ background: item.visits > 0 ? '#FF5500' : '#2A2A3C', color: item.visits > 0 ? '#FFF' : '#718096', fontSize: '12px', fontWeight: '900', padding: '6px 12px', borderRadius: '10px' }}>
-                    {item.visits} {item.visits === 1 ? 'Visit' : 'Visits'}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <h3 style={{ fontSize: '14px', fontWeight: '900', color: '#3B82F6', margin: '0 0 12px 0' }}>🎢 RIDES ({selectedAttendeeFilter})</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-              {attendeeChecklistData.rideList.map(item => (
-                <div key={item.name} style={{ background: '#1A1A26', padding: '10px 14px', borderRadius: '12px', border: '1px solid #2A2A3C', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: '800', fontSize: '13px', color: '#FFF' }}>{itemEmojis[item.name] || '🎢'} {item.name}</div>
-                    <div style={{ fontSize: '11px', color: '#A0AEC0', marginTop: '2px' }}>
-                      Avg Wait: <strong>{item.avgWait}m</strong> &nbsp;•&nbsp; Total Wait: <strong>{formatMinutes(item.totalWait)}</strong>
-                    </div>
-                  </div>
-                  <div style={{ background: item.visits > 0 ? '#3B82F6' : '#2A2A3C', color: item.visits > 0 ? '#FFF' : '#718096', fontSize: '12px', fontWeight: '900', padding: '6px 12px', borderRadius: '10px' }}>
-                    {item.visits} {item.visits === 1 ? 'Visit' : 'Visits'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '16px', borderRadius: '20px', border: '1px solid #2A2A3C' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '900', color: '#DC2626' }}>HOUSES LOGGED BY {selectedAttendeeFilter.toUpperCase()}</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {attendeeChecklistData.houseList.map((item) => (
+                <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1A1A26', padding: '8px 12px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '800', color: '#FFF' }}>{itemEmojis[item.name] || '🏚️'} {item.name}</span>
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0' }}>
+                    <strong>{item.visits}x</strong> | Avg: <strong style={{ color: '#DC2626' }}>{item.avgWait}m</strong>
                   </div>
                 </div>
               ))}
