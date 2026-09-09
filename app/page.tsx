@@ -11,7 +11,6 @@ import { MapTab } from '../components/Tabs/MapTab';
 import { TrackerTab } from '../components/Tabs/TrackerTab';
 import { AnalyticsTab } from '../components/Tabs/AnalyticsTab';
 
-// --- SAFE LAZY SUPABASE CLIENT INITIALIZATION ---
 let supabaseInstance: any = null;
 
 const getSupabase = () => {
@@ -102,48 +101,18 @@ const getHouseAverages = (houseName: string, ratings: HouseRating[], attendeeFil
 
 const getWaitBoxStyle = (minutes: number) => {
   if (minutes < 0) {
-    return {
-      bg: 'rgba(15, 23, 42, 0.9)',
-      border: '#3B82F6',
-      titleColor: '#94A3B8',
-      numColor: '#60A5FA'
-    };
+    return { bg: 'rgba(15, 23, 42, 0.9)', border: '#3B82F6', titleColor: '#94A3B8', numColor: '#60A5FA' };
   }
   if (minutes <= 30) {
-    return {
-      bg: '#15803D',
-      border: '#22C55E',
-      titleColor: '#FFFFFF',
-      numColor: '#FFFFFF'
-    };
+    return { bg: '#15803D', border: '#22C55E', titleColor: '#FFFFFF', numColor: '#FFFFFF' };
   } else if (minutes <= 45) {
-    return {
-      bg: 'rgba(26, 26, 38, 0.85)',
-      border: '#2A2A3C',
-      titleColor: '#A0AEC0',
-      numColor: '#22C55E'
-    };
+    return { bg: 'rgba(26, 26, 38, 0.85)', border: '#2A2A3C', titleColor: '#A0AEC0', numColor: '#22C55E' };
   } else if (minutes <= 60) {
-    return {
-      bg: 'rgba(26, 26, 38, 0.85)',
-      border: '#2A2A3C',
-      titleColor: '#A0AEC0',
-      numColor: '#EAB308'
-    };
+    return { bg: 'rgba(26, 26, 38, 0.85)', border: '#2A2A3C', titleColor: '#A0AEC0', numColor: '#EAB308' };
   } else if (minutes <= 90) {
-    return {
-      bg: 'rgba(26, 26, 38, 0.85)',
-      border: '#2A2A3C',
-      titleColor: '#A0AEC0',
-      numColor: '#F97316'
-    };
+    return { bg: 'rgba(26, 26, 38, 0.85)', border: '#2A2A3C', titleColor: '#A0AEC0', numColor: '#F97316' };
   } else {
-    return {
-      bg: 'rgba(26, 26, 38, 0.85)',
-      border: '#2A2A3C',
-      titleColor: '#A0AEC0',
-      numColor: '#EF4444'
-    };
+    return { bg: 'rgba(26, 26, 38, 0.85)', border: '#2A2A3C', titleColor: '#A0AEC0', numColor: '#EF4444' };
   }
 };
 
@@ -677,7 +646,6 @@ export default function HorrorNightsTracker() {
   const [yumSearchQuery, setYumSearchQuery] = useState<string>('');
   const [previewYumImage, setPreviewYumImage] = useState<string | null>(null);
 
-  // GLOBAL MAP TO YUM NAVIGATION HELPER
   useEffect(() => {
     (window as any).navigateToYumLocation = (locationName: string) => {
       setSelectedYumLocation(locationName);
@@ -954,7 +922,7 @@ export default function HorrorNightsTracker() {
     }
   }, [activeVisit, activePartyList.length]);
 
-  // --- REAL-TIME SYNC FOR ACTIVE QUEUE TIMER ACROSS ALL DEVICES ---
+  // --- REAL-TIME SUPABASE LISTENERS FOR QUEUE TIMER & HOUSE RATINGS ---
   useEffect(() => {
     const fetchActiveQueue = async () => {
       if (!activeVisit) {
@@ -986,19 +954,26 @@ export default function HorrorNightsTracker() {
     fetchActiveQueue();
 
     const supabase = getSupabase();
-    const channel = supabase
+    
+    // Realtime channel for active queue timer
+    const queueChannel = supabase
       .channel('active_queues_sync')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'active_queues' },
-        () => {
-          fetchActiveQueue();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'active_queues' }, () => {
+        fetchActiveQueue();
+      })
+      .subscribe();
+
+    // Realtime channel for house ratings
+    const ratingsChannel = supabase
+      .channel('house_ratings_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'house_ratings' }, () => {
+        fetchHouseRatings();
+      })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(queueChannel);
+      supabase.removeChannel(ratingsChannel);
     };
   }, [activeVisit?.id]);
 
@@ -1034,7 +1009,6 @@ export default function HorrorNightsTracker() {
   }, []);
 
   useEffect(() => {
-    // DO NOT OVERWRITE POSTED WAIT TIME IF LOCKED IN LINE
     if (!queueStartTimestamp && rideName && liveWaitTimes[rideName] !== undefined) {
       const waitVal = liveWaitTimes[rideName];
       setPostedWaitTime(waitVal >= 0 ? waitVal.toString() : '');
@@ -1264,13 +1238,15 @@ export default function HorrorNightsTracker() {
     }
   };
 
+  // PRESERVES ORIGINAL LOG ORDER BY ORDERING ACTIVITIES BY CREATED_AT ASC
   const fetchCloudVisits = async () => {
     setLoading(true);
     try {
       const supabase = getSupabase();
       const { data: visitsData, error: visitsError } = await supabase
         .from('visits')
-        .select('*, activities(*)');
+        .select('*, activities(*)')
+        .order('created_at', { foreignTable: 'activities', ascending: true });
 
       if (visitsError) throw visitsError;
 
@@ -2077,7 +2053,7 @@ export default function HorrorNightsTracker() {
     setPostedWaitTime('');
   };
 
-  // --- REAL-TIME SUPABASE QUEUE TIMER ---
+  // REAL-TIME SUPABASE QUEUE TIMER
   const handleStartQueueTimer = async () => {
     if (!activeVisit) return;
     const now = new Date();
