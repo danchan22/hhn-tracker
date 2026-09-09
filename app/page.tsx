@@ -1020,6 +1020,55 @@ export default function HorrorNightsTracker() {
     }
   }, [mainTab, isMapFullscreen]);
 
+// --- REAL-TIME SYNC FOR ACTIVE QUEUE TIMER ACROSS DEVICES ---
+  useEffect(() => {
+    const fetchActiveQueue = async () => {
+      if (!activeVisit) {
+        setQueueStartTimestamp(null);
+        setQueueStartTimeStr(null);
+        setLockedPostedWaitTime(null);
+        return;
+      }
+      const supabase = getSupabase();
+      const { data } = await supabase
+        .from('active_queues')
+        .select('*')
+        .eq('id', activeVisit.id)
+        .single();
+
+      if (data) {
+        setRideName(data.ride_name);
+        setQueueStartTimestamp(data.start_timestamp);
+        setQueueStartTimeStr(data.start_time_str);
+        if (data.posted_wait) setLockedPostedWaitTime(data.posted_wait.toString());
+        if (data.riders) setSelectedRiders(parseAttendees(data.riders));
+      } else {
+        setQueueStartTimestamp(null);
+        setQueueStartTimeStr(null);
+        setLockedPostedWaitTime(null);
+      }
+    };
+
+    fetchActiveQueue();
+
+    // Subscribe to real-time database changes
+    const supabase = getSupabase();
+    const channel = supabase
+      .channel('active_queues_sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'active_queues' },
+        () => {
+          fetchActiveQueue();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeVisit?.id]);
+  
   useEffect(() => {
     if (mainTab !== 'map' || !mapContainerRef.current) return;
 
@@ -2041,33 +2090,89 @@ export default function HorrorNightsTracker() {
     setPostedWaitTime('');
   };
 
-  // LOCK IN POSTED WAIT TIME & PERSIST TIMER TO LOCAL STORAGE
-  const handleStartQueueTimer = () => {
+// LOCK IN POSTED WAIT TIME & PERSIST QUEUE TO SUPABASE FOR ALL DEVICES
+  const handleStartQueueTimer = async () => {
+    if (!activeVisit) return;
     const now = new Date();
     const timeString = now.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' });
     const ts = now.getTime();
+    const postedNum = parseInt(postedWaitTime, 10) || 0;
+    const ridersStr = selectedRiders.join(', ');
 
     setQueueStartTimestamp(ts);
     setQueueStartTimeStr(timeString);
     setLockedPostedWaitTime(postedWaitTime);
 
-    localStorage.setItem('hhn_queue_start_ts', ts.toString());
-    localStorage.setItem('hhn_queue_start_str', timeString);
-    localStorage.setItem('hhn_queue_locked_wait', postedWaitTime);
-  };
-
-  const clearQueueTimerStorage = () => {
-    localStorage.removeItem('hhn_queue_start_ts');
-    localStorage.removeItem('hhn_queue_start_str');
-    localStorage.removeItem('hhn_queue_locked_wait');
+    const supabase = getSupabase();
+    await supabase.from('active_queues').upsert({
+      id: activeVisit.id,
+      visit_id: activeVisit.id,
+      ride_name: rideName,
+      riders: ridersStr,
+      posted_wait: postedNum,
+      start_timestamp: ts,
+      start_time_str: timeString
+    });
   };
 
   const handleEndQueueTimer = async () => {
-    if (!activeVisit || !queueStartTimestamp) return;
+    if (!activeVisit) return;
+    const supabase = getSupabase();
+
+const handleCancelQueueTimer = async () => {
+    if (!activeVisit) return;
+    setQueueStartTimestamp(null);
+    setQueueStartTimeStr(null);
+    setLockedPostedWaitTime(null);
+
+    const supabase = getSupabase();
+    await supabase.from('active_queues').delete().eq('id', activeVisit.id);
+  };
+    
+    // Fetch active queue state from Supabase
+    const { data: qData } = await supabase
+      .from('active_queues')
+      .select('*')
+      .eq('id', activeVisit.id)
+      .single();
+
+    const startTs = qData?.start_timestamp || queueStartTimestamp;
+    if (!startTs) return;
+
     const nowMs = Date.now();
-    const diffMs = nowMs - queueStartTimestamp;
+    const diffMs = nowMs - startTs;
     let calculatedWait = Math.round(diffMs / 60000);
     if (calculatedWait <= 0) calculatedWait = 1;
+
+    const targetRideName = qData?.ride_name || rideName;
+    const targetPosted = qData?.posted_wait || lockedPostedWaitTime || postedWaitTime;
+    const targetRiders = qData?.riders || selectedRiders.join(', ');
+    const notesVal = targetPosted ? `Posted: ${targetPosted}m` : undefined;
+
+    const { data, error } = await supabase
+      .from('activities')
+      .insert({
+        visit_id: activeVisit.id,
+        ridename: targetRideName,
+        waittimeminutes: calculatedWait,
+        notes: notesVal,
+        riders: targetRiders
+      })
+      .select()
+      .single();
+
+    if (!error && data) {
+      // Clear queue record from database to clear state on all devices
+      await supabase.from('active_queues').delete().eq('id', activeVisit.id);
+      
+      setQueueStartTimestamp(null);
+      setQueueStartTimeStr(null);
+      setLockedPostedWaitTime(null);
+      setWaitTime('');
+      setPostedWaitTime('');
+      await fetchCloudVisits();
+    }
+  };
 
     // USE LOCKED POSTED WAIT TIME
     const finalPosted = lockedPostedWaitTime || postedWaitTime;
