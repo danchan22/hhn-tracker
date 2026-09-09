@@ -55,25 +55,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   parseAttendees,
   familyMembers
 }) => {
-  // Rank Color Scale: #1 Gold -> #10 Red
+  // Rank Color Rules: #1 Gold, #10 Red, Everything else Grey
   const getRankColor = (rank: number) => {
     if (rank === 1) return '#FFD700'; // Gold
-    if (rank === 2) return '#C0C0C0'; // Silver
-    if (rank === 3) return '#CD7F32'; // Bronze
-    if (rank >= 10) return '#EF4444'; // Red
-    
-    const colors = [
-      '#EAB308', // #4 Yellow
-      '#10B981', // #5 Emerald Green
-      '#06B6D4', // #6 Cyan
-      '#3B82F6', // #7 Blue
-      '#F97316', // #8 Orange
-      '#F43F5E'  // #9 Coral
-    ];
-    return colors[rank - 4] || '#A0AEC0';
+    if (rank === 10) return '#EF4444'; // Red
+    return '#A0AEC0'; // Grey for #2 through #9
   };
 
-  // Pre-calculate ranks across all houses
+  // Pre-calculate ranks across all 10 houses
   const houseRanksMap = useMemo(() => {
     const ranks: Record<string, Record<string, number>> = {};
 
@@ -225,71 +214,74 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     {itemEmojis[stat.name] || '🏚️'} {stat.name}
                   </div>
 
-                  {/* ROW 1: 3 RATING CARDS WITH RANK BADGES */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '8px', textAlign: 'center' }}>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#FDA30C' }}>{avgRatings ? avgRatings.overall : '-'}</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>OVERALL ⭐</div>
-                      <div style={{ fontSize: '10px', fontWeight: '900', color: getRankColor(ranks.ratingOverall || 10), marginTop: '3px' }}>
-                        #{ranks.ratingOverall || 10}
-                      </div>
-                    </div>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#EF4444' }}>{avgRatings ? avgRatings.scare : '-'}</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>SCARE 😱</div>
-                      <div style={{ fontSize: '10px', fontWeight: '900', color: getRankColor(ranks.ratingScare || 10), marginTop: '3px' }}>
-                        #{ranks.ratingScare || 10}
-                      </div>
-                    </div>
-                    <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#3B82F6' }}>{avgRatings ? avgRatings.cool : '-'}</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>COOL ❄️</div>
-                      <div style={{ fontSize: '10px', fontWeight: '900', color: getRankColor(ranks.ratingCool || 10), marginTop: '3px' }}>
-                        #{ranks.ratingCool || 10}
-                      </div>
-                    </div>
+                  {/* SINGLE HORIZONTAL RATINGS BAR */}
+                  <div style={{ background: '#12121A', padding: '8px 10px', borderRadius: '10px', border: '1px solid #2A2A3C', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {avgRatings ? (
+                      <>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '11px', fontWeight: '800', color: '#FDA30C' }}>⭐ Overall: <span style={{ color: '#FFF' }}>{avgRatings.overall}</span></div>
+                          <div style={{ fontSize: '9px', fontWeight: '900', color: getRankColor(ranks.ratingOverall || 10), marginTop: '2px' }}>
+                            #{ranks.ratingOverall || 10}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '11px', fontWeight: '800', color: '#EF4444' }}>😱 Scare: <span style={{ color: '#FFF' }}>{avgRatings.scare}</span></div>
+                          <div style={{ fontSize: '9px', fontWeight: '900', color: getRankColor(ranks.ratingScare || 10), marginTop: '2px' }}>
+                            #{ranks.ratingScare || 10}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '11px', fontWeight: '800', color: '#3B82F6' }}>😎 Vibe: <span style={{ color: '#FFF' }}>{avgRatings.cool}</span></div>
+                          <div style={{ fontSize: '9px', fontWeight: '900', color: getRankColor(ranks.ratingCool || 10), marginTop: '2px' }}>
+                            #{ranks.ratingCool || 10}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: '11px', color: '#718096', fontStyle: 'italic', textAlign: 'center', width: '100%' }}>No ratings logged yet</div>
+                    )}
                   </div>
 
-                  {/* ROW 2: 3 LOG STAT CARDS WITH RANK BADGES */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '8px', textAlign: 'center' }}>
+                  {/* SINGLE 5-COLUMN STATS ROW */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
                     <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '16px', fontWeight: '800', color: '#FFF' }}>{stat.visits}</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL VISITS</div>
-                      <div style={{ fontSize: '10px', fontWeight: '900', color: getRankColor(ranks.visits || 10), marginTop: '3px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#FFF' }}>{stat.visits}</div>
+                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL<br />VISITS</div>
+                      <div style={{ fontSize: '9px', fontWeight: '900', color: getRankColor(ranks.visits || 10), marginTop: '3px' }}>
                         #{ranks.visits || 10}
                       </div>
                     </div>
+
                     <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '16px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG WAIT</div>
-                      <div style={{ fontSize: '10px', fontWeight: '900', color: getRankColor(ranks.avgWait || 10), marginTop: '3px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6' }}>{stat.avgWait}m</div>
+                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG<br />WAIT</div>
+                      <div style={{ fontSize: '9px', fontWeight: '900', color: getRankColor(ranks.avgWait || 10), marginTop: '3px' }}>
                         #{ranks.avgWait || 10}
                       </div>
                     </div>
+
                     <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
-                      <div style={{ fontSize: '16px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL WAIT</div>
-                      <div style={{ fontSize: '10px', fontWeight: '900', color: getRankColor(ranks.totalWait || 10), marginTop: '3px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#A855F7' }}>{formatMinutes(stat.totalWait)}</div>
+                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>TOTAL<br />WAIT</div>
+                      <div style={{ fontSize: '9px', fontWeight: '900', color: getRankColor(ranks.totalWait || 10), marginTop: '3px' }}>
                         #{ranks.totalWait || 10}
                       </div>
                     </div>
-                  </div>
 
-                  {/* ROW 3: 2 POSTED STAT CARDS WITH RANK BADGES */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', textAlign: 'center' }}>
                     <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                       <div style={{ fontSize: '14px', fontWeight: '800', color: '#EAB308' }}>{stat.avgExpected > 0 ? `${stat.avgExpected}m` : '-'}</div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG POSTED</div>
-                      <div style={{ fontSize: '10px', fontWeight: '900', color: getRankColor(ranks.avgExpected || 10), marginTop: '3px' }}>
+                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>AVG<br />POSTED</div>
+                      <div style={{ fontSize: '9px', fontWeight: '900', color: getRankColor(ranks.avgExpected || 10), marginTop: '3px' }}>
                         #{ranks.avgExpected || 10}
                       </div>
                     </div>
+
                     <div style={{ background: '#1A1A26', padding: '8px 2px', borderRadius: '10px', border: '1px solid #2A2A3C' }}>
                       <div style={{ fontSize: '14px', fontWeight: '800', color: stat.diff < 0 ? '#22C55E' : stat.diff > 0 ? '#EF4444' : '#FFF' }}>
                         {stat.diff === 0 ? '-' : stat.diff > 0 ? `+${stat.diff}m` : `${stat.diff}m`}
                       </div>
-                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/- POSTED</div>
-                      <div style={{ fontSize: '10px', fontWeight: '900', color: getRankColor(ranks.diff || 10), marginTop: '3px' }}>
+                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#A0AEC0', marginTop: '2px' }}>+/-<br />POSTED</div>
+                      <div style={{ fontSize: '9px', fontWeight: '900', color: getRankColor(ranks.diff || 10), marginTop: '3px' }}>
                         #{ranks.diff || 10}
                       </div>
                     </div>
