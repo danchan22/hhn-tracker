@@ -309,7 +309,7 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
 
                   {queueStartTimestamp ? (
                     <div style={{ background: '#2B1408', border: '1px solid #C05621', padding: '14px', borderRadius: '14px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '11px', fontWeight: '900', color: '#FF9A56', letterSpacing: '0.5px' }}>⏱️ LIVE QUEUE TIMER RUNNING</div>
+                      <div style={{ fontSize: '11px', fontWeight: '900', color: '#FF9A56', letterSpacing: '0.5px' }}>⏱️ LIVE QUEUE TIMER RUNNING (SYNCED)</div>
                       <div style={{ fontSize: '14px', fontWeight: '700', color: '#E2E8F0', marginTop: '6px' }}>
                         Entered line at: <strong style={{ color: '#FF5500' }}>{queueStartTimeStr}</strong>
                       </div>
@@ -317,7 +317,7 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
                         Time in line: {getElapsedQueueTimeString()}
                       </div>
                       <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                        <button type="button" onClick={() => { setQueueStartTimestamp(null); setQueueStartTimeStr(null); localStorage.removeItem('hhn_queue_start_ts'); localStorage.removeItem('hhn_queue_start_str'); localStorage.removeItem('hhn_queue_locked_wait'); }} style={{ flex: 1, padding: '10px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
+                        <button type="button" onClick={() => { setQueueStartTimestamp(null); setQueueStartTimeStr(null); }} style={{ flex: 1, padding: '10px', background: '#2A2A3C', color: '#CBD5E0', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
                           Cancel
                         </button>
                         <button type="button" onClick={handleEndQueueTimer} style={{ flex: 2, padding: '10px', background: '#22C55E', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
