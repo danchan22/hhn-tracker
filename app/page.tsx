@@ -777,7 +777,7 @@ export default function HorrorNightsTracker() {
   const [editLivePostedWait, setEditLivePostedWait] = useState<string>('');
   const [editLiveActualWait, setEditLiveActualWait] = useState<string>('');
 
-  // Timer State with LocalStorage Crash Resilience
+  // Timer State
   const [queueStartTimestamp, setQueueStartTimestamp] = useState<number | null>(null);
   const [queueStartTimeStr, setQueueStartTimeStr] = useState<string | null>(null);
   const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now());
@@ -954,17 +954,53 @@ export default function HorrorNightsTracker() {
     }
   }, [activeVisit, activePartyList.length]);
 
-  // RESTORE LIVE TIMER FROM LOCAL STORAGE IF SIGNAL WAS LOST / REFRESHED
+  // --- REAL-TIME SYNC FOR ACTIVE QUEUE TIMER ACROSS ALL DEVICES ---
   useEffect(() => {
-    const savedStart = localStorage.getItem('hhn_queue_start_ts');
-    const savedStr = localStorage.getItem('hhn_queue_start_str');
-    const savedLockedWait = localStorage.getItem('hhn_queue_locked_wait');
-    if (savedStart && savedStr) {
-      setQueueStartTimestamp(Number(savedStart));
-      setQueueStartTimeStr(savedStr);
-      if (savedLockedWait) setLockedPostedWaitTime(savedLockedWait);
-    }
-  }, []);
+    const fetchActiveQueue = async () => {
+      if (!activeVisit) {
+        setQueueStartTimestamp(null);
+        setQueueStartTimeStr(null);
+        setLockedPostedWaitTime(null);
+        return;
+      }
+      const supabase = getSupabase();
+      const { data } = await supabase
+        .from('active_queues')
+        .select('*')
+        .eq('id', activeVisit.id)
+        .maybeSingle();
+
+      if (data) {
+        setRideName(data.ride_name);
+        setQueueStartTimestamp(data.start_timestamp);
+        setQueueStartTimeStr(data.start_time_str);
+        if (data.posted_wait) setLockedPostedWaitTime(data.posted_wait.toString());
+        if (data.riders) setSelectedRiders(parseAttendees(data.riders));
+      } else {
+        setQueueStartTimestamp(null);
+        setQueueStartTimeStr(null);
+        setLockedPostedWaitTime(null);
+      }
+    };
+
+    fetchActiveQueue();
+
+    const supabase = getSupabase();
+    const channel = supabase
+      .channel('active_queues_sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'active_queues' },
+        () => {
+          fetchActiveQueue();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeVisit?.id]);
 
   useEffect(() => {
     let interval: any;
@@ -1020,55 +1056,6 @@ export default function HorrorNightsTracker() {
     }
   }, [mainTab, isMapFullscreen]);
 
-// --- REAL-TIME SYNC FOR ACTIVE QUEUE TIMER ACROSS DEVICES ---
-  useEffect(() => {
-    const fetchActiveQueue = async () => {
-      if (!activeVisit) {
-        setQueueStartTimestamp(null);
-        setQueueStartTimeStr(null);
-        setLockedPostedWaitTime(null);
-        return;
-      }
-      const supabase = getSupabase();
-      const { data } = await supabase
-        .from('active_queues')
-        .select('*')
-        .eq('id', activeVisit.id)
-        .single();
-
-      if (data) {
-        setRideName(data.ride_name);
-        setQueueStartTimestamp(data.start_timestamp);
-        setQueueStartTimeStr(data.start_time_str);
-        if (data.posted_wait) setLockedPostedWaitTime(data.posted_wait.toString());
-        if (data.riders) setSelectedRiders(parseAttendees(data.riders));
-      } else {
-        setQueueStartTimestamp(null);
-        setQueueStartTimeStr(null);
-        setLockedPostedWaitTime(null);
-      }
-    };
-
-    fetchActiveQueue();
-
-    // Subscribe to real-time database changes
-    const supabase = getSupabase();
-    const channel = supabase
-      .channel('active_queues_sync')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'active_queues' },
-        () => {
-          fetchActiveQueue();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [activeVisit?.id]);
-  
   useEffect(() => {
     if (mainTab !== 'map' || !mapContainerRef.current) return;
 
@@ -2090,7 +2077,7 @@ export default function HorrorNightsTracker() {
     setPostedWaitTime('');
   };
 
-// LOCK IN POSTED WAIT TIME & PERSIST QUEUE TO SUPABASE FOR ALL DEVICES
+  // --- REAL-TIME SUPABASE QUEUE TIMER ---
   const handleStartQueueTimer = async () => {
     if (!activeVisit) return;
     const now = new Date();
@@ -2119,22 +2106,11 @@ export default function HorrorNightsTracker() {
     if (!activeVisit) return;
     const supabase = getSupabase();
 
-const handleCancelQueueTimer = async () => {
-    if (!activeVisit) return;
-    setQueueStartTimestamp(null);
-    setQueueStartTimeStr(null);
-    setLockedPostedWaitTime(null);
-
-    const supabase = getSupabase();
-    await supabase.from('active_queues').delete().eq('id', activeVisit.id);
-  };
-    
-    // Fetch active queue state from Supabase
     const { data: qData } = await supabase
       .from('active_queues')
       .select('*')
       .eq('id', activeVisit.id)
-      .single();
+      .maybeSingle();
 
     const startTs = qData?.start_timestamp || queueStartTimestamp;
     if (!startTs) return;
@@ -2162,7 +2138,6 @@ const handleCancelQueueTimer = async () => {
       .single();
 
     if (!error && data) {
-      // Clear queue record from database to clear state on all devices
       await supabase.from('active_queues').delete().eq('id', activeVisit.id);
       
       setQueueStartTimestamp(null);
@@ -2172,47 +2147,6 @@ const handleCancelQueueTimer = async () => {
       setPostedWaitTime('');
       await fetchCloudVisits();
     }
-  };
-
-    // USE LOCKED POSTED WAIT TIME
-    const finalPosted = lockedPostedWaitTime || postedWaitTime;
-    const notesVal = finalPosted ? `Posted: ${finalPosted}m` : undefined;
-    const ridersStr = selectedRiders.join(', ');
-
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from('activities')
-      .insert({
-        visit_id: activeVisit.id,
-        ridename: rideName,
-        waittimeminutes: calculatedWait,
-        notes: notesVal,
-        riders: ridersStr
-      })
-      .select()
-      .single();
-
-    if (error) {
-      alert("Error logging timer activity: " + error.message);
-      return;
-    }
-
-    const newActivity: Activity = {
-      id: data.id,
-      visit_id: activeVisit.id,
-      rideName,
-      waitTimeMinutes: calculatedWait,
-      notes: notesVal,
-      riders: selectedRiders
-    };
-
-    setActiveVisit({ ...activeVisit, activities: [...activeVisit.activities, newActivity] });
-    setQueueStartTimestamp(null);
-    setQueueStartTimeStr(null);
-    setLockedPostedWaitTime(null);
-    clearQueueTimerStorage();
-    setWaitTime('');
-    setPostedWaitTime('');
   };
 
   const startEditing = (activity: Activity, visitId: string | null) => {
@@ -2370,7 +2304,6 @@ const handleCancelQueueTimer = async () => {
     setQueueStartTimestamp(null);
     setQueueStartTimeStr(null);
     setLockedPostedWaitTime(null);
-    clearQueueTimerStorage();
   };
 
   const deleteVisit = async (id: string) => {
@@ -2418,22 +2351,7 @@ const handleCancelQueueTimer = async () => {
 
       {/* 1. MAIN HEADER MENU */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', background: 'rgba(18, 18, 26, 0.85)', borderRadius: '16px', border: '1px solid #27273A', padding: '6px', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
-        {/* TRACKER */}
-        <button
-          onClick={() => setMainTab('tracker')}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 2px 6px 2px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            borderBottom: mainTab === 'tracker' ? '3px solid #FF5500' : '3px solid transparent',
-            color: mainTab === 'tracker' ? '#FF5500' : '#9CA3AF'
-          }}
-        >
+        <button onClick={() => setMainTab('tracker')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'tracker' ? '3px solid #FF5500' : '3px solid transparent', color: mainTab === 'tracker' ? '#FF5500' : '#9CA3AF' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '4px' }}>
             <circle cx="12" cy="12" r="9" />
             <line x1="12" y1="8" x2="12" y2="12" />
@@ -2442,22 +2360,7 @@ const handleCancelQueueTimer = async () => {
           <span style={{ fontSize: '11px', fontWeight: mainTab === 'tracker' ? '800' : '600' }}>Tracker</span>
         </button>
 
-        {/* ANALYTICS */}
-        <button
-          onClick={() => setMainTab('analytics')}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 2px 6px 2px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            borderBottom: mainTab === 'analytics' ? '3px solid #DC2626' : '3px solid transparent',
-            color: mainTab === 'analytics' ? '#DC2626' : '#9CA3AF'
-          }}
-        >
+        <button onClick={() => setMainTab('analytics')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'analytics' ? '3px solid #DC2626' : '3px solid transparent', color: mainTab === 'analytics' ? '#DC2626' : '#9CA3AF' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '4px' }}>
             <line x1="18" y1="20" x2="18" y2="10" />
             <line x1="12" y1="20" x2="12" y2="4" />
@@ -2466,22 +2369,7 @@ const handleCancelQueueTimer = async () => {
           <span style={{ fontSize: '11px', fontWeight: mainTab === 'analytics' ? '800' : '600' }}>Analytics</span>
         </button>
 
-        {/* MAP */}
-        <button
-          onClick={() => setMainTab('map')}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 2px 6px 2px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            borderBottom: mainTab === 'map' ? '3px solid #3B82F6' : '3px solid transparent',
-            color: mainTab === 'map' ? '#3B82F6' : '#9CA3AF'
-          }}
-        >
+        <button onClick={() => setMainTab('map')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'map' ? '3px solid #3B82F6' : '3px solid transparent', color: mainTab === 'map' ? '#3B82F6' : '#9CA3AF' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '4px' }}>
             <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
             <line x1="8" y1="2" x2="8" y2="18" />
@@ -2490,22 +2378,7 @@ const handleCancelQueueTimer = async () => {
           <span style={{ fontSize: '11px', fontWeight: mainTab === 'map' ? '800' : '600' }}>Map</span>
         </button>
 
-        {/* YUM */}
-        <button
-          onClick={() => setMainTab('yum')}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 2px 6px 2px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            borderBottom: mainTab === 'yum' ? '3px solid #F59E0B' : '3px solid transparent',
-            color: mainTab === 'yum' ? '#F59E0B' : '#9CA3AF'
-          }}
-        >
+        <button onClick={() => setMainTab('yum')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'yum' ? '3px solid #F59E0B' : '3px solid transparent', color: mainTab === 'yum' ? '#F59E0B' : '#9CA3AF' }}>
           <svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '4px' }}>
             <path d="M2 11a4 4 0 0 1 8 0" />
             <line x1="1" y1="13" x2="11" y2="13" />
@@ -2517,22 +2390,7 @@ const handleCancelQueueTimer = async () => {
           <span style={{ fontSize: '11px', fontWeight: mainTab === 'yum' ? '800' : '600' }}>Yum</span>
         </button>
 
-        {/* GAMES */}
-        <button
-          onClick={() => setMainTab('games')}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 2px 6px 2px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            borderBottom: mainTab === 'games' ? '3px solid #10B981' : '3px solid transparent',
-            color: mainTab === 'games' ? '#10B981' : '#9CA3AF'
-          }}
-        >
+        <button onClick={() => setMainTab('games')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px 6px 2px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: mainTab === 'games' ? '3px solid #10B981' : '3px solid transparent', color: mainTab === 'games' ? '#10B981' : '#9CA3AF' }}>
           <svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '4px' }}>
             <rect x="2" y="6" width="20" height="12" rx="4" />
             <line x1="6" y1="12" x2="10" y2="12" />
