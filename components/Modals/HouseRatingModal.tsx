@@ -75,7 +75,7 @@ export const HouseRatingModal: React.FC<HouseRatingModalProps> = ({
             <div style={{ marginBottom: '14px' }}>
               <label style={{ fontSize: '11px', fontWeight: '800', color: '#A0AEC0', display: 'block', marginBottom: '6px' }}>YOUR NAME</label>
               <select value={ratingAuthor} onChange={(e) => setRatingAuthor(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #2A2A3C', background: '#1A1A26', color: '#FFF', fontSize: '13px', fontWeight: 'bold' }}>
-                {familyMembers.map(m => <option key={m} value={m}>{m}</option>)}
+                {[...familyMembers, 'Guest'].map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
 
