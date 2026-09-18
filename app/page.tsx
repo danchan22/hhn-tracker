@@ -922,7 +922,7 @@ export default function HorrorNightsTracker() {
     }
   }, [activeVisit, activePartyList.length]);
 
-  // --- REAL-TIME SUPABASE LISTENERS FOR QUEUE TIMER & HOUSE RATINGS ---
+// --- REAL-TIME SUPABASE LISTENERS FOR ALL TABLES ---
   useEffect(() => {
     const fetchActiveQueue = async () => {
       if (!activeVisit) {
@@ -954,26 +954,26 @@ export default function HorrorNightsTracker() {
     fetchActiveQueue();
 
     const supabase = getSupabase();
-    
-    // Realtime channel for active queue timer
-    const queueChannel = supabase
-      .channel('active_queues_sync')
+
+    // Global realtime channel across all interactive tables
+    const realtimeChannel = supabase
+      .channel('hhn_global_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visits' }, () => {
+        fetchCloudVisits();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, () => {
+        fetchCloudVisits();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'house_ratings' }, () => {
+        fetchHouseRatings();
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'active_queues' }, () => {
         fetchActiveQueue();
       })
       .subscribe();
 
-    // Realtime channel for house ratings
-    const ratingsChannel = supabase
-      .channel('house_ratings_sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'house_ratings' }, () => {
-        fetchHouseRatings();
-      })
-      .subscribe();
-
     return () => {
-      supabase.removeChannel(queueChannel);
-      supabase.removeChannel(ratingsChannel);
+      supabase.removeChannel(realtimeChannel);
     };
   }, [activeVisit?.id]);
 
@@ -2053,7 +2053,7 @@ export default function HorrorNightsTracker() {
     setPostedWaitTime('');
   };
 
-  // REAL-TIME SUPABASE QUEUE TIMER
+ // REAL-TIME SUPABASE QUEUE TIMER HANDLERS
   const handleStartQueueTimer = async () => {
     if (!activeVisit) return;
     const now = new Date();
@@ -2066,6 +2066,7 @@ export default function HorrorNightsTracker() {
     setQueueStartTimeStr(timeString);
     setLockedPostedWaitTime(postedWaitTime);
 
+    // Upserts active timer into Supabase so all devices update live
     const supabase = getSupabase();
     await supabase.from('active_queues').upsert({
       id: activeVisit.id,
@@ -2101,6 +2102,7 @@ export default function HorrorNightsTracker() {
     const targetRiders = qData?.riders || selectedRiders.join(', ');
     const notesVal = targetPosted ? `Posted: ${targetPosted}m` : undefined;
 
+    // 1. Log activity entry for visit
     const { data, error } = await supabase
       .from('activities')
       .insert({
@@ -2114,6 +2116,7 @@ export default function HorrorNightsTracker() {
       .single();
 
     if (!error && data) {
+      // 2. Delete queue record to clear active timer broadcast across group
       await supabase.from('active_queues').delete().eq('id', activeVisit.id);
       
       setQueueStartTimestamp(null);
