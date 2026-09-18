@@ -2482,6 +2482,8 @@ export default function HorrorNightsTracker() {
           parseAttendees={parseAttendees}
           getElapsedQueueTimeString={getElapsedQueueTimeString}
           setShowAddPartyModal={setShowAddPartyModal}
+          allHouseRatings={allHouseRatings}
+  getHouseAverages={getHouseAverages}
         />
       )}
 
