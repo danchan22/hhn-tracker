@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { PretzelTracker } from '../Shared/PretzelTracker';
 
 export interface TrackerTabProps {
@@ -92,6 +92,8 @@ export interface TrackerTabProps {
   parseAttendees: (raw: any) => string[];
   getElapsedQueueTimeString: () => string;
   setShowAddPartyModal: (v: boolean) => void;
+  allHouseRatings?: any[];
+  getHouseAverages?: (name: string, ratings: any[], filter: string) => any;
 }
 
 export const TrackerTab: React.FC<TrackerTabProps> = ({
@@ -182,8 +184,53 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
   hhnShows,
   parseAttendees,
   getElapsedQueueTimeString,
-  setShowAddPartyModal
+  setShowAddPartyModal,
+  allHouseRatings = [],
+  getHouseAverages
 }) => {
+
+  // Pre-calculate House Stats & Rankings based on Ratings
+  const topHousesRanked = useMemo(() => {
+    if (!hhnHouses || hhnHouses.length === 0) return { scare: [], cool: [], overall: [] };
+
+    const allActivities = visits.flatMap(v => v.activities || []);
+
+    const compiled = hhnHouses.map(house => {
+      const houseActivities = allActivities.filter(a => a.rideName === house);
+      const timesRidden = houseActivities.length;
+      const totalWait = houseActivities.reduce((sum, a) => sum + (a.waitTimeMinutes || 0), 0);
+      const avgWait = timesRidden > 0 ? Math.round(totalWait / timesRidden) : 0;
+
+      let scareRating = 0;
+      let coolRating = 0;
+      let overallRating = 0;
+
+      if (getHouseAverages) {
+        const avgs = getHouseAverages(house, allHouseRatings, 'Everyone');
+        if (avgs) {
+          scareRating = parseFloat(avgs.scare) || 0;
+          coolRating = parseFloat(avgs.cool) || 0;
+          overallRating = parseFloat(avgs.overall) || 0;
+        }
+      }
+
+      return {
+        name: house,
+        timesRidden,
+        avgWait,
+        scareRating,
+        coolRating,
+        overallRating
+      };
+    });
+
+    const scareTop = [...compiled].filter(h => h.scareRating > 0).sort((a, b) => b.scareRating - a.scareRating || b.timesRidden - a.timesRidden).slice(0, 3);
+    const coolTop = [...compiled].filter(h => h.coolRating > 0).sort((a, b) => b.coolRating - a.coolRating || b.timesRidden - a.timesRidden).slice(0, 3);
+    const overallTop = [...compiled].filter(h => h.overallRating > 0).sort((a, b) => b.overallRating - a.overallRating || b.timesRidden - a.timesRidden).slice(0, 3);
+
+    return { scare: scareTop, cool: coolTop, overall: overallTop };
+  }, [hhnHouses, visits, allHouseRatings, getHouseAverages]);
+
   return (
     <div>
       {/* 🌧️ 6-HOUR EVENING WEATHER GRID */}
@@ -566,26 +613,80 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
               </div>
             </div>
 
-            <div style={{ background: '#1C130D', padding: '12px 15px', borderRadius: '14px', border: '1px solid #C05621', borderLeft: '5px solid #FF5500', marginBottom: '10px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#FF9A56', marginBottom: '3px', letterSpacing: '0.5px' }}>⭐ TOP HOUSE</div>
-              <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '15px' }}>
-                {topHouseData ? `${itemEmojis[topHouseData.name] || '🏚️'} ${topHouseData.name}` : 'None Logged Yet'}
-              </div>
-              {topHouseData && (
-                <div style={{ color: '#CBD5E0', marginTop: '3px', fontSize: '12px' }}>
-                  Logged <strong>{topHouseData.count}x</strong> | Total Wait: <strong style={{ color: '#FF5500' }}>{formatMinutes(topHouseData.totalWait)}</strong> | Avg Wait: <strong>{topHouseData.avgWait}m</strong>
+            {/* TOP 3 SCARIEST HOUSES */}
+            <div style={{ background: '#1C1215', padding: '12px 15px', borderRadius: '14px', border: '1px solid #7F1D1D', borderLeft: '5px solid #EF4444', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#EF4444', marginBottom: '6px', letterSpacing: '0.5px' }}>😱 TOP 3 SCARIEST HOUSES</div>
+              {topHousesRanked.scare.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#A0AEC0', fontStyle: 'italic' }}>No ratings logged yet</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {topHousesRanked.scare.map((h, i) => (
+                    <div key={h.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>
+                          #{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0' }}>
+                          Ridden <strong>{h.timesRidden}x</strong> • Avg Wait: <strong>{h.avgWait}m</strong>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '18px', fontWeight: '900', color: '#EF4444' }}>
+                        {h.scareRating.toFixed(1)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            <div style={{ background: '#0D1726', padding: '12px 15px', borderRadius: '14px', border: '1px solid #1E40AF', borderLeft: '5px solid #3B82F6', marginBottom: '18px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#60A5FA', marginBottom: '3px', letterSpacing: '0.5px' }}>🎢 TOP RIDE</div>
-              <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '15px' }}>
-                {topRideData ? `${itemEmojis[topRideData.name] || '🎢'} ${topRideData.name}` : 'None Logged Yet'}
-              </div>
-              {topRideData && (
-                <div style={{ color: '#CBD5E0', marginTop: '3px', fontSize: '12px' }}>
-                  Logged <strong>{topRideData.count}x</strong> | Total Wait: <strong style={{ color: '#3B82F6' }}>{formatMinutes(topRideData.totalWait)}</strong> | Avg Wait: <strong>{topRideData.avgWait}m</strong>
+            {/* TOP 3 COOLEST HOUSES */}
+            <div style={{ background: '#0D1726', padding: '12px 15px', borderRadius: '14px', border: '1px solid #1E40AF', borderLeft: '5px solid #3B82F6', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#60A5FA', marginBottom: '6px', letterSpacing: '0.5px' }}>😎 TOP 3 COOLEST HOUSES</div>
+              {topHousesRanked.cool.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#A0AEC0', fontStyle: 'italic' }}>No ratings logged yet</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {topHousesRanked.cool.map((h, i) => (
+                    <div key={h.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>
+                          #{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0' }}>
+                          Ridden <strong>{h.timesRidden}x</strong> • Avg Wait: <strong>{h.avgWait}m</strong>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '18px', fontWeight: '900', color: '#3B82F6' }}>
+                        {h.coolRating.toFixed(1)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* TOP 3 OVERALL HOUSES */}
+            <div style={{ background: '#1C130D', padding: '12px 15px', borderRadius: '14px', border: '1px solid #C05621', borderLeft: '5px solid #FF5500', marginBottom: '18px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#FF9A56', marginBottom: '6px', letterSpacing: '0.5px' }}>⭐ TOP 3 OVERALL HOUSES</div>
+              {topHousesRanked.overall.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#A0AEC0', fontStyle: 'italic' }}>No ratings logged yet</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {topHousesRanked.overall.map((h, i) => (
+                    <div key={h.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>
+                          #{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0' }}>
+                          Ridden <strong>{h.timesRidden}x</strong> • Avg Wait: <strong>{h.avgWait}m</strong>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>
+                        {h.overallRating.toFixed(1)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
