@@ -269,18 +269,19 @@ const HOUSE_GRID_LAYOUT = [
     { name: 'Hellraiser', apiKey: 'Hellraiser' }
   ],
   [
-    { name: 'Ozzy Osbourne', apiKey: 'Ozzy Osbourne' },
-    { name: 'Evil Dead', apiKey: 'Evil Dead Burn' }
+        { name: 'Stranger Things', apiKey: 'Stranger Things 5' },
+        { name: 'Evil Dead', apiKey: 'Evil Dead Burn' }
   ],
   [
-    { name: 'Stranger Things', apiKey: 'Stranger Things 5' },
-    { name: 'INVASION', apiKey: 'INVASION: Alien Abduction' },
+{ name: 'Ozzy Osbourne', apiKey: 'Ozzy Osbourne' },
+        { name: 'Madlands', apiKey: 'Madlands: Caged Cannibals' 
+  { name: 'Oddfellow', apiKey: 'Jack & Oddfellow' },
+  ],
+  [
+
     { name: 'Cybergoria', apiKey: 'Cybergoria' }
-  ],
-  [
-    { name: 'Oddfellow', apiKey: 'Jack & Oddfellow' },
     { name: 'Bloodengutz', apiKey: 'H.R. Bloodengutz' },
-    { name: 'Madlands', apiKey: 'Madlands: Caged Cannibals' }
+    { name: 'INVASION', apiKey: 'INVASION: Alien Abduction' },
   ]
 ];
 
