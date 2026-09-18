@@ -190,7 +190,7 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
 }) => {
 
   // Pre-calculate House Stats & Rankings based on Ratings
-  const topHousesRanked = useMemo(() => {
+const topHousesRanked = useMemo(() => {
     if (!hhnHouses || hhnHouses.length === 0) return { scare: [], cool: [], overall: [] };
 
     const allActivities = visits.flatMap(v => v.activities || []);
@@ -208,9 +208,9 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
       if (getHouseAverages) {
         const avgs = getHouseAverages(house, allHouseRatings, 'Everyone');
         if (avgs) {
-          scareRating = parseFloat(avgs.scare) || 0;
-          coolRating = parseFloat(avgs.cool) || 0;
-          overallRating = parseFloat(avgs.overall) || 0;
+          scareRating = Number(avgs.scare) || 0;
+          coolRating = Number(avgs.cool) || 0;
+          overallRating = Number(avgs.overall) || 0;
         }
       }
 
