@@ -224,9 +224,9 @@ const topHousesRanked = useMemo(() => {
       };
     });
 
-    const scareTop = [...compiled].filter(h => h.scareRating > 0).sort((a, b) => b.scareRating - a.scareRating || b.timesRidden - a.timesRidden).slice(0, 5);
-    const coolTop = [...compiled].filter(h => h.coolRating > 0).sort((a, b) => b.coolRating - a.coolRating || b.timesRidden - a.timesRidden).slice(0, 5);
-    const overallTop = [...compiled].filter(h => h.overallRating > 0).sort((a, b) => b.overallRating - a.overallRating || b.timesRidden - a.timesRidden).slice(0, 5);
+    const scareTop = [...compiled].filter(h => h.scareRating > 0).sort((a, b) => b.scareRating - a.scareRating || b.timesRidden - a.timesRidden).slice(0, 10);
+    const coolTop = [...compiled].filter(h => h.coolRating > 0).sort((a, b) => b.coolRating - a.coolRating || b.timesRidden - a.timesRidden).slice(0, 10);
+    const overallTop = [...compiled].filter(h => h.overallRating > 0).sort((a, b) => b.overallRating - a.overallRating || b.timesRidden - a.timesRidden).slice(0, 10);
 
     return { scare: scareTop, cool: coolTop, overall: overallTop };
   }, [hhnHouses, visits, allHouseRatings, getHouseAverages]);
