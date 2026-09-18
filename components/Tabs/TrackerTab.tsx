@@ -224,9 +224,9 @@ const topHousesRanked = useMemo(() => {
       };
     });
 
-    const scareTop = [...compiled].filter(h => h.scareRating > 0).sort((a, b) => b.scareRating - a.scareRating || b.timesRidden - a.timesRidden).slice(0, 3);
-    const coolTop = [...compiled].filter(h => h.coolRating > 0).sort((a, b) => b.coolRating - a.coolRating || b.timesRidden - a.timesRidden).slice(0, 3);
-    const overallTop = [...compiled].filter(h => h.overallRating > 0).sort((a, b) => b.overallRating - a.overallRating || b.timesRidden - a.timesRidden).slice(0, 3);
+    const scareTop = [...compiled].filter(h => h.scareRating > 0).sort((a, b) => b.scareRating - a.scareRating || b.timesRidden - a.timesRidden).slice(0, 5);
+    const coolTop = [...compiled].filter(h => h.coolRating > 0).sort((a, b) => b.coolRating - a.coolRating || b.timesRidden - a.timesRidden).slice(0, 5);
+    const overallTop = [...compiled].filter(h => h.overallRating > 0).sort((a, b) => b.overallRating - a.overallRating || b.timesRidden - a.timesRidden).slice(0, 5);
 
     return { scare: scareTop, cool: coolTop, overall: overallTop };
   }, [hhnHouses, visits, allHouseRatings, getHouseAverages]);
@@ -615,7 +615,7 @@ const topHousesRanked = useMemo(() => {
 
             {/* TOP 3 SCARIEST HOUSES */}
             <div style={{ background: '#1C1215', padding: '12px 15px', borderRadius: '14px', border: '1px solid #7F1D1D', borderLeft: '5px solid #EF4444', marginBottom: '10px' }}>
-              <div style={{ fontSize: '11px', fontWeight: '900', color: '#EF4444', marginBottom: '6px', letterSpacing: '0.5px' }}>😱 TOP 3 SCARIEST HOUSES</div>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#EF4444', marginBottom: '6px', letterSpacing: '0.5px' }}>😱 SCARIEST HOUSES</div>
               {topHousesRanked.scare.length === 0 ? (
                 <div style={{ fontSize: '12px', color: '#A0AEC0', fontStyle: 'italic' }}>No ratings logged yet</div>
               ) : (
@@ -641,7 +641,7 @@ const topHousesRanked = useMemo(() => {
 
             {/* TOP 3 COOLEST HOUSES */}
             <div style={{ background: '#0D1726', padding: '12px 15px', borderRadius: '14px', border: '1px solid #1E40AF', borderLeft: '5px solid #3B82F6', marginBottom: '10px' }}>
-              <div style={{ fontSize: '11px', fontWeight: '900', color: '#60A5FA', marginBottom: '6px', letterSpacing: '0.5px' }}>😎 TOP 3 COOLEST HOUSES</div>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#60A5FA', marginBottom: '6px', letterSpacing: '0.5px' }}>😎 COOLEST HOUSES</div>
               {topHousesRanked.cool.length === 0 ? (
                 <div style={{ fontSize: '12px', color: '#A0AEC0', fontStyle: 'italic' }}>No ratings logged yet</div>
               ) : (
@@ -667,7 +667,7 @@ const topHousesRanked = useMemo(() => {
 
             {/* TOP 3 OVERALL HOUSES */}
             <div style={{ background: '#1C130D', padding: '12px 15px', borderRadius: '14px', border: '1px solid #C05621', borderLeft: '5px solid #FF5500', marginBottom: '18px' }}>
-              <div style={{ fontSize: '11px', fontWeight: '900', color: '#FF9A56', marginBottom: '6px', letterSpacing: '0.5px' }}>⭐ TOP 3 OVERALL HOUSES</div>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#FF9A56', marginBottom: '6px', letterSpacing: '0.5px' }}>⭐ OVERALL BEST HOUSES</div>
               {topHousesRanked.overall.length === 0 ? (
                 <div style={{ fontSize: '12px', color: '#A0AEC0', fontStyle: 'italic' }}>No ratings logged yet</div>
               ) : (
