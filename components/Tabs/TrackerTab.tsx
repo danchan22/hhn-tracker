@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { PretzelTracker } from '../Shared/PretzelTracker';
 
 export interface TrackerTabProps {
@@ -141,8 +141,6 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
   totalTimeInParkMins,
   totalTimeInLinesMins,
   lineTimePercentage,
-  topHouseData,
-  topRideData,
   avgHousesPerVisit,
   avgRidesPerVisit,
   avgShowsPerVisit,
@@ -188,25 +186,106 @@ export const TrackerTab: React.FC<TrackerTabProps> = ({
   allHouseRatings = [],
   getHouseAverages
 }) => {
+  // Local Attendee Filter for Tracker Tab
+  const [selectedTrackerAttendee, setSelectedTrackerAttendee] = useState<string>('Everyone');
 
-  // Pre-calculate House Stats & Rankings based on Ratings
-const topHousesRanked = useMemo(() => {
-    if (!hhnHouses || hhnHouses.length === 0) return { scare: [], cool: [], overall: [] };
+  // Helper to parse time strings into minutes for accurate duration math
+  const parseTimeToMins = (timeStr?: string) => {
+    if (!timeStr) return 0;
+    if (timeStr.includes('AM') || timeStr.includes('PM')) {
+      const isPM = timeStr.toUpperCase().includes('PM');
+      const cleanStr = timeStr.replace(/AM|PM/i, '').trim();
+      let [hrs, mins] = cleanStr.split(':').map(Number);
+      if (isNaN(hrs)) return 0;
+      if (isNaN(mins)) mins = 0;
+      if (isPM && hrs < 12) hrs += 12;
+      if (!isPM && hrs === 12) hrs = 0;
+      return hrs * 60 + mins;
+    }
+    const [hrs, mins] = timeStr.split(':').map(Number);
+    if (isNaN(hrs)) return 0;
+    return hrs * 60 + (mins || 0);
+  };
 
+  const parsePosted = (notes?: string): number | null => {
+    if (!notes) return null;
+    const match = notes.match(/Posted:\s*(\d+)m/i);
+    return match ? parseInt(match[1], 10) : null;
+  };
+
+  // 1. ATTENDEE LEADERBOARDS (Always across everyone)
+  const attendeeLeaderboards = useMemo(() => {
     const allActivities = visits.flatMap(v => v.activities || []);
 
+    const memberStats = familyMembers.map(member => {
+      // Nights attended
+      const nights = visits.filter(v => parseAttendees(v.attendees).includes(member)).length;
+
+      // Activities participated
+      const memberActs = allActivities.filter(a => parseAttendees(a.riders).includes(member));
+      const houses = memberActs.filter(a => hhnHouses.includes(a.rideName)).length;
+      const rides = memberActs.filter(a => hhnRides.includes(a.rideName)).length;
+      const lineMins = memberActs.reduce((sum, a) => sum + (Number(a.waitTimeMinutes) || 0), 0);
+
+      // Park hours using per-member departure time
+      let parkMins = 0;
+      visits.forEach(v => {
+        if (parseAttendees(v.attendees).includes(member) && v.startTime) {
+          const pEndTime = getPersonEndTime(v, member);
+          if (pEndTime) {
+            const startM = parseTimeToMins(v.startTime);
+            const endM = parseTimeToMins(pEndTime);
+            const diff = endM >= startM ? endM - startM : 1440 - startM + endM;
+            parkMins += diff;
+          }
+        }
+      });
+
+      return {
+        name: member,
+        nights,
+        houses,
+        rides,
+        parkMins,
+        lineMins
+      };
+    });
+
+    return {
+      mostNights: [...memberStats].sort((a, b) => b.nights - a.nights || b.houses - a.houses),
+      mostHouses: [...memberStats].sort((a, b) => b.houses - a.houses || b.lineMins - a.lineMins),
+      mostRides: [...memberStats].sort((a, b) => b.rides - a.rides || b.lineMins - a.lineMins),
+      mostParkTime: [...memberStats].sort((a, b) => b.parkMins - a.parkMins),
+      mostLineTime: [...memberStats].sort((a, b) => b.lineMins - a.lineMins)
+    };
+  }, [visits, familyMembers, hhnHouses, hhnRides, getPersonEndTime]);
+
+  // 2. HOUSES RANKED CHARTS (Filtered by attendee pill)
+  const filteredHouseStats = useMemo(() => {
+    const allActivities = visits.flatMap(v => v.activities || []).map(a => {
+      const parentVisit = visits.find(v => (v.activities || []).some((act: any) => act.id === a.id));
+      return { ...a, visitDate: parentVisit?.visitDate || '' };
+    });
+
+    const activeActs = selectedTrackerAttendee === 'Everyone'
+      ? allActivities
+      : allActivities.filter(a => parseAttendees(a.riders).includes(selectedTrackerAttendee));
+
     const compiled = hhnHouses.map(house => {
-      const houseActivities = allActivities.filter(a => a.rideName === house);
-      const timesRidden = houseActivities.length;
-      const totalWait = houseActivities.reduce((sum, a) => sum + (a.waitTimeMinutes || 0), 0);
+      const houseActs = activeActs.filter(a => a.rideName === house);
+      const timesRidden = houseActs.length;
+      const totalWait = houseActs.reduce((sum, a) => sum + (Number(a.waitTimeMinutes) || 0), 0);
       const avgWait = timesRidden > 0 ? Math.round(totalWait / timesRidden) : 0;
+
+      const postedList = houseActs.map(a => parsePosted(a.notes)).filter((p): p is number => p !== null);
+      const avgPosted = postedList.length > 0 ? Math.round(postedList.reduce((s, p) => s + p, 0) / postedList.length) : 0;
 
       let scareRating = 0;
       let coolRating = 0;
       let overallRating = 0;
 
       if (getHouseAverages) {
-        const avgs = getHouseAverages(house, allHouseRatings, 'Everyone');
+        const avgs = getHouseAverages(house, allHouseRatings, selectedTrackerAttendee);
         if (avgs) {
           scareRating = Number(avgs.scare) || 0;
           coolRating = Number(avgs.cool) || 0;
@@ -218,18 +297,64 @@ const topHousesRanked = useMemo(() => {
         name: house,
         timesRidden,
         avgWait,
+        totalWait,
+        avgPosted,
         scareRating,
         coolRating,
         overallRating
       };
     });
 
-    const scareTop = [...compiled].filter(h => h.scareRating > 0).sort((a, b) => b.scareRating - a.scareRating || b.timesRidden - a.timesRidden).slice(0, 10);
-    const coolTop = [...compiled].filter(h => h.coolRating > 0).sort((a, b) => b.coolRating - a.coolRating || b.timesRidden - a.timesRidden).slice(0, 10);
-    const overallTop = [...compiled].filter(h => h.overallRating > 0).sort((a, b) => b.overallRating - a.overallRating || b.timesRidden - a.timesRidden).slice(0, 10);
+    // Individual House Activity Wait records
+    const houseIndividualActs = activeActs.filter(a => hhnHouses.includes(a.rideName));
+    const longestIndividual = [...houseIndividualActs].sort((a, b) => (Number(b.waitTimeMinutes) || 0) - (Number(a.waitTimeMinutes) || 0));
+    const shortestIndividual = [...houseIndividualActs].filter(a => (Number(a.waitTimeMinutes) || 0) > 0).sort((a, b) => (Number(a.waitTimeMinutes) || 0) - (Number(b.waitTimeMinutes) || 0));
 
-    return { scare: scareTop, cool: coolTop, overall: overallTop };
-  }, [hhnHouses, visits, allHouseRatings, getHouseAverages]);
+    return {
+      scare: [...compiled].filter(h => h.scareRating > 0).sort((a, b) => b.scareRating - a.scareRating || b.timesRidden - a.timesRidden),
+      cool: [...compiled].filter(h => h.coolRating > 0).sort((a, b) => b.coolRating - a.coolRating || b.timesRidden - a.timesRidden),
+      overall: [...compiled].filter(h => h.overallRating > 0).sort((a, b) => b.overallRating - a.overallRating || b.timesRidden - a.timesRidden),
+      visits: [...compiled].sort((a, b) => b.timesRidden - a.timesRidden || b.totalWait - a.totalWait),
+      avgWait: [...compiled].filter(h => h.timesRidden > 0).sort((a, b) => b.avgWait - a.avgWait),
+      totalWait: [...compiled].filter(h => h.timesRidden > 0).sort((a, b) => b.totalWait - a.totalWait),
+      avgPosted: [...compiled].filter(h => h.avgPosted > 0).sort((a, b) => b.avgPosted - a.avgPosted),
+      longestIndividual,
+      shortestIndividual
+    };
+  }, [visits, hhnHouses, selectedTrackerAttendee, allHouseRatings, getHouseAverages]);
+
+  // 3. RIDES RANKED CHARTS (Filtered by attendee pill)
+  const filteredRideStats = useMemo(() => {
+    const allActivities = visits.flatMap(v => v.activities || []);
+    const activeActs = selectedTrackerAttendee === 'Everyone'
+      ? allActivities
+      : allActivities.filter(a => parseAttendees(a.riders).includes(selectedTrackerAttendee));
+
+    const compiled = hhnRides.map(ride => {
+      const rideActs = activeActs.filter(a => a.rideName === ride);
+      const timesRidden = rideActs.length;
+      const totalWait = rideActs.reduce((sum, a) => sum + (Number(a.waitTimeMinutes) || 0), 0);
+      const avgWait = timesRidden > 0 ? Math.round(totalWait / timesRidden) : 0;
+
+      const postedList = rideActs.map(a => parsePosted(a.notes)).filter((p): p is number => p !== null);
+      const avgPosted = postedList.length > 0 ? Math.round(postedList.reduce((s, p) => s + p, 0) / postedList.length) : 0;
+
+      return {
+        name: ride,
+        timesRidden,
+        avgWait,
+        totalWait,
+        avgPosted
+      };
+    });
+
+    return {
+      visits: [...compiled].sort((a, b) => b.timesRidden - a.timesRidden || b.totalWait - a.totalWait),
+      avgWait: [...compiled].filter(r => r.timesRidden > 0).sort((a, b) => b.avgWait - a.avgWait),
+      totalWait: [...compiled].filter(r => r.timesRidden > 0).sort((a, b) => b.totalWait - a.totalWait),
+      avgPosted: [...compiled].filter(r => r.avgPosted > 0).sort((a, b) => b.avgPosted - a.avgPosted)
+    };
+  }, [visits, hhnRides, selectedTrackerAttendee]);
 
   return (
     <div>
@@ -575,6 +700,28 @@ const topHousesRanked = useMemo(() => {
             </div>
           </div>
 
+          {/* SHARED ATTENDEE FILTER PILL SELECTOR */}
+          <div style={{ background: 'rgba(18, 18, 26, 0.85)', padding: '12px 14px', borderRadius: '18px', border: '1px solid #2A2A3C', marginBottom: '16px', backdropFilter: 'blur(8px)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', letterSpacing: '0.8px' }}>FILTER CHARTS BY ATTENDEE:</label>
+              {selectedTrackerAttendee !== 'Everyone' && (
+                <button onClick={() => setSelectedTrackerAttendee('Everyone')} style={{ background: 'none', border: 'none', color: '#FF5500', fontSize: '11px', fontWeight: '800', cursor: 'pointer', padding: 0 }}>
+                  Reset to Everyone ✕
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+              {['Everyone', ...familyMembers].map(name => {
+                const isSelected = selectedTrackerAttendee === name;
+                return (
+                  <button key={name} type="button" onClick={() => setSelectedTrackerAttendee(name)} style={{ padding: '8px 2px', borderRadius: '10px', border: isSelected ? '2px solid #FF5500' : '1px solid #2A2A3C', background: isSelected ? '#FF5500' : '#1A1A26', color: isSelected ? '#FFF' : '#CBD5E0', fontSize: '11px', fontWeight: '800', cursor: 'pointer' }}>
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* TOTALS & SUMMARY STATS WIDGET */}
           <div style={{ background: 'rgba(18, 18, 26, 0.85)', borderRadius: '24px', padding: '18px', marginBottom: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', border: '1px solid #2A2A3C', backdropFilter: 'blur(8px)' }}>
             <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: '0 0 12px 0', letterSpacing: '0.8px' }}>TOTALS</h3>
@@ -613,82 +760,312 @@ const topHousesRanked = useMemo(() => {
               </div>
             </div>
 
-            {/* TOP 3 SCARIEST HOUSES */}
+            {/* --- SECTION 1: ATTENDEE RANKINGS (ALWAYS SHOWS EVERYONE) --- */}
+            <div style={{ fontSize: '12px', fontWeight: '900', color: '#FF5500', margin: '20px 0 10px 0', letterSpacing: '1px', textTransform: 'uppercase' }}>
+              🏆 ATTENDEE LEADERBOARDS
+            </div>
+
+            {/* MOST NIGHTS AT HHN */}
+            <div style={{ background: '#1C130D', padding: '12px 15px', borderRadius: '14px', border: '1px solid #C05621', borderLeft: '5px solid #FF5500', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#FF9A56', marginBottom: '8px', letterSpacing: '0.5px' }}>🌙 MOST NIGHTS AT HHN</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {attendeeLeaderboards.mostNights.map((item, i) => (
+                  <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {item.name}</div>
+                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#FF5500' }}>{item.nights} {item.nights === 1 ? 'Night' : 'Nights'}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* MOST HOUSES */}
+            <div style={{ background: '#1C1215', padding: '12px 15px', borderRadius: '14px', border: '1px solid #7F1D1D', borderLeft: '5px solid #EF4444', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#EF4444', marginBottom: '8px', letterSpacing: '0.5px' }}>🏚️ MOST HOUSES COMPLETED</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {attendeeLeaderboards.mostHouses.map((item, i) => (
+                  <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {item.name}</div>
+                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#EF4444' }}>{item.houses}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* MOST RIDES */}
+            <div style={{ background: '#0D1726', padding: '12px 15px', borderRadius: '14px', border: '1px solid #1E40AF', borderLeft: '5px solid #3B82F6', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#60A5FA', marginBottom: '8px', letterSpacing: '0.5px' }}>🎢 MOST RIDES COMPLETED</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {attendeeLeaderboards.mostRides.map((item, i) => (
+                  <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {item.name}</div>
+                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#3B82F6' }}>{item.rides}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* MOST HOURS IN PARK */}
+            <div style={{ background: '#151326', padding: '12px 15px', borderRadius: '14px', border: '1px solid #5B21B6', borderLeft: '5px solid #8B5CF6', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#A78BFA', marginBottom: '8px', letterSpacing: '0.5px' }}>⏱️ MOST HOURS IN THE PARK</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {attendeeLeaderboards.mostParkTime.map((item, i) => (
+                  <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {item.name}</div>
+                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#A78BFA' }}>{formatMinutes(item.parkMins)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* MOST TIME IN LINE */}
+            <div style={{ background: '#1B140D', padding: '12px 15px', borderRadius: '14px', border: '1px solid #9A3412', borderLeft: '5px solid #F97316', marginBottom: '24px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#FB923C', marginBottom: '8px', letterSpacing: '0.5px' }}>⏳ MOST TIME SPENT IN LINE</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {attendeeLeaderboards.mostLineTime.map((item, i) => (
+                  <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {item.name}</div>
+                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#F97316' }}>{formatMinutes(item.lineMins)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* --- SECTION 2: HOUSE RANKINGS --- */}
+            <div style={{ fontSize: '12px', fontWeight: '900', color: '#EF4444', margin: '20px 0 10px 0', letterSpacing: '1px', textTransform: 'uppercase' }}>
+              🏚️ HOUSE RANKINGS {selectedTrackerAttendee !== 'Everyone' ? `(${selectedTrackerAttendee})` : ''}
+            </div>
+
+            {/* SCARIEST HOUSES */}
             <div style={{ background: '#1C1215', padding: '12px 15px', borderRadius: '14px', border: '1px solid #7F1D1D', borderLeft: '5px solid #EF4444', marginBottom: '10px' }}>
               <div style={{ fontSize: '11px', fontWeight: '900', color: '#EF4444', marginBottom: '6px', letterSpacing: '0.5px' }}>😱 SCARIEST HOUSES</div>
-              {topHousesRanked.scare.length === 0 ? (
+              {filteredHouseStats.scare.length === 0 ? (
                 <div style={{ fontSize: '12px', color: '#A0AEC0', fontStyle: 'italic' }}>No ratings logged yet</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {topHousesRanked.scare.map((h, i) => (
+                  {filteredHouseStats.scare.map((h, i) => (
                     <div key={h.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>
-                          #{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#A0AEC0' }}>
-                          Ridden <strong>{h.timesRidden}x</strong> • Avg Wait: <strong>{h.avgWait}m</strong>
-                        </div>
+                        <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}</div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0' }}>Ridden <strong>{h.timesRidden}x</strong> • Avg Wait: <strong>{h.avgWait}m</strong></div>
                       </div>
-                      <div style={{ fontSize: '18px', fontWeight: '900', color: '#EF4444' }}>
-                        {h.scareRating.toFixed(1)}
-                      </div>
+                      <div style={{ fontSize: '18px', fontWeight: '900', color: '#EF4444' }}>{h.scareRating.toFixed(1)}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* TOP 3 COOLEST HOUSES */}
+            {/* COOLEST HOUSES */}
             <div style={{ background: '#0D1726', padding: '12px 15px', borderRadius: '14px', border: '1px solid #1E40AF', borderLeft: '5px solid #3B82F6', marginBottom: '10px' }}>
               <div style={{ fontSize: '11px', fontWeight: '900', color: '#60A5FA', marginBottom: '6px', letterSpacing: '0.5px' }}>😎 COOLEST HOUSES</div>
-              {topHousesRanked.cool.length === 0 ? (
+              {filteredHouseStats.cool.length === 0 ? (
                 <div style={{ fontSize: '12px', color: '#A0AEC0', fontStyle: 'italic' }}>No ratings logged yet</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {topHousesRanked.cool.map((h, i) => (
+                  {filteredHouseStats.cool.map((h, i) => (
                     <div key={h.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>
-                          #{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#A0AEC0' }}>
-                          Ridden <strong>{h.timesRidden}x</strong> • Avg Wait: <strong>{h.avgWait}m</strong>
-                        </div>
+                        <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}</div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0' }}>Ridden <strong>{h.timesRidden}x</strong> • Avg Wait: <strong>{h.avgWait}m</strong></div>
                       </div>
-                      <div style={{ fontSize: '18px', fontWeight: '900', color: '#3B82F6' }}>
-                        {h.coolRating.toFixed(1)}
-                      </div>
+                      <div style={{ fontSize: '18px', fontWeight: '900', color: '#3B82F6' }}>{h.coolRating.toFixed(1)}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* TOP 3 OVERALL HOUSES */}
-            <div style={{ background: '#1C130D', padding: '12px 15px', borderRadius: '14px', border: '1px solid #C05621', borderLeft: '5px solid #FF5500', marginBottom: '18px' }}>
+            {/* OVERALL BEST HOUSES */}
+            <div style={{ background: '#1C130D', padding: '12px 15px', borderRadius: '14px', border: '1px solid #C05621', borderLeft: '5px solid #FF5500', marginBottom: '10px' }}>
               <div style={{ fontSize: '11px', fontWeight: '900', color: '#FF9A56', marginBottom: '6px', letterSpacing: '0.5px' }}>⭐ OVERALL BEST HOUSES</div>
-              {topHousesRanked.overall.length === 0 ? (
+              {filteredHouseStats.overall.length === 0 ? (
                 <div style={{ fontSize: '12px', color: '#A0AEC0', fontStyle: 'italic' }}>No ratings logged yet</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {topHousesRanked.overall.map((h, i) => (
+                  {filteredHouseStats.overall.map((h, i) => (
                     <div key={h.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>
-                          #{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#A0AEC0' }}>
-                          Ridden <strong>{h.timesRidden}x</strong> • Avg Wait: <strong>{h.avgWait}m</strong>
-                        </div>
+                        <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}</div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0' }}>Ridden <strong>{h.timesRidden}x</strong> • Avg Wait: <strong>{h.avgWait}m</strong></div>
                       </div>
-                      <div style={{ fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>
-                        {h.overallRating.toFixed(1)}
-                      </div>
+                      <div style={{ fontSize: '18px', fontWeight: '900', color: '#FF5500' }}>{h.overallRating.toFixed(1)}</div>
                     </div>
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* MOST VISITED HOUSES */}
+            <div style={{ background: '#1A1826', padding: '12px 15px', borderRadius: '14px', border: '1px solid #4C1D95', borderLeft: '5px solid #7C3AED', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#A78BFA', marginBottom: '6px', letterSpacing: '0.5px' }}>🎟️ MOST VISITED HOUSES</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {filteredHouseStats.visits.map((h, i) => (
+                  <div key={h.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}</div>
+                      <div style={{ fontSize: '11px', color: '#A0AEC0' }}>Avg Wait: <strong>{h.avgWait}m</strong> • Total: <strong>{formatMinutes(h.totalWait)}</strong></div>
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#7C3AED' }}>{h.timesRidden}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* AVERAGE WAIT TIME (HOUSES) */}
+            <div style={{ background: '#0D1D1C', padding: '12px 15px', borderRadius: '14px', border: '1px solid #115E59', borderLeft: '5px solid #14B8A6', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#2DD4BF', marginBottom: '6px', letterSpacing: '0.5px' }}>⏱️ AVERAGE WAIT TIME (HOUSES)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {filteredHouseStats.avgWait.map((h, i) => (
+                  <div key={h.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}</div>
+                      <div style={{ fontSize: '11px', color: '#A0AEC0' }}>Ridden <strong>{h.timesRidden}x</strong> • Total: <strong>{formatMinutes(h.totalWait)}</strong></div>
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#14B8A6' }}>{h.avgWait}m</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* TOTAL WAIT TIME (HOUSES) */}
+            <div style={{ background: '#1F1123', padding: '12px 15px', borderRadius: '14px', border: '1px solid #701A75', borderLeft: '5px solid #D946EF', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#E879F9', marginBottom: '6px', letterSpacing: '0.5px' }}>⏳ TOTAL TIME IN LINE (HOUSES)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {filteredHouseStats.totalWait.map((h, i) => (
+                  <div key={h.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}</div>
+                      <div style={{ fontSize: '11px', color: '#A0AEC0' }}>Ridden <strong>{h.timesRidden}x</strong> • Avg Wait: <strong>{h.avgWait}m</strong></div>
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#D946EF' }}>{formatMinutes(h.totalWait)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* AVERAGE POSTED WAIT (HOUSES) */}
+            <div style={{ background: '#1D1A10', padding: '12px 15px', borderRadius: '14px', border: '1px solid #854D0E', borderLeft: '5px solid #EAB308', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#FACC15', marginBottom: '6px', letterSpacing: '0.5px' }}>📋 AVERAGE POSTED WAIT (HOUSES)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {filteredHouseStats.avgPosted.map((h, i) => (
+                  <div key={h.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[h.name] || '🏚️'} {h.name}</div>
+                      <div style={{ fontSize: '11px', color: '#A0AEC0' }}>Actual Avg: <strong>{h.avgWait}m</strong> • Difference: <strong style={{ color: h.avgWait <= h.avgPosted ? '#22C55E' : '#EF4444' }}>{h.avgWait - h.avgPosted >= 0 ? `+${h.avgWait - h.avgPosted}m` : `${h.avgWait - h.avgPosted}m`}</strong></div>
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#EAB308' }}>{h.avgPosted}m</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* LONGEST INDIVIDUAL WAIT TIMES (HOUSES) */}
+            <div style={{ background: '#1C1215', padding: '12px 15px', borderRadius: '14px', border: '1px solid #7F1D1D', borderLeft: '5px solid #EF4444', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#EF4444', marginBottom: '6px', letterSpacing: '0.5px' }}>🔥 LONGEST INDIVIDUAL WAITS (HOUSES)</div>
+              {filteredHouseStats.longestIndividual.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#A0AEC0', fontStyle: 'italic' }}>No visits logged</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {filteredHouseStats.longestIndividual.slice(0, 10).map((act, i) => (
+                    <div key={act.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[act.rideName] || '🏚️'} {act.rideName}</div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0' }}>{formatDisplayDate(act.visitDate)} • {parseAttendees(act.riders).join(', ')}</div>
+                      </div>
+                      <div style={{ fontSize: '18px', fontWeight: '900', color: '#EF4444' }}>{act.waitTimeMinutes}m</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* SHORTEST INDIVIDUAL WAIT TIMES (HOUSES) */}
+            <div style={{ background: '#0D1E15', padding: '12px 15px', borderRadius: '14px', border: '1px solid #14532D', borderLeft: '5px solid #22C55E', marginBottom: '24px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#4ADE80', marginBottom: '6px', letterSpacing: '0.5px' }}>⚡ SHORTEST INDIVIDUAL WAITS (HOUSES)</div>
+              {filteredHouseStats.shortestIndividual.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#A0AEC0', fontStyle: 'italic' }}>No visits logged</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {filteredHouseStats.shortestIndividual.slice(0, 10).map((act, i) => (
+                    <div key={act.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[act.rideName] || '🏚️'} {act.rideName}</div>
+                        <div style={{ fontSize: '11px', color: '#A0AEC0' }}>{formatDisplayDate(act.visitDate)} • {parseAttendees(act.riders).join(', ')}</div>
+                      </div>
+                      <div style={{ fontSize: '18px', fontWeight: '900', color: '#22C55E' }}>{act.waitTimeMinutes}m</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* --- SECTION 3: RIDE RANKINGS --- */}
+            <div style={{ fontSize: '12px', fontWeight: '900', color: '#3B82F6', margin: '20px 0 10px 0', letterSpacing: '1px', textTransform: 'uppercase' }}>
+              🎢 RIDE RANKINGS {selectedTrackerAttendee !== 'Everyone' ? `(${selectedTrackerAttendee})` : ''}
+            </div>
+
+            {/* MOST VISITED RIDES */}
+            <div style={{ background: '#0D1726', padding: '12px 15px', borderRadius: '14px', border: '1px solid #1E40AF', borderLeft: '5px solid #3B82F6', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#60A5FA', marginBottom: '6px', letterSpacing: '0.5px' }}>🎟️ MOST VISITED RIDES</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {filteredRideStats.visits.map((r, i) => (
+                  <div key={r.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[r.name] || '🎢'} {r.name}</div>
+                      <div style={{ fontSize: '11px', color: '#A0AEC0' }}>Avg Wait: <strong>{r.avgWait}m</strong> • Total: <strong>{formatMinutes(r.totalWait)}</strong></div>
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#3B82F6' }}>{r.timesRidden}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* AVERAGE WAIT TIME (RIDES) */}
+            <div style={{ background: '#0D1D1C', padding: '12px 15px', borderRadius: '14px', border: '1px solid #115E59', borderLeft: '5px solid #14B8A6', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#2DD4BF', marginBottom: '6px', letterSpacing: '0.5px' }}>⏱️ AVERAGE WAIT TIME (RIDES)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {filteredRideStats.avgWait.map((r, i) => (
+                  <div key={r.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[r.name] || '🎢'} {r.name}</div>
+                      <div style={{ fontSize: '11px', color: '#A0AEC0' }}>Ridden <strong>{r.timesRidden}x</strong> • Total: <strong>{formatMinutes(r.totalWait)}</strong></div>
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#14B8A6' }}>{r.avgWait}m</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* TOTAL WAIT TIME (RIDES) */}
+            <div style={{ background: '#1F1123', padding: '12px 15px', borderRadius: '14px', border: '1px solid #701A75', borderLeft: '5px solid #D946EF', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#E879F9', marginBottom: '6px', letterSpacing: '0.5px' }}>⏳ TOTAL TIME IN LINE (RIDES)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {filteredRideStats.totalWait.map((r, i) => (
+                  <div key={r.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[r.name] || '🎢'} {r.name}</div>
+                      <div style={{ fontSize: '11px', color: '#A0AEC0' }}>Ridden <strong>{r.timesRidden}x</strong> • Avg Wait: <strong>{r.avgWait}m</strong></div>
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#D946EF' }}>{formatMinutes(r.totalWait)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* AVERAGE POSTED WAIT (RIDES) */}
+            <div style={{ background: '#1D1A10', padding: '12px 15px', borderRadius: '14px', border: '1px solid #854D0E', borderLeft: '5px solid #EAB308', marginBottom: '18px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#FACC15', marginBottom: '6px', letterSpacing: '0.5px' }}>📋 AVERAGE POSTED WAIT (RIDES)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {filteredRideStats.avgPosted.map((r, i) => (
+                  <div key={r.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: '800', color: '#F3F4F6', fontSize: '13px' }}>#{i + 1} {itemEmojis[r.name] || '🎢'} {r.name}</div>
+                      <div style={{ fontSize: '11px', color: '#A0AEC0' }}>Actual Avg: <strong>{r.avgWait}m</strong> • Difference: <strong style={{ color: r.avgWait <= r.avgPosted ? '#22C55E' : '#EF4444' }}>{r.avgWait - r.avgPosted >= 0 ? `+${r.avgWait - r.avgPosted}m` : `${r.avgWait - r.avgPosted}m`}</strong></div>
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#EAB308' }}>{r.avgPosted}m</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#A0AEC0', margin: '0 0 10px 0', letterSpacing: '0.8px' }}>AVERAGES</h3>
